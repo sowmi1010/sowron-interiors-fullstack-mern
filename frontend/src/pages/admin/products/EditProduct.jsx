@@ -28,19 +28,14 @@ export default function EditProduct() {
     setCategories(res.data);
   };
 
-  /* 🔄 Load product */
+  /* 🔄 Load SINGLE product (FIXED) */
   const loadProduct = async () => {
-    const res = await api.get("/products");
-    const product = res.data.find((p) => p._id === id);
-
-    if (!product) {
-      toast.error("Product not found");
-      return navigate("/admin/products");
-    }
+    const res = await api.get(`/products/${id}`);
+    const product = res.data;
 
     setForm({
       title: product.title,
-      description: product.description,
+      description: product.description || "",
       category: product.category?._id || "",
       subCategory: product.subCategory || "",
       price: product.price,
@@ -50,18 +45,28 @@ export default function EditProduct() {
   };
 
   useEffect(() => {
-    Promise.all([loadCategories(), loadProduct()]).finally(() =>
-      setLoading(false)
-    );
+    Promise.all([loadCategories(), loadProduct()])
+      .catch(() => {
+        toast.error("Failed to load product");
+        navigate("/admin/products");
+      })
+      .finally(() => setLoading(false));
+
+    return () => {
+      preview.forEach((url) => URL.revokeObjectURL(url));
+    };
   }, []);
 
   const selectedCategory = categories.find(
     (c) => c._id === form.category
   );
 
-  /* 📸 New images preview */
+  /* 📸 New image preview (MEMORY SAFE) */
   const handleImages = (e) => {
     const files = Array.from(e.target.files);
+
+    preview.forEach((url) => URL.revokeObjectURL(url));
+
     setNewImages(files);
     setPreview(files.map((f) => URL.createObjectURL(f)));
   };
@@ -72,15 +77,22 @@ export default function EditProduct() {
 
     try {
       const data = new FormData();
-      Object.keys(form).forEach((k) => data.append(k, form[k]));
+
+      data.append("title", form.title.trim());
+      data.append("description", form.description.trim());
+      data.append("category", form.category);
+      data.append("subCategory", form.subCategory);
+      data.append("price", Number(form.price));
+
       newImages.forEach((img) => data.append("images", img));
 
-      await api.put(`/products/${id}`, data);
+      await api.put(`/products/${id}`, data, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-      toast.success("Product updated");
+      toast.success("Product updated successfully");
       navigate("/admin/products");
     } catch (err) {
-      console.error("Update error:", err);
       toast.error(err.response?.data?.message || "Update failed");
     }
   };
@@ -180,7 +192,8 @@ export default function EditProduct() {
               {existingImages.map((img, i) => (
                 <img
                   key={i}
-                  src={img.url}   // ✅ Cloudinary URL
+                  src={img.url}
+                  alt="Product"
                   className="h-24 object-cover rounded border"
                 />
               ))}

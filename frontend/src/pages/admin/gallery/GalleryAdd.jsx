@@ -10,48 +10,63 @@ export default function GalleryAdd() {
 
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
-  const [categories, setCategories] = useState([]); // ✅ DB categories
+  const [categories, setCategories] = useState([]);
   const [files, setFiles] = useState([]);
   const [preview, setPreview] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  /* 🔄 LOAD CATEGORIES (ADMIN CREATED) */
+  /* 🔄 LOAD CATEGORIES */
   useEffect(() => {
     api
       .get("/categories")
       .then((res) => setCategories(res.data))
       .catch(() => toast.error("Failed to load categories"));
+
+    return () => {
+      // 🧹 CLEAN PREVIEW MEMORY
+      preview.forEach((url) => URL.revokeObjectURL(url));
+    };
   }, []);
 
-  /* IMAGE PICK */
+  /* 📸 IMAGE PICK (MEMORY SAFE) */
   const handleFiles = (e) => {
     const selected = Array.from(e.target.files);
+
+    preview.forEach((url) => URL.revokeObjectURL(url));
+
     setFiles(selected);
     setPreview(selected.map((f) => URL.createObjectURL(f)));
   };
 
-  /* SUBMIT */
+  /* ❌ REMOVE SELECTED IMAGE */
+  const removeImage = (index) => {
+    URL.revokeObjectURL(preview[index]);
+
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+    setPreview((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  /* ➕ SUBMIT */
   const submitHandler = async (e) => {
     e.preventDefault();
 
-    if (!title || !category || files.length === 0) {
-      return toast.error("All fields are required");
+    if (!title.trim() || !category || files.length === 0) {
+      return toast.error("Title, category & images are required");
     }
 
     try {
       setLoading(true);
 
       const fd = new FormData();
-      fd.append("title", title);
-      fd.append("category", category);
-      files.forEach((file) => fd.append("images", file)); // 🔥 backend match
+      fd.append("title", title.trim());
+      fd.append("category", category); // must match backend
+      files.forEach((file) => fd.append("images", file));
 
-      await api.post("/gallery/add", fd); // ✅ no manual headers
+      await api.post("/gallery/add", fd);
 
-      toast.success("Gallery item added ✔");
+      toast.success("Gallery item added successfully");
       navigate("/admin/gallery");
     } catch (err) {
-      console.error("Gallery add error:", err);
       toast.error(err.response?.data?.message || "Upload failed");
     } finally {
       setLoading(false);
@@ -82,7 +97,7 @@ export default function GalleryAdd() {
             onChange={(e) => setTitle(e.target.value)}
           />
 
-          {/* CATEGORY – FROM DB */}
+          {/* CATEGORY */}
           <select
             className="bg-[#1a1a1a] border border-[#333] p-3 rounded w-full"
             value={category}
@@ -116,18 +131,12 @@ export default function GalleryAdd() {
                 <div key={i} className="relative group">
                   <img
                     src={src}
+                    alt="Preview"
                     className="rounded h-24 w-full object-cover"
                   />
                   <button
                     type="button"
-                    onClick={() => {
-                      setFiles((prev) =>
-                        prev.filter((_, idx) => idx !== i)
-                      );
-                      setPreview((prev) =>
-                        prev.filter((_, idx) => idx !== i)
-                      );
-                    }}
+                    onClick={() => removeImage(i)}
                     className="absolute top-1 right-1 bg-black/60
                                text-white p-1 rounded opacity-0
                                group-hover:opacity-100 transition"
@@ -144,7 +153,7 @@ export default function GalleryAdd() {
             type="submit"
             disabled={loading}
             className="bg-[#ff6b00] w-full py-3 rounded
-                       text-black font-semibold"
+                       text-black font-semibold disabled:opacity-70"
           >
             {loading ? "Uploading..." : "Save Gallery"}
           </button>

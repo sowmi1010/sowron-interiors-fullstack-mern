@@ -6,6 +6,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Upload } from "lucide-react";
 import { Helmet } from "react-helmet";
 
+const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
 export default function PortfolioEdit() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -14,14 +16,15 @@ export default function PortfolioEdit() {
     title: "",
     location: "",
     description: "",
+    video: "",
   });
 
-  const [oldImages, setOldImages] = useState([]); // 🔥 cloudinary images
+  const [oldImages, setOldImages] = useState([]);
   const [newFiles, setNewFiles] = useState([]);
   const [preview, setPreview] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  /* ================= LOAD PORTFOLIO ================= */
+  /* ================= LOAD ================= */
   useEffect(() => {
     api
       .get(`/portfolio/${id}`)
@@ -30,32 +33,41 @@ export default function PortfolioEdit() {
           title: res.data.title || "",
           location: res.data.location || "",
           description: res.data.description || "",
+          video: res.data.video || "",
         });
-
-        setOldImages(res.data.images || []); // 🔥 [{url, public_id}]
+        setOldImages(res.data.images || []);
       })
-      .catch(() => {
-        toast.error("Failed to load portfolio");
-      });
+      .catch(() => toast.error("Failed to load portfolio"));
   }, [id]);
 
   /* ================= IMAGE PICK ================= */
   const handleFiles = (e) => {
     const selected = Array.from(e.target.files);
+
+    for (const file of selected) {
+      if (!file.type.startsWith("image/")) {
+        return toast.error("Only image files allowed");
+      }
+      if (file.size > MAX_SIZE) {
+        return toast.error("Each image must be under 5MB");
+      }
+    }
+
     setNewFiles(selected);
     setPreview(selected.map((f) => URL.createObjectURL(f)));
   };
 
-  /* CLEAN PREVIEW MEMORY */
+  /* 🔥 CLEAN PREVIEW MEMORY */
   useEffect(() => {
     return () => {
-      preview.forEach((p) => URL.revokeObjectURL(p));
+      preview.forEach((url) => URL.revokeObjectURL(url));
     };
   }, [preview]);
 
   /* ================= SAVE ================= */
   const save = async (e) => {
     e.preventDefault();
+    if (loading) return;
 
     if (!form.title.trim()) {
       return toast.error("Title is required");
@@ -65,22 +77,21 @@ export default function PortfolioEdit() {
       setLoading(true);
 
       const fd = new FormData();
-      fd.append("title", form.title);
-      fd.append("location", form.location);
-      fd.append("description", form.description);
+      fd.append("title", form.title.trim());
+      fd.append("location", form.location.trim());
+      fd.append("description", form.description.trim());
+      if (form.video) fd.append("video", form.video);
 
-      // 🔥 only append if new images selected
+      // 🔥 Replace images only if new ones selected
       newFiles.forEach((file) => fd.append("images", file));
 
-      await api.put(`/portfolio/update/${id}`, fd);
+      await api.put(`/portfolio/${id}`, fd);
 
       toast.success("Portfolio updated ✔");
       navigate("/admin/portfolio");
     } catch (err) {
       console.error("PORTFOLIO UPDATE ERROR:", err);
-      toast.error(
-        err.response?.data?.message || "Update failed"
-      );
+      toast.error(err.response?.data?.message || "Update failed");
     } finally {
       setLoading(false);
     }
@@ -92,7 +103,10 @@ export default function PortfolioEdit() {
         <title>Edit Portfolio</title>
       </Helmet>
 
-      <div className="w-full max-w-3xl bg-[#141414] border border-[#262626] rounded-xl p-8">
+      <div className="w-full max-w-3xl bg-[#141414]
+                      border border-[#262626]
+                      rounded-xl p-8">
+
         <h2 className="text-2xl font-bold text-[#ff6b00] mb-6">
           Edit Portfolio
         </h2>
@@ -104,7 +118,8 @@ export default function PortfolioEdit() {
               setForm({ ...form, title: e.target.value })
             }
             placeholder="Project Title"
-            className="w-full bg-[#1a1a1a] border border-[#333] p-3 rounded-lg"
+            className="w-full bg-[#1a1a1a] border border-[#333]
+                       p-3 rounded-lg"
           />
 
           <input
@@ -113,7 +128,8 @@ export default function PortfolioEdit() {
               setForm({ ...form, location: e.target.value })
             }
             placeholder="Location"
-            className="w-full bg-[#1a1a1a] border border-[#333] p-3 rounded-lg"
+            className="w-full bg-[#1a1a1a] border border-[#333]
+                       p-3 rounded-lg"
           />
 
           <textarea
@@ -122,27 +138,44 @@ export default function PortfolioEdit() {
             onChange={(e) =>
               setForm({ ...form, description: e.target.value })
             }
-            className="w-full bg-[#1a1a1a] border border-[#333] p-3 rounded-lg resize-none"
+            placeholder="Description"
+            className="w-full bg-[#1a1a1a] border border-[#333]
+                       p-3 rounded-lg resize-none"
           />
 
-          {/* ================= OLD IMAGES (CLOUDINARY) ================= */}
-          <p className="text-gray-400">Current Images</p>
-          <div className="grid grid-cols-4 gap-2">
-            {oldImages.map((img) => (
-              <img
-                key={img.public_id}
-                src={img.url}
-                alt="portfolio"
-                className="h-20 object-cover rounded border"
-              />
-            ))}
-          </div>
+          <input
+            value={form.video}
+            onChange={(e) =>
+              setForm({ ...form, video: e.target.value })
+            }
+            placeholder="Video URL (optional)"
+            className="w-full bg-[#1a1a1a] border border-[#333]
+                       p-3 rounded-lg"
+          />
+
+          {/* ================= OLD IMAGES ================= */}
+          {oldImages.length > 0 && (
+            <>
+              <p className="text-gray-400">Current Images</p>
+              <div className="grid grid-cols-4 gap-2">
+                {oldImages.map((img) => (
+                  <img
+                    key={img.public_id}
+                    src={img.url}
+                    alt="portfolio"
+                    className="h-20 object-cover rounded border"
+                  />
+                ))}
+              </div>
+            </>
+          )}
 
           {/* ================= NEW UPLOAD ================= */}
           <label className="border border-[#333] rounded-lg p-4
-                            flex flex-col items-center gap-2 cursor-pointer">
+                            flex flex-col items-center gap-2
+                            cursor-pointer">
             <Upload size={20} />
-            Upload New Images
+            Replace Images (optional)
             <input
               type="file"
               multiple
@@ -169,7 +202,8 @@ export default function PortfolioEdit() {
             disabled={loading}
             type="submit"
             className="w-full bg-[#ff6b00] py-3 rounded-lg
-                       text-black font-semibold hover:bg-[#ff7b13]
+                       text-black font-semibold
+                       hover:bg-[#ff7b13]
                        disabled:opacity-50"
           >
             {loading ? "Saving..." : "Save Changes"}

@@ -1,8 +1,14 @@
+import mongoose from "mongoose";
 import Feedback from "../models/Feedback.js";
-import cloudinary from "../config/cloudinary.js";
+import { deleteImage } from "../services/cloudinary.service.js";
 
 /* ================= ADD FEEDBACK ================= */
 export const addFeedback = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  let uploadedPhoto = null;
+
   try {
     const { name, city, rating, message } = req.body;
 
@@ -19,25 +25,42 @@ export const addFeedback = async (req, res) => {
       });
     }
 
-    const photo = req.file
-      ? {
-          url: req.file.path,
-          public_id: req.file.filename,
-        }
-      : null;
+    if (req.file) {
+      uploadedPhoto = {
+        url: req.file.path,
+        public_id: req.file.filename,
+      };
+    }
 
-    const fb = await Feedback.create({
-      name: name.trim(),
-      city: city.trim(),
-      rating: parsedRating,
-      message: message?.trim(),
-      photo,
-    });
+    const [fb] = await Feedback.create(
+      [
+        {
+          name: name.trim(),
+          city: city.trim(),
+          rating: parsedRating,
+          message: message?.trim(),
+          photo: uploadedPhoto,
+        },
+      ],
+      { session }
+    );
+
+    await session.commitTransaction();
+    session.endSession();
 
     res.status(201).json({ success: true, fb });
+
   } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+
+    // 🔥 rollback uploaded image
+    if (uploadedPhoto?.public_id) {
+      await deleteImage(uploadedPhoto.public_id);
+    }
+
     console.error("ADD FEEDBACK ERROR:", err);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: "Feedback creation failed" });
   }
 };
 
@@ -55,18 +78,30 @@ export const getFeedback = async (req, res) => {
 export const getSingleFeedbackById = async (req, res) => {
   try {
     const fb = await Feedback.findById(req.params.id);
-    if (!fb) return res.status(404).json({ message: "Feedback not found" });
+    if (!fb) {
+      return res.status(404).json({
+        message: "Feedback not found",
+      });
+    }
     res.json(fb);
   } catch {
     res.status(500).json({ message: "Server error" });
   }
 };
 
-/* ================= UPDATE (AUTO DELETE OLD IMAGE) ================= */
+/* ================= UPDATE ================= */
 export const updateFeedback = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    const fb = await Feedback.findById(req.params.id);
-    if (!fb) return res.status(404).json({ message: "Feedback not found" });
+    const fb = await Feedback.findById(req.params.id).session(session);
+    if (!fb) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        message: "Feedback not found",
+      });
+    }
 
     if (req.body.name) fb.name = req.body.name.trim();
     if (req.body.city) fb.city = req.body.city.trim();
@@ -74,9 +109,15 @@ export const updateFeedback = async (req, res) => {
     if (req.body.message) fb.message = req.body.message.trim();
 
     if (req.file) {
-      // 🔥 DELETE OLD CLOUDINARY IMAGE
+      // 🔥 delete old image FIRST
       if (fb.photo?.public_id) {
-        await cloudinary.uploader.destroy(fb.photo.public_id);
+        const ok = await deleteImage(fb.photo.public_id);
+        if (!ok) {
+          await session.abortTransaction();
+          return res.status(500).json({
+            message: "Old image delete failed",
+          });
+        }
       }
 
       fb.photo = {
@@ -85,29 +126,59 @@ export const updateFeedback = async (req, res) => {
       };
     }
 
-    await fb.save();
+    await fb.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
     res.json({ success: true, fb });
+
   } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+
     console.error("UPDATE FEEDBACK ERROR:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Update failed" });
   }
 };
 
-/* ================= DELETE (AUTO DELETE IMAGE) ================= */
+/* ================= DELETE ================= */
 export const deleteFeedback = async (req, res) => {
-  try {
-    const fb = await Feedback.findById(req.params.id);
-    if (!fb) return res.status(404).json({ message: "Feedback not found" });
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-    // 🔥 DELETE CLOUDINARY IMAGE
-    if (fb.photo?.public_id) {
-      await cloudinary.uploader.destroy(fb.photo.public_id);
+  try {
+    const fb = await Feedback.findById(req.params.id).session(session);
+    if (!fb) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        message: "Feedback not found",
+      });
     }
 
-    await fb.deleteOne();
+    // 🔥 delete image FIRST
+    if (fb.photo?.public_id) {
+      const ok = await deleteImage(fb.photo.public_id);
+      if (!ok) {
+        await session.abortTransaction();
+        return res.status(500).json({
+          message: "Image delete failed",
+        });
+      }
+    }
+
+    await fb.deleteOne({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
     res.json({ success: true });
+
   } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+
     console.error("DELETE FEEDBACK ERROR:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Delete failed" });
   }
 };

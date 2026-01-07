@@ -1,18 +1,27 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import { api } from "../../lib/api"; // ✅ use shared api
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Filter, Heart } from "lucide-react";
+import { Filter, Heart, Image } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function ProductsPage() {
   const [data, setData] = useState([]);
   const [filter, setFilter] = useState("all");
   const [liked, setLiked] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // 🔄 Load products
+  /* 🔄 Load products */
   const load = async () => {
-    const res = await axios.get("http://localhost:5000/api/products");
-    setData(res.data);
+    try {
+      setLoading(true);
+      const res = await api.get("/products");
+      setData(res.data);
+    } catch {
+      toast.error("Failed to load products");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -20,19 +29,24 @@ export default function ProductsPage() {
     window.scrollTo(0, 0);
   }, []);
 
-  // 🔥 AUTO categories from backend
+  /* 🔥 AUTO categories from backend */
   const categories = [
     "all",
-    ...new Set(data.map((p) => p.category?.name).filter(Boolean)),
+    ...new Set(
+      data
+        .map((p) => p.category?.name)
+        .filter(Boolean)
+    ),
   ];
 
-  // 🔥 AUTO filtering by category name
+  /* 🔥 AUTO filtering */
   const filtered =
     filter === "all"
       ? data
       : data.filter(
           (p) =>
-            p.category?.name?.toLowerCase() === filter.toLowerCase()
+            p.category?.name
+              ?.toLowerCase() === filter.toLowerCase()
         );
 
   const toggleLike = (id) => {
@@ -46,9 +60,13 @@ export default function ProductsPage() {
   return (
     <div className="min-h-screen bg-[#f5f5f7] dark:bg-[#050505] text-gray-800 dark:text-gray-200">
 
-      {/* HERO (UNCHANGED) */}
+      {/* HERO */}
       <section className="relative h-[330px] md:h-[400px] w-full overflow-hidden rounded-b-[40px] shadow-lg">
-        <video autoPlay muted loop playsInline
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
           className="absolute inset-0 w-full h-full object-cover"
           src="/v3.mp4"
         />
@@ -69,7 +87,7 @@ export default function ProductsPage() {
         </motion.div>
       </section>
 
-      {/* FILTERS (AUTO) */}
+      {/* FILTERS */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -97,66 +115,82 @@ export default function ProductsPage() {
       </motion.div>
 
       {/* GRID */}
-      <div className="px-4 md:px-20 pb-24 grid sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-10">
-        {filtered.map((p, index) => (
-          <motion.div
-            key={p._id}
-            initial={{ opacity: 0, y: 35 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-            whileHover={{ scale: 1.03 }}
-            className="group rounded-3xl overflow-hidden bg-white/35 dark:bg-[#1a1a1a]/40 backdrop-blur-xl border shadow-lg"
-          >
-            <div className="relative">
-              <Link to={`/products/${p._id}`}>
-                <motion.img
-                  src={p.images?.[0]?.url}
-                  whileHover={{ scale: 1.15 }}
-                  className="object-cover w-full h-[270px]"
-                />
-              </Link>
+      {loading ? (
+        <p className="text-center py-20 text-gray-400">
+          Loading products…
+        </p>
+      ) : (
+        <div className="px-4 md:px-20 pb-24 grid sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-10">
+          {filtered.map((p, index) => (
+            <motion.div
+              key={p._id}
+              initial={{ opacity: 0, y: 35 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              whileHover={{ scale: 1.03 }}
+              className="group rounded-3xl overflow-hidden bg-white/35 dark:bg-[#1a1a1a]/40 backdrop-blur-xl border shadow-lg"
+            >
+              <div className="relative">
+                <Link to={`/products/${p._id}`}>
+                  {p.images?.[0]?.url ? (
+                    <motion.img
+                      src={p.images[0].url}
+                      alt={p.title}
+                      whileHover={{ scale: 1.15 }}
+                      className="object-cover w-full h-[270px]"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-[270px] bg-gray-200 dark:bg-[#111]">
+                      <Image className="text-gray-400" />
+                    </div>
+                  )}
+                </Link>
 
-              <button
-                onClick={() => toggleLike(p._id)}
-                className="absolute top-3 left-3 bg-white/20 px-2 py-1 rounded-full"
-              >
-                <Heart
-                  size={18}
-                  className={
-                    liked.includes(p._id)
-                      ? "fill-red-500 text-red-500"
-                      : "text-white"
-                  }
-                />
-              </button>
-
-              {/* CATEGORY TAG */}
-              <span className="absolute bottom-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded">
-                {p.category?.name}
-              </span>
-            </div>
-
-            <div className="p-5">
-              <h3 className="font-bold text-xl truncate">{p.title}</h3>
-              <p className="text-sm line-clamp-2">{p.description}</p>
-              <p className="mt-3 font-bold text-xl text-orange-500">
-                ₹ {p.price}
-              </p>
-
-              <Link to={`/products/${p._id}`}>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  className="mt-4 w-full py-2 rounded-xl bg-gradient-to-r from-orange-500 to-yellow-400 text-black font-semibold"
+                <button
+                  onClick={() => toggleLike(p._id)}
+                  className="absolute top-3 left-3 bg-white/20 px-2 py-1 rounded-full"
                 >
-                  View Details →
-                </motion.button>
-              </Link>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+                  <Heart
+                    size={18}
+                    className={
+                      liked.includes(p._id)
+                        ? "fill-red-500 text-red-500"
+                        : "text-white"
+                    }
+                  />
+                </button>
 
-      {filtered.length === 0 && (
+                <span className="absolute bottom-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded">
+                  {p.category?.name}
+                </span>
+              </div>
+
+              <div className="p-5">
+                <h3 className="font-bold text-xl truncate">
+                  {p.title}
+                </h3>
+                <p className="text-sm line-clamp-2">
+                  {p.description || "No description"}
+                </p>
+                <p className="mt-3 font-bold text-xl text-orange-500">
+                  ₹ {p.price}
+                </p>
+
+                <Link to={`/products/${p._id}`}>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    className="mt-4 w-full py-2 rounded-xl bg-gradient-to-r from-orange-500 to-yellow-400 text-black font-semibold"
+                  >
+                    View Details →
+                  </motion.button>
+                </Link>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      {!loading && filtered.length === 0 && (
         <p className="text-center py-20 text-gray-400">
           No products found…
         </p>

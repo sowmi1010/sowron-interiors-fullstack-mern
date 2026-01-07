@@ -14,22 +14,29 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 export default function FeedbackList() {
   const [list, setList] = useState([]);
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
 
-  const { query } = useSearch();
+  const { query = "" } = useSearch();
+  const navigate = useNavigate();
 
-  /* LOAD */
+  /* 🔄 LOAD */
   const load = async () => {
     try {
+      setLoading(true);
       const res = await api.get("/feedback");
       setList(res.data || []);
     } catch {
       toast.error("Unable to load feedback");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -37,26 +44,42 @@ export default function FeedbackList() {
     load();
   }, []);
 
-  /* DELETE */
+  /* 🔍 RESET PAGE ON SEARCH */
+  useEffect(() => {
+    setPage(1);
+  }, [query]);
+
+  /* ❌ DELETE */
   const remove = async () => {
+    if (deleting) return;
+
     try {
+      setDeleting(true);
       await api.delete(`/feedback/${deleteId}`);
-      toast.success("Deleted ✔");
+      toast.success("Feedback deleted");
+
+      setList((prev) => prev.filter((f) => f._id !== deleteId));
       setDeleteId(null);
-      load();
+      setSelected(null);
     } catch {
       toast.error("Delete failed");
+    } finally {
+      setDeleting(false);
     }
   };
 
-  /* SEARCH (SAFE) */
+  /* 🔍 SAFE SEARCH */
   const filtered = list.filter(
     (f) =>
       f.name?.toLowerCase().includes(query.toLowerCase()) ||
       f.city?.toLowerCase().includes(query.toLowerCase())
   );
 
-  const paginated = filtered.slice((page - 1) * 8, page * 8);
+  const perPage = 8;
+  const paginated = filtered.slice(
+    (page - 1) * perPage,
+    page * perPage
+  );
 
   return (
     <div className="p-6 text-white relative">
@@ -64,9 +87,11 @@ export default function FeedbackList() {
         <h2 className="text-2xl font-bold text-[#ff6b00]">
           Customer Feedback
         </h2>
+
         <button
-          onClick={() => (window.location.href = "/admin/feedback/add")}
-          className="bg-[#ff6b00] hover:bg-[#ff842e] text-black px-4 py-2 rounded-lg font-semibold"
+          onClick={() => navigate("/admin/feedback/add")}
+          className="bg-[#ff6b00] hover:bg-[#ff842e]
+                     text-black px-4 py-2 rounded-lg font-semibold"
         >
           + Add Feedback
         </button>
@@ -86,11 +111,21 @@ export default function FeedbackList() {
           </thead>
 
           <tbody>
-            {paginated.length ? (
+            {loading ? (
+              <tr>
+                <td
+                  colSpan="5"
+                  className="py-10 text-center text-gray-500"
+                >
+                  Loading feedback…
+                </td>
+              </tr>
+            ) : paginated.length ? (
               paginated.map((f) => (
                 <tr
                   key={f._id}
-                  className="border-t border-[#232323] hover:bg-[#1c1c1c] cursor-pointer"
+                  className="border-t border-[#232323]
+                             hover:bg-[#1c1c1c] cursor-pointer"
                   onClick={() => setSelected(f)}
                 >
                   {/* PHOTO */}
@@ -98,10 +133,14 @@ export default function FeedbackList() {
                     {f.photo?.url ? (
                       <img
                         src={f.photo.url}
-                        className="w-10 h-10 rounded-full object-cover border border-[#333]"
+                        alt={f.name}
+                        className="w-10 h-10 rounded-full object-cover
+                                   border border-[#333]"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-[#222] flex items-center justify-center text-gray-500">
+                      <div className="w-10 h-10 rounded-full bg-[#222]
+                                      flex items-center justify-center
+                                      text-gray-500">
                         <ImageIcon size={16} />
                       </div>
                     )}
@@ -132,7 +171,7 @@ export default function FeedbackList() {
                     <div className="flex gap-2 justify-center">
                       <button
                         onClick={() =>
-                          (window.location.href = `/admin/feedback/edit/${f._id}`)
+                          navigate(`/admin/feedback/edit/${f._id}`)
                         }
                         className="text-yellow-400 flex items-center gap-1"
                       >
@@ -151,7 +190,10 @@ export default function FeedbackList() {
               ))
             ) : (
               <tr>
-                <td colSpan="5" className="py-10 text-center text-gray-500">
+                <td
+                  colSpan="5"
+                  className="py-10 text-center text-gray-500"
+                >
                   No feedback found
                 </td>
               </tr>
@@ -160,7 +202,11 @@ export default function FeedbackList() {
         </table>
       </div>
 
-      <Pagination page={page} total={filtered.length} onChange={setPage} />
+      <Pagination
+        page={page}
+        total={filtered.length}
+        onChange={setPage}
+      />
 
       {/* DRAWER */}
       <AnimatePresence>
@@ -169,7 +215,9 @@ export default function FeedbackList() {
             initial={{ x: 350 }}
             animate={{ x: 0 }}
             exit={{ x: 350 }}
-            className="fixed top-0 right-0 w-80 h-full bg-[#0f0f0f] border-l border-[#222] shadow-lg p-6 z-50"
+            className="fixed top-0 right-0 w-80 h-full
+                       bg-[#0f0f0f] border-l border-[#222]
+                       shadow-lg p-6 z-50"
           >
             <div className="flex justify-between">
               <h3 className="text-lg text-[#ff6b00] font-semibold">
@@ -185,6 +233,7 @@ export default function FeedbackList() {
               {selected.photo?.url && (
                 <img
                   src={selected.photo.url}
+                  alt={selected.name}
                   className="w-full h-40 rounded-lg object-cover"
                 />
               )}
@@ -196,7 +245,8 @@ export default function FeedbackList() {
               </p>
               {selected.message && (
                 <p className="flex gap-2 items-center">
-                  <MessageCircle size={16} /> {selected.message}
+                  <MessageCircle size={16} />
+                  {selected.message}
                 </p>
               )}
             </div>
@@ -207,8 +257,11 @@ export default function FeedbackList() {
       {/* DELETE MODAL */}
       <AnimatePresence>
         {deleteId && (
-          <motion.div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50">
-            <motion.div className="bg-[#1b1b1b] p-6 rounded-xl text-center w-80 border border-[#2a2a2a]">
+          <motion.div className="fixed inset-0 bg-black/60
+                                  flex justify-center items-center z-50">
+            <motion.div className="bg-[#1b1b1b] p-6 rounded-xl
+                                   text-center w-80
+                                   border border-[#2a2a2a]">
               <h3 className="text-lg mb-4">
                 Delete this feedback?
               </h3>
@@ -220,10 +273,12 @@ export default function FeedbackList() {
                   Cancel
                 </button>
                 <button
-                  className="bg-red-600 px-4 py-2 rounded"
+                  disabled={deleting}
+                  className="bg-red-600 px-4 py-2 rounded
+                             disabled:opacity-60"
                   onClick={remove}
                 >
-                  Delete
+                  {deleting ? "Deleting…" : "Delete"}
                 </button>
               </div>
             </motion.div>

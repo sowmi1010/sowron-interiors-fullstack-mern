@@ -8,21 +8,28 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
+const PER_PAGE = 9;
+
 export default function PortfolioAdmin() {
   const [list, setList] = useState([]);
   const [page, setPage] = useState(1);
   const [deleteId, setDeleteId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
 
   const { query } = useSearch();
   const navigate = useNavigate();
 
-  /* ================= LOAD PORTFOLIO ================= */
+  /* ================= LOAD ================= */
   const load = async () => {
     try {
+      setLoading(true);
       const res = await api.get("/portfolio");
       setList(res.data || []);
     } catch {
       toast.error("Failed to load portfolio");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -30,15 +37,26 @@ export default function PortfolioAdmin() {
     load();
   }, []);
 
+  /* RESET PAGE ON SEARCH */
+  useEffect(() => {
+    setPage(1);
+  }, [query]);
+
   /* ================= DELETE ================= */
   const remove = async () => {
+    if (deleting) return;
+
     try {
+      setDeleting(true);
       await api.delete(`/portfolio/${deleteId}`);
       toast.success("Portfolio deleted ✔");
+
+      setList((prev) => prev.filter((p) => p._id !== deleteId));
       setDeleteId(null);
-      load();
     } catch {
       toast.error("Delete failed");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -52,7 +70,6 @@ export default function PortfolioAdmin() {
   });
 
   /* ================= PAGINATION ================= */
-  const PER_PAGE = 9;
   const paginated = filtered.slice(
     (page - 1) * PER_PAGE,
     page * PER_PAGE
@@ -74,15 +91,24 @@ export default function PortfolioAdmin() {
         </button>
       </div>
 
-      {/* GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {paginated.length > 0 ? (
-          paginated.map((p) => (
+      {/* CONTENT */}
+      {loading ? (
+        <p className="text-gray-400 text-center py-20">
+          Loading portfolio…
+        </p>
+      ) : paginated.length === 0 ? (
+        <p className="text-gray-400 text-center py-20">
+          No Completed Projects Found
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {paginated.map((p) => (
             <motion.div
               key={p._id}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-[#141414] border border-[#222] rounded-xl shadow-md overflow-hidden"
+              className="bg-[#141414] border border-[#222]
+                         rounded-xl shadow-md overflow-hidden"
             >
               {/* IMAGE */}
               <div
@@ -105,7 +131,9 @@ export default function PortfolioAdmin() {
                 <h3 className="font-semibold">{p.title}</h3>
 
                 {p.location && (
-                  <span className="text-xs bg-[#222] px-2 py-1 rounded inline-flex items-center gap-1 text-gray-300 mt-2">
+                  <span className="text-xs bg-[#222] px-2 py-1 rounded
+                                   inline-flex items-center gap-1
+                                   text-gray-300 mt-2">
                     <MapPin size={12} /> {p.location}
                   </span>
                 )}
@@ -134,31 +162,32 @@ export default function PortfolioAdmin() {
                 </div>
               </div>
             </motion.div>
-          ))
-        ) : (
-          <p className="col-span-3 text-center text-gray-400">
-            No Completed Projects Found
-          </p>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* PAGINATION */}
-      <Pagination
-        page={page}
-        total={filtered.length}
-        onChange={setPage}
-      />
+      {filtered.length > PER_PAGE && (
+        <Pagination
+          page={page}
+          total={filtered.length}
+          onChange={setPage}
+        />
+      )}
 
       {/* DELETE CONFIRM */}
       <AnimatePresence>
         {deleteId && (
           <motion.div
-            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+            className="fixed inset-0 bg-black/60
+                       flex items-center justify-center z-50"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <div className="bg-[#1b1b1b] p-6 rounded-xl text-center border border-[#2a2a2a] w-80">
+            <div className="bg-[#1b1b1b] p-6 rounded-xl
+                            text-center border border-[#2a2a2a]
+                            w-80">
               <h3 className="text-lg font-semibold text-gray-200 mb-4">
                 Delete this project?
               </h3>
@@ -172,10 +201,13 @@ export default function PortfolioAdmin() {
                 </button>
 
                 <button
-                  className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded"
+                  disabled={deleting}
+                  className="bg-red-600 hover:bg-red-700
+                             px-4 py-2 rounded
+                             disabled:opacity-50"
                   onClick={remove}
                 >
-                  Delete
+                  {deleting ? "Deleting…" : "Delete"}
                 </button>
               </div>
             </div>

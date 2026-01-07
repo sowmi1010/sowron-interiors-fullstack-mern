@@ -2,27 +2,19 @@ import mongoose from "mongoose";
 
 const portfolioSchema = new mongoose.Schema(
   {
-    title: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    location: {
-      type: String,
-      trim: true,
-    },
-    description: {
-      type: String,
-      trim: true,
-    },
+    title: { type: String, required: true, trim: true },
+    location: { type: String, trim: true },
+    description: { type: String, trim: true },
+
     images: [
       {
         url: String,
-        public_id: String, // 🔥 REQUIRED for Cloudinary delete
+        public_id: String,
       },
     ],
+
     video: {
-      type: String, // optional
+      type: String,
     },
   },
   { timestamps: true }

@@ -29,11 +29,15 @@ export default function ProductsAdd() {
       .catch(() => toast.error("Failed to load categories"));
   }, []);
 
-  /* 📸 Image preview */
+  /* 📸 Image preview (FIXED MEMORY LEAK) */
   const handleFilePreview = (e) => {
     const selected = Array.from(e.target.files);
+
+    // revoke old previews
+    preview.forEach((url) => URL.revokeObjectURL(url));
+
     setFiles(selected);
-    setPreview(selected.map((f) => URL.createObjectURL(f)));
+    setPreview(selected.map((file) => URL.createObjectURL(file)));
   };
 
   /* ➕ Add product */
@@ -44,7 +48,7 @@ export default function ProductsAdd() {
       return toast.error("Title, Category & Price are required");
     }
 
-    if (files.length === 0) {
+    if (!files.length) {
       return toast.error("Please upload at least one image");
     }
 
@@ -52,22 +56,23 @@ export default function ProductsAdd() {
       setLoading(true);
 
       const data = new FormData();
-      data.append("title", form.title);
-      data.append("description", form.description);
+      data.append("title", form.title.trim());
+      data.append("description", form.description.trim());
       data.append("category", form.category);
       data.append("subCategory", subCategory);
-      data.append("price", form.price);
+      data.append("price", Number(form.price));
 
       files.forEach((file) => {
-        data.append("images", file); // 🔥 MUST MATCH BACKEND
+        data.append("images", file); // MUST match backend field
       });
 
-      await api.post("/products/add", data); // token auto-added in api()
+      await api.post("/products/add", data, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
       toast.success("Product added successfully");
       navigate("/admin/products");
     } catch (err) {
-      console.error(err);
       toast.error(err.response?.data?.message || "Product upload failed");
     } finally {
       setLoading(false);
@@ -157,7 +162,6 @@ export default function ProductsAdd() {
         {/* IMAGES */}
         <input
           type="file"
-          name="images"
           multiple
           accept="image/*"
           onChange={handleFilePreview}
@@ -170,6 +174,7 @@ export default function ProductsAdd() {
               <img
                 key={i}
                 src={src}
+                alt="Preview"
                 className="h-20 rounded object-cover"
               />
             ))}

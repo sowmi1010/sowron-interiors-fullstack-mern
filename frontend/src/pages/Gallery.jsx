@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import { api } from "../lib/api";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-
-const API = import.meta.env.VITE_API_URL;
+import toast from "react-hot-toast";
+import { Image as ImgIcon } from "lucide-react";
 
 export default function Gallery() {
   const [allItems, setAllItems] = useState([]);
@@ -12,30 +12,34 @@ export default function Gallery() {
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
 
-  /* ================= LOAD CATEGORIES ================= */
+  /* ================= LOAD DATA ================= */
   useEffect(() => {
-    axios
-      .get(`${API}/categories`)
-      .then((res) => setCategories(res.data || []))
-      .catch(() => {});
+    const load = async () => {
+      try {
+        setLoading(true);
+
+        const [catRes, galleryRes] = await Promise.all([
+          api.get("/categories"),
+          api.get("/gallery"),
+        ]);
+
+        const galleryData = galleryRes.data || [];
+
+        setCategories(catRes.data || []);
+        setAllItems(galleryData);
+        setItems(galleryData);
+      } catch {
+        toast.error("Failed to load gallery");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+    window.scrollTo(0, 0);
   }, []);
 
-  /* ================= LOAD ALL GALLERY ONCE ================= */
-  useEffect(() => {
-    setLoading(true);
-
-    axios
-      .get(`${API}/gallery`)
-      .then((res) => {
-        const data = res.data?.items || res.data || [];
-        setAllItems(data);
-        setItems(data); // default = all
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
-
-  /* ================= FILTER HANDLER ================= */
+  /* ================= FILTER ================= */
   const changeFilter = (slug) => {
     setFilter(slug);
 
@@ -45,8 +49,7 @@ export default function Gallery() {
       setItems(
         allItems.filter(
           (item) =>
-            String(item.category || "").toLowerCase() ===
-            String(slug).toLowerCase()
+            item.category?.toLowerCase() === slug.toLowerCase()
         )
       );
     }
@@ -59,7 +62,7 @@ export default function Gallery() {
       <div className="flex flex-wrap gap-3 justify-center py-10 px-4">
         <motion.button
           onClick={() => changeFilter("all")}
-          className={`px-5 py-2 rounded-full font-semibold ${
+          className={`px-5 py-2 rounded-full font-semibold transition ${
             filter === "all"
               ? "bg-gradient-to-r from-orange-500 to-yellow-400 text-black"
               : "bg-white dark:bg-[#1b1b1b]"
@@ -72,7 +75,7 @@ export default function Gallery() {
           <motion.button
             key={cat._id}
             onClick={() => changeFilter(cat.slug)}
-            className={`px-5 py-2 rounded-full font-semibold ${
+            className={`px-5 py-2 rounded-full font-semibold transition ${
               filter === cat.slug
                 ? "bg-gradient-to-r from-orange-500 to-yellow-400 text-black"
                 : "bg-white dark:bg-[#1b1b1b]"
@@ -85,7 +88,13 @@ export default function Gallery() {
 
       {/* ================= GALLERY GRID ================= */}
       {loading ? (
-        <p className="text-center text-gray-400 py-20">Loading...</p>
+        <p className="text-center text-gray-400 py-20">
+          Loading gallery…
+        </p>
+      ) : items.length === 0 ? (
+        <p className="text-center text-gray-400 py-20">
+          No gallery items found
+        </p>
       ) : (
         <div className="px-4 md:px-20 pb-20 grid sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-10">
           {items.map((item) => (
@@ -95,11 +104,17 @@ export default function Gallery() {
               className="rounded-3xl overflow-hidden shadow-xl bg-white dark:bg-[#1a1a1a]"
             >
               <Link to={`/view-gallery/${item._id}`}>
-                <img
-                  src={item.images?.[0]?.url}
-                  className="h-[270px] w-full object-cover"
-                  alt={item.title}
-                />
+                {item.images?.[0]?.url ? (
+                  <img
+                    src={item.images[0].url}
+                    className="h-[270px] w-full object-cover"
+                    alt={item.title}
+                  />
+                ) : (
+                  <div className="h-[270px] flex items-center justify-center bg-gray-200 dark:bg-[#111]">
+                    <ImgIcon className="text-gray-400" />
+                  </div>
+                )}
               </Link>
 
               <div className="p-5">
@@ -108,7 +123,9 @@ export default function Gallery() {
                 </h3>
 
                 <p className="text-xs uppercase tracking-widest opacity-70">
-                  {item.category?.replace(/-/g, " ")}
+                  {item.category
+                    ? item.category.replace(/-/g, " ")
+                    : "Uncategorized"}
                 </p>
 
                 <Link to={`/view-gallery/${item._id}`}>

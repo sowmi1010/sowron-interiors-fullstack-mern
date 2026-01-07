@@ -5,6 +5,8 @@ import { UploadCloud } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet";
 
+const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
 export default function PortfolioAdd() {
   const navigate = useNavigate();
 
@@ -12,6 +14,7 @@ export default function PortfolioAdd() {
     title: "",
     location: "",
     description: "",
+    video: "",
   });
 
   const [files, setFiles] = useState([]);
@@ -22,11 +25,21 @@ export default function PortfolioAdd() {
   const handleFiles = (e) => {
     const selected = Array.from(e.target.files);
 
+    // 🔒 VALIDATION
+    for (const file of selected) {
+      if (!file.type.startsWith("image/")) {
+        return toast.error("Only image files are allowed");
+      }
+      if (file.size > MAX_SIZE) {
+        return toast.error("Each image must be under 5MB");
+      }
+    }
+
     setFiles(selected);
     setPreview(selected.map((f) => URL.createObjectURL(f)));
   };
 
-  /* 🔥 CLEAN PREVIEW URLS (MEMORY SAFE) */
+  /* 🔥 CLEAN PREVIEW URLS */
   useEffect(() => {
     return () => {
       preview.forEach((url) => URL.revokeObjectURL(url));
@@ -36,6 +49,7 @@ export default function PortfolioAdd() {
   /* ================= SUBMIT ================= */
   const submitHandler = async (e) => {
     e.preventDefault();
+    if (loading) return;
 
     if (!form.title.trim()) {
       return toast.error("Project title is required");
@@ -49,13 +63,12 @@ export default function PortfolioAdd() {
       setLoading(true);
 
       const fd = new FormData();
-      fd.append("title", form.title);
-      fd.append("location", form.location);
-      fd.append("description", form.description);
+      fd.append("title", form.title.trim());
+      fd.append("location", form.location.trim());
+      fd.append("description", form.description.trim());
+      if (form.video) fd.append("video", form.video);
 
-      files.forEach((file) => {
-        fd.append("images", file); // 🔥 MUST MATCH backend
-      });
+      files.forEach((file) => fd.append("images", file));
 
       await api.post("/portfolio/add", fd);
 
@@ -63,9 +76,7 @@ export default function PortfolioAdd() {
       navigate("/admin/portfolio");
     } catch (err) {
       console.error("PORTFOLIO ADD ERROR:", err);
-      toast.error(
-        err.response?.data?.message || "Portfolio upload failed"
-      );
+      toast.error(err.response?.data?.message || "Upload failed");
     } finally {
       setLoading(false);
     }
@@ -113,6 +124,15 @@ export default function PortfolioAdd() {
             value={form.description}
             onChange={(e) =>
               setForm({ ...form, description: e.target.value })
+            }
+          />
+
+          <input
+            placeholder="Video URL (optional)"
+            className="bg-[#0d0d0d] border border-[#333] p-3 rounded-lg w-full"
+            value={form.video}
+            onChange={(e) =>
+              setForm({ ...form, video: e.target.value })
             }
           />
         </div>

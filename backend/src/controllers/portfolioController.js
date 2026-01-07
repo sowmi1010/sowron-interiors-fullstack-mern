@@ -1,36 +1,58 @@
+import mongoose from "mongoose";
 import Portfolio from "../models/Portfolio.js";
-import cloudinary from "../config/cloudinary.js";
+import { deleteMultipleImages } from "../services/cloudinary.service.js";
 
 /* ================= ADD PORTFOLIO ================= */
 export const addPortfolio = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  let uploadedImages = [];
+
   try {
     const { title, location, description, video } = req.body;
 
-    if (!title) {
+    if (!title?.trim()) {
       return res.status(400).json({ message: "Title is required" });
     }
 
-    const images = req.files?.map((file) => ({
-      url: file.path,
-      public_id: file.filename,
-    })) || [];
+    uploadedImages =
+      req.files?.map((file) => ({
+        url: file.path,
+        public_id: file.filename,
+      })) || [];
 
-    const portfolio = await Portfolio.create({
-      title,
-      location,
-      description,
-      video,
-      images,
-    });
+    const [portfolio] = await Portfolio.create(
+      [
+        {
+          title: title.trim(),
+          location: location?.trim(),
+          description: description?.trim(),
+          video,
+          images: uploadedImages,
+        },
+      ],
+      { session }
+    );
 
-    res.json({ success: true, portfolio });
+    await session.commitTransaction();
+    session.endSession();
+
+    res.status(201).json({ success: true, portfolio });
+
   } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+
+    // 🔥 rollback uploaded images
+    await deleteMultipleImages(uploadedImages);
+
     console.error("ADD PORTFOLIO ERROR:", err);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: "Portfolio creation failed" });
   }
 };
 
-/* ================= GET ALL ================= */
+/* ================= LIST ================= */
 export const getPortfolio = async (req, res) => {
   try {
     const list = await Portfolio.find().sort({ createdAt: -1 });
@@ -40,15 +62,13 @@ export const getPortfolio = async (req, res) => {
   }
 };
 
-/* ================= GET SINGLE ================= */
+/* ================= SINGLE ================= */
 export const getSinglePortfolio = async (req, res) => {
   try {
     const item = await Portfolio.findById(req.params.id);
-
     if (!item) {
       return res.status(404).json({ message: "Portfolio not found" });
     }
-
     res.json(item);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -57,58 +77,98 @@ export const getSinglePortfolio = async (req, res) => {
 
 /* ================= UPDATE PORTFOLIO ================= */
 export const updatePortfolio = async (req, res) => {
-  try {
-    const { title, location, description, video } = req.body;
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-    const portfolio = await Portfolio.findById(req.params.id);
+  try {
+    const portfolio = await Portfolio.findById(req.params.id).session(session);
     if (!portfolio) {
+      await session.abortTransaction();
       return res.status(404).json({ message: "Portfolio not found" });
     }
 
-    /* 🔥 DELETE OLD IMAGES IF NEW ONES UPLOADED */
-    if (req.files && req.files.length > 0) {
-      for (const img of portfolio.images) {
-        await cloudinary.uploader.destroy(img.public_id);
-      }
+    const { title, location, description, video } = req.body;
 
-      portfolio.images = req.files.map((file) => ({
+    let newImages = null;
+
+    if (req.files?.length) {
+      newImages = req.files.map((file) => ({
         url: file.path,
         public_id: file.filename,
       }));
+
+      // 🔥 delete old images FIRST
+      const failed = await deleteMultipleImages(portfolio.images);
+      if (failed.length) {
+        await session.abortTransaction();
+        return res.status(500).json({
+          message: "Old image delete failed",
+          failed,
+        });
+      }
+
+      portfolio.images = newImages;
     }
 
-    portfolio.title = title || portfolio.title;
-    portfolio.location = location || portfolio.location;
-    portfolio.description = description || portfolio.description;
-    portfolio.video = video || portfolio.video;
+    portfolio.title = title?.trim() ?? portfolio.title;
+    portfolio.location = location?.trim() ?? portfolio.location;
+    portfolio.description =
+      description?.trim() ?? portfolio.description;
+    portfolio.video = video ?? portfolio.video;
 
-    await portfolio.save();
+    await portfolio.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
 
     res.json({ success: true, portfolio });
+
   } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+
     console.error("UPDATE PORTFOLIO ERROR:", err);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: "Update failed" });
   }
 };
 
 /* ================= DELETE PORTFOLIO ================= */
 export const deletePortfolio = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    const portfolio = await Portfolio.findById(req.params.id);
+    const portfolio = await Portfolio.findById(req.params.id).session(session);
     if (!portfolio) {
+      await session.abortTransaction();
       return res.status(404).json({ message: "Portfolio not found" });
     }
 
-    /* 🔥 DELETE ALL CLOUDINARY IMAGES */
-    for (const img of portfolio.images) {
-      await cloudinary.uploader.destroy(img.public_id);
+    // 🔥 delete images FIRST
+    const failed = await deleteMultipleImages(portfolio.images);
+    if (failed.length) {
+      await session.abortTransaction();
+      return res.status(500).json({
+        message: "Image delete failed",
+        failed,
+      });
     }
 
-    await portfolio.deleteOne();
+    await portfolio.deleteOne({ session });
 
-    res.json({ success: true, message: "Portfolio deleted successfully" });
+    await session.commitTransaction();
+    session.endSession();
+
+    res.json({
+      success: true,
+      message: "Portfolio deleted successfully",
+    });
+
   } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+
     console.error("DELETE PORTFOLIO ERROR:", err);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: "Delete failed" });
   }
 };

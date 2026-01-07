@@ -8,8 +8,8 @@ const feedbackSchema = new mongoose.Schema(
     message: { type: String, trim: true },
 
     photo: {
-      url: { type: String },
-      public_id: { type: String },
+      url: String,
+      public_id: String,
     },
   },
   { timestamps: true }

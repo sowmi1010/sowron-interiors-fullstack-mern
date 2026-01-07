@@ -17,56 +17,79 @@ export default function GalleryList() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const [viewImages, setViewImages] = useState([]);
 
   const { query } = useSearch();
   const navigate = useNavigate();
 
-  /* 🔄 LOAD GALLERY */
-  const loadGallery = async () => {
-    try {
-      const res = await api.get("/gallery");
-      setItems(res.data.items || []); // ✅ FIXED
-    } catch {
-      toast.error("Failed to load gallery");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  /* ================= LOAD GALLERY ================= */
   useEffect(() => {
+    let mounted = true;
+
+    const loadGallery = async () => {
+      try {
+const res = await api.get("/gallery/admin");
+        if (mounted) {
+          setItems(res.data?.items || []);
+        }
+      } catch {
+        toast.error("Failed to load gallery");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    
+
     loadGallery();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  /* ❌ DELETE */
+  /* ================= DELETE ================= */
   const deleteItem = async () => {
-    try {
-      await api.delete(`/gallery/${deleteId}`);
-      toast.success("Gallery item deleted ✔");
+    if (!deleteId || deleting) return;
 
+    try {
+      setDeleting(true);
+      await api.delete(`/gallery/${deleteId}`);
+
+      toast.success("Gallery item deleted ✔");
       setItems((prev) => prev.filter((i) => i._id !== deleteId));
       setDeleteId(null);
     } catch {
       toast.error("Delete failed");
+    } finally {
+      setDeleting(false);
     }
   };
 
-  /* 🔍 SEARCH */
-  const filtered = items.filter(
-    (i) =>
-      i.title.toLowerCase().includes(query.toLowerCase()) ||
-      i.category.toLowerCase().includes(query.toLowerCase())
-  );
+  /* ================= SEARCH (SAFE) ================= */
+  const filtered = items.filter((i) => {
+    const q = query.toLowerCase();
+    return (
+      i.title?.toLowerCase().includes(q) ||
+      i.category?.toLowerCase().includes(q)
+    );
+  });
 
   if (loading) {
-    return <p className="text-gray-400 p-6">Loading gallery...</p>;
+    return (
+      <p className="text-gray-400 p-6 text-center">
+        Loading gallery...
+      </p>
+    );
   }
 
   return (
     <div className="p-6 text-white">
       {/* HEADER */}
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-[#ff6b00]">Gallery</h2>
+        <h2 className="text-2xl font-bold text-[#ff6b00]">
+          Gallery
+        </h2>
         <button
           className="bg-[#ff6b00] text-black px-4 py-2 rounded font-semibold"
           onClick={() => navigate("/admin/gallery/add")}
@@ -93,7 +116,7 @@ export default function GalleryList() {
               <div className="h-40 overflow-hidden flex justify-center items-center bg-black">
                 {item.images?.length ? (
                   <img
-                    src={item.images[0].url} // ✅ Cloudinary
+                    src={item.images[0].url}
                     className="object-cover w-full h-full"
                     alt={item.title}
                   />
@@ -104,18 +127,22 @@ export default function GalleryList() {
 
               {/* CONTENT */}
               <div className="p-3">
-                <h4 className="font-semibold truncate">{item.title}</h4>
+                <h4 className="font-semibold truncate">
+                  {item.title}
+                </h4>
 
-                <span className="text-xs bg-[#222] px-2 py-1 rounded mt-1 inline-flex items-center gap-1">
-                  <Folder size={12} />
-                  {item.category.replace(/-/g, " ")}
-                </span>
+                {item.category && (
+                  <span className="text-xs bg-[#222] px-2 py-1 rounded mt-1 inline-flex items-center gap-1">
+                    <Folder size={12} />
+                    {item.category.replace(/-/g, " ")}
+                  </span>
+                )}
 
                 {/* ACTIONS */}
                 <div className="mt-4 flex justify-between text-sm">
                   <button
                     className="text-blue-400 flex items-center gap-1"
-                    onClick={() => setViewImages(item.images)}
+                    onClick={() => setViewImages(item.images || [])}
                   >
                     <Eye size={14} /> View
                   </button>
@@ -146,17 +173,21 @@ export default function GalleryList() {
       <AnimatePresence>
         {viewImages.length > 0 && (
           <motion.div
-            className="fixed inset-0 bg-black/70 z-50 p-6 flex justify-center items-center"
+            className="fixed inset-0 bg-black/70 z-50 p-6
+                       flex justify-center items-center"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <div className="bg-[#1b1b1b] p-6 rounded-lg grid grid-cols-2 md:grid-cols-3 gap-3 max-h-[80vh] overflow-y-auto">
-              {viewImages.map((img) => (
+            <div className="bg-[#1b1b1b] p-6 rounded-lg
+                            grid grid-cols-2 md:grid-cols-3 gap-3
+                            max-h-[80vh] overflow-y-auto">
+              {viewImages.map((img, idx) => (
                 <img
-                  key={img.public_id}
+                  key={img.public_id || idx}
                   src={img.url}
                   className="rounded"
+                  alt=""
                 />
               ))}
             </div>
@@ -175,27 +206,33 @@ export default function GalleryList() {
       <AnimatePresence>
         {deleteId && (
           <motion.div
-            className="fixed inset-0 bg-black/60 flex justify-center items-center z-50"
+            className="fixed inset-0 bg-black/60
+                       flex justify-center items-center z-50"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
             <div className="bg-[#1b1b1b] p-6 rounded-lg w-72 text-center">
-              <p className="mb-4 text-white">Delete this gallery item?</p>
+              <p className="mb-4 text-white">
+                Delete this gallery item?
+              </p>
 
               <div className="flex gap-3 justify-center">
                 <button
                   className="bg-gray-600 px-4 py-2 rounded"
                   onClick={() => setDeleteId(null)}
+                  disabled={deleting}
                 >
                   Cancel
                 </button>
 
                 <button
-                  className="bg-red-600 px-4 py-2 rounded"
+                  className="bg-red-600 px-4 py-2 rounded
+                             disabled:opacity-60"
                   onClick={deleteItem}
+                  disabled={deleting}
                 >
-                  Delete
+                  {deleting ? "Deleting..." : "Delete"}
                 </button>
               </div>
             </div>

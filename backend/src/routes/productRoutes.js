@@ -5,31 +5,41 @@ import {
   updateProduct,
   deleteProduct,
 } from "../controllers/productController.js";
+
 import { protect, adminOnly } from "../middleware/authMiddleware.js";
-import { uploadCloudinary } from "../utils/uploadCloudinary.js";
+import { getUploader } from "../utils/uploadCloudinary.js";
 
 const router = express.Router();
 
-// 🌍 PUBLIC
+/* 🌍 PUBLIC */
 router.get("/", getProducts);
 
-// 🔐 ADMIN ONLY
+/* 🔐 ADMIN ONLY */
+
+/* ➕ ADD PRODUCT */
 router.post(
   "/add",
   protect,
   adminOnly,
-  uploadCloudinary.array("images", 5),
+  getUploader("sowron-interiors/products").array("images", 5),
   addProduct
 );
 
+/* ✏️ UPDATE PRODUCT */
 router.put(
   "/:id",
   protect,
   adminOnly,
-  uploadCloudinary.array("images", 5),
+  getUploader("sowron-interiors/products").array("images", 5),
   updateProduct
 );
 
-router.delete("/:id", protect, adminOnly, deleteProduct);
+/* ❌ DELETE PRODUCT */
+router.delete(
+  "/:id",
+  protect,
+  adminOnly,
+  deleteProduct
+);
 
 export default router;
