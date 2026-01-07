@@ -1,0 +1,181 @@
+// src/pages/admin/portfolio/PortfolioEdit.jsx
+import { useEffect, useState } from "react";
+import { api } from "../../../lib/api";
+import toast from "react-hot-toast";
+import { useParams, useNavigate } from "react-router-dom";
+import { Upload } from "lucide-react";
+import { Helmet } from "react-helmet";
+
+export default function PortfolioEdit() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
+  const [form, setForm] = useState({
+    title: "",
+    location: "",
+    description: "",
+  });
+
+  const [oldImages, setOldImages] = useState([]); // 🔥 cloudinary images
+  const [newFiles, setNewFiles] = useState([]);
+  const [preview, setPreview] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  /* ================= LOAD PORTFOLIO ================= */
+  useEffect(() => {
+    api
+      .get(`/portfolio/${id}`)
+      .then((res) => {
+        setForm({
+          title: res.data.title || "",
+          location: res.data.location || "",
+          description: res.data.description || "",
+        });
+
+        setOldImages(res.data.images || []); // 🔥 [{url, public_id}]
+      })
+      .catch(() => {
+        toast.error("Failed to load portfolio");
+      });
+  }, [id]);
+
+  /* ================= IMAGE PICK ================= */
+  const handleFiles = (e) => {
+    const selected = Array.from(e.target.files);
+    setNewFiles(selected);
+    setPreview(selected.map((f) => URL.createObjectURL(f)));
+  };
+
+  /* CLEAN PREVIEW MEMORY */
+  useEffect(() => {
+    return () => {
+      preview.forEach((p) => URL.revokeObjectURL(p));
+    };
+  }, [preview]);
+
+  /* ================= SAVE ================= */
+  const save = async (e) => {
+    e.preventDefault();
+
+    if (!form.title.trim()) {
+      return toast.error("Title is required");
+    }
+
+    try {
+      setLoading(true);
+
+      const fd = new FormData();
+      fd.append("title", form.title);
+      fd.append("location", form.location);
+      fd.append("description", form.description);
+
+      // 🔥 only append if new images selected
+      newFiles.forEach((file) => fd.append("images", file));
+
+      await api.put(`/portfolio/update/${id}`, fd);
+
+      toast.success("Portfolio updated ✔");
+      navigate("/admin/portfolio");
+    } catch (err) {
+      console.error("PORTFOLIO UPDATE ERROR:", err);
+      toast.error(
+        err.response?.data?.message || "Update failed"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="p-6 text-white flex justify-center">
+      <Helmet>
+        <title>Edit Portfolio</title>
+      </Helmet>
+
+      <div className="w-full max-w-3xl bg-[#141414] border border-[#262626] rounded-xl p-8">
+        <h2 className="text-2xl font-bold text-[#ff6b00] mb-6">
+          Edit Portfolio
+        </h2>
+
+        <form onSubmit={save} className="space-y-4">
+          <input
+            value={form.title}
+            onChange={(e) =>
+              setForm({ ...form, title: e.target.value })
+            }
+            placeholder="Project Title"
+            className="w-full bg-[#1a1a1a] border border-[#333] p-3 rounded-lg"
+          />
+
+          <input
+            value={form.location}
+            onChange={(e) =>
+              setForm({ ...form, location: e.target.value })
+            }
+            placeholder="Location"
+            className="w-full bg-[#1a1a1a] border border-[#333] p-3 rounded-lg"
+          />
+
+          <textarea
+            rows="4"
+            value={form.description}
+            onChange={(e) =>
+              setForm({ ...form, description: e.target.value })
+            }
+            className="w-full bg-[#1a1a1a] border border-[#333] p-3 rounded-lg resize-none"
+          />
+
+          {/* ================= OLD IMAGES (CLOUDINARY) ================= */}
+          <p className="text-gray-400">Current Images</p>
+          <div className="grid grid-cols-4 gap-2">
+            {oldImages.map((img) => (
+              <img
+                key={img.public_id}
+                src={img.url}
+                alt="portfolio"
+                className="h-20 object-cover rounded border"
+              />
+            ))}
+          </div>
+
+          {/* ================= NEW UPLOAD ================= */}
+          <label className="border border-[#333] rounded-lg p-4
+                            flex flex-col items-center gap-2 cursor-pointer">
+            <Upload size={20} />
+            Upload New Images
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              hidden
+              onChange={handleFiles}
+            />
+          </label>
+
+          {preview.length > 0 && (
+            <div className="grid grid-cols-4 gap-2">
+              {preview.map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  className="h-20 rounded border object-cover"
+                  alt="preview"
+                />
+              ))}
+            </div>
+          )}
+
+          <button
+            disabled={loading}
+            type="submit"
+            className="w-full bg-[#ff6b00] py-3 rounded-lg
+                       text-black font-semibold hover:bg-[#ff7b13]
+                       disabled:opacity-50"
+          >
+            {loading ? "Saving..." : "Save Changes"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
