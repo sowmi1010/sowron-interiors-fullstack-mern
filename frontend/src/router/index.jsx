@@ -24,29 +24,61 @@ const Estimate = lazy(() => import("../pages/Estimate.jsx"));
 
 /* ---------------------- ADMIN (DO NOT TOUCH) ---------------------- */
 const AdminLogin = lazy(() => import("../pages/admin/AdminLogin.jsx"));
+const AdminForgot = lazy(() => import("../pages/admin/AdminForgot.jsx"));
+const AdminReset = lazy(() => import("../pages/admin/AdminReset.jsx"));
 const AdminDashboard = lazy(() => import("../pages/admin/AdminDashboard.jsx"));
 
-const ProductsAdd = lazy(() => import("../pages/admin/products/ProductsAdd.jsx"));
-const ProductsList = lazy(() => import("../pages/admin/products/ProductsList.jsx"));
-const EditProduct = lazy(() => import("../pages/admin/products/EditProduct.jsx"));
+const ProductsAdd = lazy(() =>
+  import("../pages/admin/products/ProductsAdd.jsx")
+);
+const ProductsList = lazy(() =>
+  import("../pages/admin/products/ProductsList.jsx")
+);
+const EditProduct = lazy(() =>
+  import("../pages/admin/products/EditProduct.jsx")
+);
 
-const AdminCategories  = lazy(() => import('../pages/admin/Categories/AdminCategories.jsx'))
+const AdminCategories = lazy(() =>
+  import("../pages/admin/Categories/AdminCategories.jsx")
+);
 
-const GalleryAdmin = lazy(() => import("../pages/admin/gallery/GalleryList.jsx"));
+const GalleryAdmin = lazy(() =>
+  import("../pages/admin/gallery/GalleryList.jsx")
+);
 const GalleryAdd = lazy(() => import("../pages/admin/gallery/GalleryAdd.jsx"));
-const GalleryEdit = lazy(() => import("../pages/admin/gallery/GalleryEdit.jsx"));
+const GalleryEdit = lazy(() =>
+  import("../pages/admin/gallery/GalleryEdit.jsx")
+);
 
-const PortfolioAdd = lazy(() => import("../pages/admin/portfolio/PortfolioAdd.jsx"))
-const PortfolioEdit = lazy(() => import("../pages/admin/portfolio/PortfolioEdit.jsx"))
-const PortfolioList = lazy(() => import("../pages/admin/portfolio/PortfolioList.jsx"))
+const PortfolioAdd = lazy(() =>
+  import("../pages/admin/portfolio/PortfolioAdd.jsx")
+);
+const PortfolioEdit = lazy(() =>
+  import("../pages/admin/portfolio/PortfolioEdit.jsx")
+);
+const PortfolioList = lazy(() =>
+  import("../pages/admin/portfolio/PortfolioList.jsx")
+);
 
-const EnquiriesAdmin = lazy(() => import("../pages/admin/enquiries/EnquiriesAdmin.jsx"));
-const BookingsAdmin = lazy(() => import("../pages/admin/bookings/BookingsAdmin.jsx"));
-const EstimatesAdmin = lazy(() => import("../pages/admin/estimates/EstimatesAdmin.jsx"));
+const EnquiriesAdmin = lazy(() =>
+  import("../pages/admin/enquiries/EnquiriesAdmin.jsx")
+);
+const BookingsAdmin = lazy(() =>
+  import("../pages/admin/bookings/BookingsAdmin.jsx")
+);
+const EstimatesAdmin = lazy(() =>
+  import("../pages/admin/estimates/EstimatesAdmin.jsx")
+);
 
-const FeedbackAdmin = lazy(() => import("../pages/admin/feedback/FeedbackList.jsx"));
-const FeedbackAdd = lazy(() => import("../pages/admin/feedback/FeedbackAdd.jsx"));
-const FeedbackEdit = lazy(() => import("../pages/admin/feedback/FeedbackEdit.jsx"));
+const FeedbackAdmin = lazy(() =>
+  import("../pages/admin/feedback/FeedbackList.jsx")
+);
+const FeedbackAdd = lazy(() =>
+  import("../pages/admin/feedback/FeedbackAdd.jsx")
+);
+const FeedbackEdit = lazy(() =>
+  import("../pages/admin/feedback/FeedbackEdit.jsx")
+);
 
 /* ---------------------- ROUTES ---------------------- */
 export const router = createBrowserRouter([
@@ -73,7 +105,8 @@ export const router = createBrowserRouter([
 
   /* ---------------------- ADMIN LOGIN ---------------------- */
   { path: "/admin/login", element: <AdminLogin /> },
-
+  { path: "/admin/forgot", element: <AdminForgot /> },
+  { path: "/admin/reset/:token", element: <AdminReset /> },
   /* ---------------------- ADMIN PROTECTED ---------------------- */
   {
     path: "/admin",
@@ -90,14 +123,12 @@ export const router = createBrowserRouter([
       { path: "products/add", element: <ProductsAdd /> },
       { path: "product/edit/:id", element: <EditProduct /> },
 
-      {path: "categories", element: <AdminCategories/>},
+      { path: "categories", element: <AdminCategories /> },
 
-
-         /** PROTOFOLIO */
+      /** PROTOFOLIO */
       { path: "portfolio", element: <PortfolioList /> },
       { path: "portfolio/add", element: <PortfolioAdd /> },
       { path: "portfolio/edit/:id", element: <PortfolioEdit /> },
-
 
       /** GALLERY */
       { path: "gallery", element: <GalleryAdmin /> },

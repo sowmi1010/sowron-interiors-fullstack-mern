@@ -1,71 +1,90 @@
-import { useState, useRef } from "react";
-import axios from "axios";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Check, Smartphone, User, MapPin, Shield } from "lucide-react";
-
-const API = "http://localhost:5000/api";
+import { api } from "./../lib/api";
 
 export default function Register() {
   const [form, setForm] = useState({ name: "", phone: "", city: "" });
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [cooldown, setCooldown] = useState(0);
   const otpRef = useRef(null);
 
-  /* SEND OTP */
+  /* ⏳ COOLDOWN TIMER */
+  useEffect(() => {
+    if (cooldown > 0) {
+      const t = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(t);
+    }
+  }, [cooldown]);
+
+  /* ================= SEND OTP ================= */
   const sendOtp = async () => {
-    if (!form.phone || form.phone.length !== 10)
-      return alert("⚠️ Enter valid 10-digit phone number");
+    if (form.phone.length !== 10) {
+      return setError("Enter valid 10-digit phone number");
+    }
 
     try {
       setLoading(true);
-      await axios.post(`${API}/otp/send`, { phone: form.phone });
+      setError("");
+      await api.post("/otp/send", { phone: form.phone });
       setStep(2);
-      setTimeout(() => otpRef.current?.focus(), 250);
-    } catch {
-      alert("❌ Failed to send OTP");
+      setCooldown(30);
+      setTimeout(() => otpRef.current?.focus(), 300);
+    } catch (err) {
+      setError(err.response?.data?.message || "OTP send failed");
     } finally {
       setLoading(false);
     }
   };
 
-  /* VERIFY OTP + AUTO LOGIN */
+  /* ================= VERIFY OTP ================= */
   const verify = async () => {
-    if (otp.length < 4) return alert("⚠️ Invalid OTP");
+    if (otp.length !== 6) {
+      return setError("Enter 6-digit OTP");
+    }
 
     try {
       setLoading(true);
+      setError("");
 
-      // 1️⃣ verify otp
-      const res = await axios.post(`${API}/otp/verify`, {
+      // 1️⃣ verify OTP
+      const res = await api.post("/otp/verify", {
         phone: form.phone,
         otp,
       });
 
       // 2️⃣ update profile
-      await axios.put(`${API}/user/update`, form, {
-        headers: {
-          Authorization: `Bearer ${res.data.token}`,
-        },
-      });
+      await api.put(
+        "/user/update",
+        { name: form.name, city: form.city },
+        {
+          headers: {
+            Authorization: `Bearer ${res.data.token}`,
+          },
+        }
+      );
 
-      // 3️⃣ save session (IMPORTANT)
+      // 3️⃣ save session
       localStorage.setItem("userToken", res.data.token);
       localStorage.setItem("userPhone", form.phone);
       localStorage.setItem("userName", form.name);
 
-      // 4️⃣ redirect home
+      // 4️⃣ redirect
       window.location.href = "/";
-    } catch {
-      alert("❌ Incorrect OTP. Try again");
+    } catch (err) {
+      setError(err.response?.data?.message || "OTP verification failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-[#050505] px-6 py-16 text-gray-900 dark:text-gray-200 relative overflow-hidden">
-      {/* Floating background */}
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-[#050505]
+                    px-6 py-16 text-gray-900 dark:text-gray-200 relative overflow-hidden">
+      {/* FLOATING BG */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         {[...Array(10)].map((_, i) => (
           <motion.div
@@ -83,7 +102,7 @@ export default function Register() {
         ))}
       </div>
 
-      {/* Card */}
+      {/* CARD */}
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
@@ -92,34 +111,30 @@ export default function Register() {
                    shadow-[0_0_40px_rgba(255,174,0,0.15)]
                    rounded-2xl p-8 relative z-10"
       >
-        <h2
-          className="text-4xl font-extrabold text-center mb-8
+        <h2 className="text-4xl font-extrabold text-center mb-6
                        bg-gradient-to-r from-orange-500 to-yellow-300
-                       text-transparent bg-clip-text"
-        >
+                       text-transparent bg-clip-text">
           Create Your Account
         </h2>
+
+        {error && (
+          <p className="text-red-400 text-sm mb-4 text-center">{error}</p>
+        )}
 
         {/* STEP 1 */}
         {step === 1 && (
           <>
-            <Input
-              icon={<User size={18} />}
-              placeholder="Full Name"
+            <Input icon={<User size={18} />} placeholder="Full Name"
               value={form.name}
               onChange={(v) => setForm({ ...form, name: v })}
             />
 
-            <Input
-              icon={<MapPin size={18} />}
-              placeholder="City"
+            <Input icon={<MapPin size={18} />} placeholder="City"
               value={form.city}
               onChange={(v) => setForm({ ...form, city: v })}
             />
 
-            <Input
-              icon={<Smartphone size={18} />}
-              placeholder="Phone Number"
+            <Input icon={<Smartphone size={18} />} placeholder="Phone Number"
               maxLength={10}
               value={form.phone}
               onChange={(v) =>
@@ -127,18 +142,12 @@ export default function Register() {
               }
             />
 
-            <Button onClick={sendOtp} loading={loading}>
-              Send OTP →
+            <Button
+              onClick={sendOtp}
+              loading={loading || cooldown > 0}
+            >
+              {cooldown > 0 ? `Resend in ${cooldown}s` : "Send OTP →"}
             </Button>
-            <p className="mt-6 text-center text-sm text-gray-400">
-              Already have an account?{" "}
-              <a
-                href="/login"
-                className="text-orange-400 font-semibold hover:underline"
-              >
-                Login
-              </a>
-            </p>
           </>
         )}
 
@@ -171,7 +180,7 @@ export default function Register() {
   );
 }
 
-/* REUSABLE INPUT */
+/* ================= INPUT ================= */
 function Input({ icon, value, onChange, ...rest }) {
   return (
     <div className="relative mb-4">
@@ -189,7 +198,7 @@ function Input({ icon, value, onChange, ...rest }) {
   );
 }
 
-/* REUSABLE BUTTON */
+/* ================= BUTTON ================= */
 function Button({ children, onClick, loading, green }) {
   return (
     <motion.button
@@ -198,12 +207,10 @@ function Button({ children, onClick, loading, green }) {
       onClick={onClick}
       disabled={loading}
       className={`w-full py-3 rounded-xl font-semibold shadow-lg
-        ${
-          green
-            ? "bg-green-500 hover:bg-green-600 text-white"
-            : "bg-gradient-to-r from-orange-500 to-yellow-400 text-black"
-        }
-      `}
+        ${green
+          ? "bg-green-500 hover:bg-green-600 text-white"
+          : "bg-gradient-to-r from-orange-500 to-yellow-400 text-black"}
+        disabled:opacity-50`}
     >
       {loading ? "Please wait..." : children}
     </motion.button>

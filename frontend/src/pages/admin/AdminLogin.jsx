@@ -80,6 +80,11 @@ export default function AdminLogin() {
           >
             {loading ? "Logging in..." : "Login"}
           </button>
+          <p className="mt-4 text-center text-sm text-gray-400">
+            <a href="/admin/forgot" className="text-orange-400 hover:underline">
+              Forgot password?
+            </a>
+          </p>
         </div>
       </form>
     </div>

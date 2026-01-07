@@ -1,43 +1,66 @@
-import { useState } from "react";
-import axios from "axios";
+import { useState, useEffect } from "react";
 import { Phone, ShieldCheck, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-
-const API = "http://localhost:5000/api";
+import { api } from "../../lib/api";
 
 export default function OtpLogin({ onSuccess }) {
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [cooldown, setCooldown] = useState(0);
 
-  /* SEND OTP */
+  /* ⏳ COOLDOWN TIMER */
+  useEffect(() => {
+    if (cooldown > 0) {
+      const t = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(t);
+    }
+  }, [cooldown]);
+
+  /* ================= SEND OTP ================= */
   const sendOtp = async () => {
-    if (phone.length !== 10) return alert("Enter valid phone number");
+    if (phone.length !== 10) {
+      return setError("Enter valid 10-digit phone number");
+    }
+
     try {
       setLoading(true);
-      await axios.post(`${API}/otp/send`, { phone });
+      setError("");
+      await api.post("/otp/send", { phone });
       setStep(2);
-    } catch {
-      alert("OTP send failed");
+      setCooldown(30);
+    } catch (err) {
+      setError(err.response?.data?.message || "OTP send failed");
     } finally {
       setLoading(false);
     }
   };
 
-  /* VERIFY OTP */
+  /* ================= VERIFY OTP ================= */
   const verifyOtp = async () => {
-    if (otp.length !== 6) return alert("Enter 6-digit OTP");
+    if (otp.length !== 6) {
+      return setError("Enter 6-digit OTP");
+    }
+
     try {
       setLoading(true);
-      const res = await axios.post(`${API}/otp/verify`, { phone, otp });
+      setError("");
 
+      const res = await api.post("/otp/verify", { phone, otp });
+
+      // ✅ SAVE SESSION
       localStorage.setItem("userToken", res.data.token);
       localStorage.setItem("userPhone", phone);
 
-      onSuccess();
+      if (res.data.user?.name) {
+        localStorage.setItem("userName", res.data.user.name);
+      }
+
+      onSuccess?.();
     } catch (err) {
-      alert(err.response?.data?.message || "Invalid OTP");
+      setError(err.response?.data?.message || "Invalid OTP");
     } finally {
       setLoading(false);
     }
@@ -55,6 +78,10 @@ export default function OtpLogin({ onSuccess }) {
         bg-clip-text text-transparent">
         Verify Phone Number
       </h2>
+
+      {error && (
+        <p className="text-red-500 text-sm text-center">{error}</p>
+      )}
 
       <AnimatePresence mode="wait">
         {/* STEP 1 */}
@@ -75,10 +102,16 @@ export default function OtpLogin({ onSuccess }) {
             />
 
             <PrimaryBtn
-              text={loading ? "Sending..." : "Send OTP"}
+              text={
+                cooldown > 0
+                  ? `Resend in ${cooldown}s`
+                  : loading
+                  ? "Sending..."
+                  : "Send OTP"
+              }
               icon={<ArrowRight size={18} />}
               onClick={sendOtp}
-              loading={loading}
+              loading={loading || cooldown > 0}
             />
           </motion.div>
         )}
@@ -113,7 +146,7 @@ export default function OtpLogin({ onSuccess }) {
   );
 }
 
-/* INPUT */
+/* ================= INPUT ================= */
 function Input({ icon, value, onChange, ...props }) {
   return (
     <div className="relative">
@@ -123,7 +156,9 @@ function Input({ icon, value, onChange, ...props }) {
       <input
         {...props}
         value={value}
-        onChange={(e) => onChange(e.target.value.replace(/\D/g, ""))}
+        onChange={(e) =>
+          onChange(e.target.value.replace(/\D/g, ""))
+        }
         className="
           w-full pl-10 pr-3 py-3 rounded-xl
           bg-white dark:bg-[#111]
@@ -138,14 +173,15 @@ function Input({ icon, value, onChange, ...props }) {
   );
 }
 
-/* BUTTON */
+/* ================= BUTTON ================= */
 function PrimaryBtn({ text, icon, onClick, loading }) {
   return (
     <button
       onClick={onClick}
       disabled={loading}
       className="
-        w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2
+        w-full py-3 rounded-xl font-bold
+        flex items-center justify-center gap-2
         bg-gradient-to-r from-orange-500 to-yellow-400
         text-black
         hover:brightness-110 hover:shadow-lg

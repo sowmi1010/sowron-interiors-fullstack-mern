@@ -6,12 +6,14 @@ const router = express.Router();
 
 router.put("/update", userProtect, async (req, res) => {
   const { name, city } = req.body;
-
-  await User.findByIdAndUpdate(req.user._id, { name, city });
+  await User.findByIdAndUpdate(req.user._id, {
+    name,
+    city,
+  });
   res.json({ success: true });
 });
 
-router.get("/me", userProtect, async (req, res) => {
+router.get("/me", userProtect, (req, res) => {
   res.json(req.user);
 });
 

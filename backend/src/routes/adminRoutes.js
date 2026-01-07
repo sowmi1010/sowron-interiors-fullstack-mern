@@ -1,15 +1,24 @@
+// routes/adminAuthRoutes.js
 import express from "express";
-import { adminLogin } from "../controllers/adminAuthController.js";
 import rateLimit from "express-rate-limit";
+import {
+  adminLogin,
+  adminForgotPassword,
+  adminResetPassword,
+} from "../controllers/adminAuthController.js";
 
 const router = express.Router();
 
-const adminLoginLimiter = rateLimit({
+/* LOGIN */
+router.post("/login", rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
-  message: "Too many login attempts. Try later."
-});
+}), adminLogin);
 
-router.post("/login", adminLoginLimiter, adminLogin);
+/* FORGOT PASSWORD */
+router.post("/forgot-password", adminForgotPassword);
+
+/* RESET PASSWORD */
+router.post("/reset-password", adminResetPassword);
 
 export default router;

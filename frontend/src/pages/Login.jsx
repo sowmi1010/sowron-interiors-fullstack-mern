@@ -1,48 +1,61 @@
 // src/pages/Login.jsx
-import { useState, useRef } from "react";
-import axios from "axios";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Smartphone, KeyRound } from "lucide-react";
-
-const API = "http://localhost:5000/api";
+import { api } from "./../lib/api";
 
 export default function Login() {
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
+  const [cooldown, setCooldown] = useState(0);
   const otpRef = useRef(null);
 
+  /* 🔁 COOLDOWN TIMER */
+  useEffect(() => {
+    if (cooldown > 0) {
+      const t = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(t);
+    }
+  }, [cooldown]);
+
+  /* ================= SEND OTP ================= */
   const sendOtp = async () => {
-    if (phone.length !== 10) return setError("Enter valid 10-digit number");
+    if (phone.length !== 10) {
+      return setError("Enter valid 10-digit number");
+    }
 
     try {
-      await axios.post(`${API}/otp/send`, { phone });
       setError("");
+      await api.post("/otp/send", { phone });
       setStep(2);
+      setCooldown(30); // ⏳ RESEND AFTER 30s
       setTimeout(() => otpRef.current?.focus(), 300);
-    } catch {
-      setError("Failed to send OTP");
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to send OTP");
     }
   };
 
+  /* ================= VERIFY OTP ================= */
   const verifyOtp = async () => {
-    if (otp.length < 4) return setError("Invalid OTP");
+    if (otp.length !== 6) {
+      return setError("Enter 6-digit OTP");
+    }
 
     try {
-      const res = await axios.post(`${API}/otp/verify`, { phone, otp });
+      const res = await api.post("/otp/verify", { phone, otp });
 
       localStorage.setItem("userToken", res.data.token);
       localStorage.setItem("userPhone", phone);
 
-      // ✅ SAVE NAME (IMPORTANT)
       if (res.data.user?.name) {
         localStorage.setItem("userName", res.data.user.name);
       }
 
       window.location.href = "/";
-    } catch {
-      setError("Incorrect OTP");
+    } catch (err) {
+      setError(err.response?.data?.message || "Invalid OTP");
     }
   };
 
@@ -53,10 +66,9 @@ export default function Login() {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-sm p-8 rounded-2xl bg-black/40 backdrop-blur border border-white/10"
       >
-        <h2
-          className="text-4xl font-extrabold text-center mb-4
-          bg-gradient-to-r from-orange-500 to-yellow-300 bg-clip-text text-transparent"
-        >
+        <h2 className="text-4xl font-extrabold text-center mb-4
+                       bg-gradient-to-r from-orange-500 to-yellow-300
+                       bg-clip-text text-transparent">
           Login With OTP
         </h2>
 
@@ -64,6 +76,7 @@ export default function Login() {
           <p className="text-red-400 text-sm mb-3 text-center">{error}</p>
         )}
 
+        {/* STEP 1 */}
         {step === 1 && (
           <>
             <div className="relative mb-4">
@@ -76,16 +89,21 @@ export default function Login() {
                 placeholder="Phone Number"
                 maxLength={10}
                 value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) =>
+                  setPhone(e.target.value.replace(/\D/g, ""))
+                }
               />
             </div>
 
             <button
+              disabled={cooldown > 0}
               onClick={sendOtp}
-              className="w-full py-3 rounded-xl bg-orange-500 text-black font-semibold"
+              className="w-full py-3 rounded-xl bg-orange-500 text-black font-semibold
+                         disabled:opacity-50"
             >
-              Send OTP →
+              {cooldown > 0 ? `Resend in ${cooldown}s` : "Send OTP →"}
             </button>
+
             <p className="mt-6 text-center text-sm text-white">
               New user?{" "}
               <a
@@ -98,6 +116,7 @@ export default function Login() {
           </>
         )}
 
+        {/* STEP 2 */}
         {step === 2 && (
           <>
             <div className="relative mb-4">
@@ -107,11 +126,14 @@ export default function Login() {
               />
               <input
                 ref={otpRef}
-                className="w-full pl-10 p-3 rounded-xl bg-black/30 border border-gray-600 text-center tracking-widest"
+                className="w-full pl-10 p-3 rounded-xl bg-black/30
+                           border border-gray-600 text-center tracking-widest"
                 placeholder="123456"
                 maxLength={6}
                 value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) =>
+                  setOtp(e.target.value.replace(/\D/g, ""))
+                }
               />
             </div>
 
@@ -126,6 +148,7 @@ export default function Login() {
               onClick={() => {
                 setStep(1);
                 setOtp("");
+                setError("");
               }}
               className="mt-3 w-full text-sm text-gray-400"
             >
