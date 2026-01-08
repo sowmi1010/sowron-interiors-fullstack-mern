@@ -11,7 +11,7 @@ export default function OtpLogin({ onSuccess }) {
   const [error, setError] = useState("");
   const [cooldown, setCooldown] = useState(0);
 
-  /* ⏳ COOLDOWN TIMER */
+  /* ================= COOLDOWN ================= */
   useEffect(() => {
     if (cooldown > 0) {
       const t = setTimeout(() => setCooldown(cooldown - 1), 1000);
@@ -22,7 +22,7 @@ export default function OtpLogin({ onSuccess }) {
   /* ================= SEND OTP ================= */
   const sendOtp = async () => {
     if (phone.length !== 10) {
-      return setError("Enter valid 10-digit phone number");
+      return setError("Enter a valid 10-digit mobile number");
     }
 
     try {
@@ -32,7 +32,7 @@ export default function OtpLogin({ onSuccess }) {
       setStep(2);
       setCooldown(30);
     } catch (err) {
-      setError(err.response?.data?.message || "OTP send failed");
+      setError(err.response?.data?.message || "Failed to send OTP");
     } finally {
       setLoading(false);
     }
@@ -41,7 +41,7 @@ export default function OtpLogin({ onSuccess }) {
   /* ================= VERIFY OTP ================= */
   const verifyOtp = async () => {
     if (otp.length !== 6) {
-      return setError("Enter 6-digit OTP");
+      return setError("Enter the 6-digit OTP");
     }
 
     try {
@@ -50,7 +50,6 @@ export default function OtpLogin({ onSuccess }) {
 
       const res = await api.post("/otp/verify", { phone, otp });
 
-      // ✅ SAVE SESSION
       localStorage.setItem("userToken", res.data.token);
       localStorage.setItem("userPhone", phone);
 
@@ -73,18 +72,29 @@ export default function OtpLogin({ onSuccess }) {
       className="space-y-6"
     >
       {/* TITLE */}
-      <h2 className="text-3xl font-extrabold text-center
-        bg-gradient-to-r from-orange-500 to-yellow-400
-        bg-clip-text text-transparent">
-        Verify Phone Number
-      </h2>
+      <div className="text-center">
+        <h2 className="text-2xl font-extrabold">
+          Secure Phone Verification
+        </h2>
+        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+          We’ll send a one-time password to verify your number
+        </p>
+
+        <span
+          className="
+            block mx-auto mt-4 w-14 h-[3px]
+            bg-gradient-to-r from-red-600 to-yellow-400
+            rounded-full
+          "
+        />
+      </div>
 
       {error && (
-        <p className="text-red-500 text-sm text-center">{error}</p>
+        <p className="text-sm text-red-600 text-center">{error}</p>
       )}
 
       <AnimatePresence mode="wait">
-        {/* STEP 1 */}
+        {/* ================= STEP 1 ================= */}
         {step === 1 && (
           <motion.div
             key="phone"
@@ -94,29 +104,29 @@ export default function OtpLogin({ onSuccess }) {
             className="space-y-4"
           >
             <Input
-              icon={<Phone size={18} />}
-              placeholder="Enter Phone Number"
+              icon={Phone}
+              placeholder="Mobile Number"
               value={phone}
               onChange={setPhone}
               maxLength={10}
             />
 
-            <PrimaryBtn
+            <PrimaryButton
               text={
                 cooldown > 0
                   ? `Resend in ${cooldown}s`
                   : loading
-                  ? "Sending..."
+                  ? "Sending OTP…"
                   : "Send OTP"
               }
-              icon={<ArrowRight size={18} />}
+              icon={ArrowRight}
               onClick={sendOtp}
-              loading={loading || cooldown > 0}
+              disabled={loading || cooldown > 0}
             />
           </motion.div>
         )}
 
-        {/* STEP 2 */}
+        {/* ================= STEP 2 ================= */}
         {step === 2 && (
           <motion.div
             key="otp"
@@ -126,18 +136,18 @@ export default function OtpLogin({ onSuccess }) {
             className="space-y-4"
           >
             <Input
-              icon={<ShieldCheck size={18} />}
+              icon={ShieldCheck}
               placeholder="Enter 6-digit OTP"
               value={otp}
               onChange={setOtp}
               maxLength={6}
             />
 
-            <PrimaryBtn
-              text={loading ? "Verifying..." : "Verify OTP"}
-              icon={<ShieldCheck size={18} />}
+            <PrimaryButton
+              text={loading ? "Verifying…" : "Verify & Continue"}
+              icon={ShieldCheck}
               onClick={verifyOtp}
-              loading={loading}
+              disabled={loading}
             />
           </motion.div>
         )}
@@ -147,12 +157,13 @@ export default function OtpLogin({ onSuccess }) {
 }
 
 /* ================= INPUT ================= */
-function Input({ icon, value, onChange, ...props }) {
+function Input({ icon: Icon, value, onChange, ...props }) {
   return (
     <div className="relative">
-      <span className="absolute left-3 top-3.5 text-gray-400">
-        {icon}
-      </span>
+      <Icon
+        size={16}
+        className="absolute left-3 top-3.5 text-gray-400"
+      />
       <input
         {...props}
         value={value}
@@ -161,12 +172,10 @@ function Input({ icon, value, onChange, ...props }) {
         }
         className="
           w-full pl-10 pr-3 py-3 rounded-xl
-          bg-white dark:bg-[#111]
-          text-gray-900 dark:text-gray-100
-          border border-gray-300 dark:border-gray-700
-          placeholder-gray-400 dark:placeholder-gray-500
-          focus:outline-none focus:ring-2 focus:ring-orange-500
-          transition
+          bg-gray-50 dark:bg-[#1a1a1a]
+          border border-gray-300 dark:border-white/10
+          text-sm outline-none
+          focus:border-red-500 transition
         "
       />
     </div>
@@ -174,22 +183,23 @@ function Input({ icon, value, onChange, ...props }) {
 }
 
 /* ================= BUTTON ================= */
-function PrimaryBtn({ text, icon, onClick, loading }) {
+function PrimaryButton({ text, icon: Icon, onClick, disabled }) {
   return (
     <button
       onClick={onClick}
-      disabled={loading}
+      disabled={disabled}
       className="
-        w-full py-3 rounded-xl font-bold
+        w-full py-3 rounded-xl font-semibold
         flex items-center justify-center gap-2
-        bg-gradient-to-r from-orange-500 to-yellow-400
-        text-black
-        hover:brightness-110 hover:shadow-lg
-        disabled:opacity-50 disabled:cursor-not-allowed
+        bg-gradient-to-r from-red-600 to-red-700
+        text-white
+        hover:shadow-red-600/40
         transition
+        disabled:opacity-50 disabled:cursor-not-allowed
       "
     >
-      {text} {icon}
+      {text}
+      {Icon && <Icon size={18} />}
     </button>
   );
 }

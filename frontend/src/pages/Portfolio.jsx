@@ -1,152 +1,119 @@
-// src/pages/Portfolio.jsx
 import { useEffect, useState, useRef } from "react";
 import { api } from "../lib/api";
 import { Link } from "react-router-dom";
-import { motion, useAnimation, useInView } from "framer-motion";
-import { MapPin, ArrowRight } from "lucide-react";
+import { motion, useInView } from "framer-motion";
+import { MapPin, ArrowUpRight } from "lucide-react";
+import { Helmet } from "react-helmet";
 
 export default function Portfolio() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [scrollY, setScrollY] = useState(0);
 
-  /* ================= LOAD PORTFOLIO ================= */
+  /* ================= LOAD DATA ================= */
   useEffect(() => {
-    let mounted = true;
-
     const load = async () => {
       try {
         const res = await api.get("/portfolio");
-        if (mounted) {
-          setProjects(Array.isArray(res.data) ? res.data : []);
-        }
+        setProjects(Array.isArray(res.data) ? res.data : []);
       } catch {
-        if (mounted) setProjects([]);
+        setProjects([]);
       } finally {
-        if (mounted) setLoading(false);
+        setLoading(false);
       }
     };
 
     load();
-
-    const onScroll = () => setScrollY(window.scrollY);
-    window.addEventListener("scroll", onScroll);
-
-    return () => {
-      mounted = false;
-      window.removeEventListener("scroll", onScroll);
-    };
+    window.scrollTo(0, 0);
   }, []);
 
-  const blur = Math.min(scrollY / 50, 8);
-
   return (
-    <div className="relative min-h-screen bg-[#f5f4f2] dark:bg-[#050505]
-                    text-gray-800 dark:text-gray-200 overflow-x-hidden">
-
-      <FloatingLights />
-
-      {/* HERO */}
-      <section className="relative h-[360px] md:h-[460px] w-full overflow-hidden shadow-xl">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 h-full w-full object-cover transition"
-          style={{ filter: `blur(${blur}px) brightness(${1 - blur * 0.04})` }}
-          src="/v3.mp4"
+    <>
+      {/* ================= SEO ================= */}
+      <Helmet>
+        <title>Portfolio | Sowron Interiors – Premium Projects</title>
+        <meta
+          name="description"
+          content="Explore premium turnkey interior projects by Sowron Interiors. Crafted spaces with luxury materials and expert execution."
         />
-        <div className="absolute inset-0 bg-black/45 dark:bg-black/55" />
+      </Helmet>
 
-        <motion.div
-          initial={{ opacity: 0, y: 35 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.1 }}
-          className="relative z-10 flex flex-col justify-center
-                     items-center h-full text-center"
-        >
-          <h1 className="text-white drop-shadow-xl
-                         text-4xl md:text-6xl font-extrabold">
-            Completed Premium Projects
-          </h1>
-          <p className="text-gray-200 text-sm md:text-base mt-3">
-            Crafted spaces that redefine luxury & comfort
+      <section
+        className="
+          relative min-h-screen overflow-hidden
+          bg-gradient-to-b from-white via-white to-yellow-50/30
+          dark:from-[#050505] dark:via-[#0b0b0b] dark:to-black
+          text-gray-900 dark:text-gray-100
+        "
+      >
+        {/* ================= HERO ================= */}
+        <div className="relative h-[380px] md:h-[520px] overflow-hidden">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover opacity-40"
+            src="/v3.mp4"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70" />
+
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1.1 }}
+            className="relative z-10 h-full flex flex-col items-center justify-center text-center px-6"
+          >
+            <span className="text-yellow-400 tracking-widest text-xs uppercase mb-4">
+              Selected Works
+            </span>
+            <h1 className="text-4xl md:text-6xl font-extrabold text-white">
+              Signature Interior Projects
+            </h1>
+            <p className="mt-4 text-sm md:text-base text-gray-200 max-w-2xl">
+              Each project reflects our commitment to precision, craftsmanship,
+              and timeless design.
+            </p>
+          </motion.div>
+        </div>
+
+        {/* ================= INTRO ================= */}
+        <div className="max-w-3xl mx-auto text-center py-20 px-6">
+          <p className="text-gray-700 dark:text-gray-300 text-base leading-7">
+            Our portfolio showcases luxury residential and commercial interiors
+            designed with thoughtful layouts, premium finishes, and seamless
+            execution — crafted to elevate everyday living.
           </p>
-        </motion.div>
-      </section>
+        </div>
 
-      {/* INTRO */}
-      <div className="text-center py-14 px-6">
-        <p className="text-gray-600 dark:text-gray-300 text-sm max-w-2xl mx-auto">
-          Browse through our curated masterpieces – designed with fine
-          interior craftsmanship, premium materials, and modern elegance.
-        </p>
-      </div>
+        {/* ================= GRID ================= */}
+        <div className="max-w-[1600px] mx-auto px-6 pb-32 grid
+                        grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4
+                        gap-14">
+          {loading && (
+            <p className="col-span-full text-center text-gray-400">
+              Loading projects…
+            </p>
+          )}
 
-      {/* GRID */}
-      <div className="px-6 md:px-20 grid sm:grid-cols-2
-                      lg:grid-cols-3 xl:grid-cols-4 gap-14 pb-32">
-        {loading && (
-          <p className="col-span-full text-center text-gray-500">
-            Loading projects…
-          </p>
-        )}
+          {!loading && projects.length === 0 && (
+            <p className="col-span-full text-center text-gray-400">
+              No projects available
+            </p>
+          )}
 
-        {!loading &&
-          projects.map((p, i) => (
-            <ProjectCard project={p} index={i} key={p._id} />
+          {projects.map((p, i) => (
+            <PortfolioCard key={p._id} project={p} index={i} />
           ))}
-
-        {!loading && projects.length === 0 && (
-          <p className="col-span-full text-center text-gray-500">
-            No Projects Found
-          </p>
-        )}
-      </div>
-    </div>
+        </div>
+      </section>
+    </>
   );
 }
 
-/* ================= FLOATING LIGHTS ================= */
-function FloatingLights() {
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {[...Array(20)].map((_, i) => (
-        <motion.div
-          key={i}
-          animate={{
-            opacity: [0.25, 0.7, 0.25],
-            scale: [1, 1.45, 1],
-            y: [-90, 150, -90],
-          }}
-          transition={{
-            duration: 11 + i * 0.4,
-            repeat: Infinity,
-            repeatType: "mirror",
-          }}
-          className="absolute rounded-full bg-orange-300/10 blur-[45px]"
-          style={{
-            width: 80 + i * 4,
-            height: 80 + i * 4,
-            left: `${(i * 17) % 100}%`,
-            top: `${(i * 11) % 90}%`,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-/* ================= PROJECT CARD ================= */
-function ProjectCard({ project, index }) {
+/* ================= PORTFOLIO CARD ================= */
+function PortfolioCard({ project, index }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true });
-  const controls = useAnimation();
-
-  useEffect(() => {
-    if (inView) controls.start({ opacity: 1, y: 0 });
-  }, [inView, controls]);
 
   const imageUrl = project.images?.[0]?.url;
 
@@ -154,30 +121,44 @@ function ProjectCard({ project, index }) {
     <motion.div
       ref={ref}
       initial={{ opacity: 0, y: 50 }}
-      animate={controls}
-      transition={{ duration: 0.75, delay: index * 0.06 }}
-      whileHover={{ scale: 1.04, y: -4 }}
-      className="relative cursor-pointer rounded-[28px]
-                 overflow-hidden border border-white/25
-                 dark:border-[#2c2c2c] shadow-xl
-                 bg-white/40 dark:bg-[#161616]/50
-                 hover:shadow-orange-500/25 transition-all"
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.8, delay: index * 0.06 }}
+      whileHover={{ y: -8 }}
+      className="
+        group relative rounded-[28px] overflow-hidden
+        bg-white dark:bg-[#141414]
+        border border-red-200/40 dark:border-white/10
+        shadow-xl hover:shadow-red-600/20
+        transition-all
+      "
     >
       {/* IMAGE */}
-      <div className="overflow-hidden h-[240px] w-full bg-[#111]">
-        {imageUrl && (
+      <div className="relative h-[260px] overflow-hidden bg-black">
+        {imageUrl ? (
           <motion.img
-            whileHover={{ scale: 1.18 }}
-            transition={{ duration: 0.7 }}
             src={imageUrl}
-            className="h-full w-full object-cover"
             alt={project.title}
+            className="h-full w-full object-cover"
+            whileHover={{ scale: 1.12 }}
+            transition={{ duration: 0.8 }}
           />
+        ) : (
+          <div className="h-full w-full bg-gray-200 dark:bg-[#111]" />
         )}
+
+        {/* OVERLAY */}
+        <div
+          className="
+            absolute inset-0 bg-gradient-to-t
+            from-black/70 via-black/30 to-transparent
+            opacity-0 group-hover:opacity-100
+            transition
+          "
+        />
       </div>
 
       {/* CONTENT */}
-      <div className="p-6">
+      <div className="p-6 relative">
         <h3 className="font-bold text-xl truncate">
           {project.title}
         </h3>
@@ -185,19 +166,31 @@ function ProjectCard({ project, index }) {
         {project.location && (
           <p className="mt-1 text-sm flex items-center gap-1
                         text-gray-600 dark:text-gray-300">
-            <MapPin size={15} /> {project.location}
+            <MapPin size={14} /> {project.location}
           </p>
         )}
 
         <Link
           to={`/portfolio/${project._id}`}
-          className="mt-4 inline-flex items-center gap-2
-                     text-orange-500 hover:text-orange-600
-                     font-semibold transition"
+          className="
+            mt-5 inline-flex items-center gap-2
+            text-red-600 dark:text-red-400
+            font-semibold group-hover:text-yellow-400
+            transition
+          "
         >
-          View Project <ArrowRight size={15} />
+          View Project
+          <ArrowUpRight size={16} />
         </Link>
       </div>
+
+      {/* CARD ACCENT */}
+      <span
+        className="
+          absolute top-0 right-0 w-24 h-24
+          bg-gradient-to-bl from-yellow-400/25 to-transparent
+        "
+      />
     </motion.div>
   );
 }

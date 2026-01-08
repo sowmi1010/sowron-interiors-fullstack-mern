@@ -4,6 +4,7 @@ import {
   getProducts,
   updateProduct,
   deleteProduct,
+  getProductById
 } from "../controllers/productController.js";
 
 import { protect, adminOnly } from "../middleware/authMiddleware.js";
@@ -13,6 +14,7 @@ const router = express.Router();
 
 /* 🌍 PUBLIC */
 router.get("/", getProducts);
+router.get("/:id", getProductById);
 
 /* 🔐 ADMIN ONLY */
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Home, Wallet, FileUp, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { api } from "../lib/api"; // ✅ IMPORTANT
+import { api } from "../lib/api";
 
 export default function Estimate() {
   const navigate = useNavigate();
@@ -20,9 +20,10 @@ export default function Estimate() {
     file: null,
   });
 
-  /* 🔐 PROTECT PAGE */
+  /* ================= AUTH ================= */
   useEffect(() => {
     if (!token) navigate("/login");
+    window.scrollTo(0, 0);
   }, [token, navigate]);
 
   const next = () => {
@@ -33,21 +34,17 @@ export default function Estimate() {
 
   const back = () => setStep((s) => s - 1);
 
-  /* 🚀 SUBMIT ESTIMATE */
+  /* ================= SUBMIT ================= */
   const submit = async () => {
     try {
       setLoading(true);
 
       const fd = new FormData();
-      fd.append("city", form.city);
-      fd.append("homeType", form.homeType);
-      fd.append("budget", form.budget);
-      fd.append("requirements", form.requirements || "");
-      if (form.file) fd.append("file", form.file);
+      Object.entries(form).forEach(([k, v]) => {
+        if (v) fd.append(k, v);
+      });
 
-      // ✅ CORRECT API CALL (NO /api/api)
       await api.post("/estimate/send", fd);
-
       setSubmitted(true);
     } catch (err) {
       alert(err.response?.data?.message || "Submission failed");
@@ -57,106 +54,125 @@ export default function Estimate() {
   };
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center
-      bg-[url('/interior-bg.jpg')] bg-cover bg-center bg-fixed
-      relative overflow-hidden px-4 py-24 dark:bg-black"
-    >
-      <div
-        className="absolute inset-0 bg-gradient-to-b from-white/40 to-white/10
-        dark:from-black/60 dark:to-black/40 backdrop-blur-xl"
-      />
+    <section className="min-h-screen bg-white dark:bg-[#0a0a0a]
+                        text-gray-900 dark:text-gray-100 py-28 px-6">
+      <div className="max-w-3xl mx-auto">
 
-      <AnimatedBubbles />
+        {/* ================= HEADER ================= */}
+        <div className="text-center mb-14">
+          <h1 className="text-4xl font-extrabold">
+            Get a Detailed Interior Estimate
+          </h1>
+          <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+            Answer a few questions and our design experts will prepare a
+            personalized cost estimate for your home.
+          </p>
 
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative w-full max-w-xl rounded-2xl p-10
-        border border-white/30 dark:border-white/10
-        bg-white/15 dark:bg-black/30 backdrop-blur-xl
-        shadow-[0_0_35px_rgba(255,165,0,0.25)]"
-      >
-        {submitted ? (
-          <SuccessScreen />
-        ) : (
-          <>
-            <h2
-              className="text-4xl font-extrabold text-center mb-8
-              bg-gradient-to-r from-orange-500 to-yellow-300
-              bg-clip-text text-transparent"
-            >
-              Get Your Interior Estimate
-            </h2>
+          <span className="block mx-auto mt-6 w-20 h-[3px]
+                           bg-gradient-to-r from-red-600 to-yellow-400
+                           rounded-full" />
+        </div>
 
-            <Stepper step={step} />
+        {/* ================= CARD ================= */}
+        <div className="rounded-3xl p-10
+                        bg-gray-50 dark:bg-[#121212]
+                        border border-gray-200 dark:border-white/10
+                        shadow-xl">
 
-            <AnimatePresence mode="wait">
-              {step === 1 && (
-                <Step1 form={form} setForm={setForm} next={next} />
-              )}
-              {step === 2 && (
-                <Step2
-                  form={form}
-                  setForm={setForm}
-                  next={next}
-                  back={back}
-                />
-              )}
-              {step === 3 && (
-                <Step3
-                  form={form}
-                  setForm={setForm}
-                  submit={submit}
-                  back={back}
-                  loading={loading}
-                />
-              )}
-            </AnimatePresence>
-          </>
-        )}
-      </motion.div>
-    </div>
+          {submitted ? (
+            <SuccessScreen />
+          ) : (
+            <>
+              <Stepper step={step} />
+              <p className="text-center text-xs text-gray-500 mb-10">
+                Step {step} of 3
+              </p>
+
+              <AnimatePresence mode="wait">
+                {step === 1 && (
+                  <Step1 form={form} setForm={setForm} next={next} />
+                )}
+                {step === 2 && (
+                  <Step2
+                    form={form}
+                    setForm={setForm}
+                    next={next}
+                    back={back}
+                  />
+                )}
+                {step === 3 && (
+                  <Step3
+                    form={form}
+                    setForm={setForm}
+                    submit={submit}
+                    back={back}
+                    loading={loading}
+                  />
+                )}
+              </AnimatePresence>
+            </>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 
-/* ---------------- STEPPER ---------------- */
+/* ================= STEPPER ================= */
 function Stepper({ step }) {
-  const steps = [Home, Wallet, FileUp];
+  const steps = [
+    { icon: Home, label: "Home" },
+    { icon: Wallet, label: "Budget" },
+    { icon: FileUp, label: "Upload" },
+  ];
+
   return (
-    <div className="flex justify-between mb-12 relative">
-      {steps.map((Icon, i) => (
-        <div
-          key={i}
-          className={`w-11 h-11 flex items-center justify-center rounded-full
-          ${
-            step >= i + 1
-              ? "bg-gradient-to-r from-orange-500 to-yellow-400"
-              : "bg-gray-400 dark:bg-gray-700"
-          }`}
-        >
-          <Icon size={18} />
+    <div className="flex justify-between mb-8">
+      {steps.map(({ icon: Icon, label }, i) => (
+        <div key={i} className="flex-1 text-center">
+          <div
+            className={`mx-auto w-11 h-11 flex items-center justify-center
+              rounded-full mb-2
+              ${
+                step >= i + 1
+                  ? "bg-red-600 text-white"
+                  : "bg-gray-300 dark:bg-gray-700 text-gray-600"
+              }`}
+          >
+            <Icon size={18} />
+          </div>
+          <p className="text-xs text-gray-500">{label}</p>
         </div>
       ))}
-      <div className="absolute top-[22px] left-0 w-full h-[2px] bg-gray-300 dark:bg-gray-700" />
     </div>
   );
 }
 
-/* ---------------- STEPS ---------------- */
+/* ================= STEP 1 ================= */
 function Step1({ form, setForm, next }) {
   return (
-    <motion.div>
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6"
+    >
       <Input
         label="City"
+        placeholder="Eg: Chennai"
+        helper="This helps us assign a local design expert"
         value={form.city}
-        onChange={(e) => setForm({ ...form, city: e.target.value })}
+        onChange={(e) =>
+          setForm({ ...form, city: e.target.value })
+        }
       />
 
       <Select
         label="Home Type"
+        helper="Select the type of home you want to design"
         value={form.homeType}
-        onChange={(e) => setForm({ ...form, homeType: e.target.value })}
+        onChange={(e) =>
+          setForm({ ...form, homeType: e.target.value })
+        }
         options={["1 BHK", "2 BHK", "3 BHK", "Villa"]}
       />
 
@@ -165,18 +181,28 @@ function Step1({ form, setForm, next }) {
   );
 }
 
+/* ================= STEP 2 ================= */
 function Step2({ form, setForm, back, next }) {
   return (
-    <motion.div>
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6"
+    >
       <Select
-        label="Budget"
+        label="Estimated Budget"
+        helper="Approximate budget is enough — final cost is discussed later"
         value={form.budget}
-        onChange={(e) => setForm({ ...form, budget: e.target.value })}
+        onChange={(e) =>
+          setForm({ ...form, budget: e.target.value })
+        }
         options={["₹1.5–3L", "₹3–6L", "₹6–10L", "₹10L+"]}
       />
 
       <Textarea
-        label="Requirements"
+        label="Requirements (Optional)"
+        placeholder="Eg: Modular kitchen, wardrobe, TV unit…"
+        helper="Optional — helps us prepare a more accurate estimate"
         value={form.requirements}
         onChange={(e) =>
           setForm({ ...form, requirements: e.target.value })
@@ -188,21 +214,35 @@ function Step2({ form, setForm, back, next }) {
   );
 }
 
+/* ================= STEP 3 ================= */
 function Step3({ form, setForm, submit, back, loading }) {
   return (
-    <motion.div>
-      <label className="block mb-2 font-semibold">
-        Upload Plan (Optional)
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6"
+    >
+      <label className="text-sm text-gray-600 dark:text-gray-400">
+        Upload Floor Plan (Optional)
       </label>
-      <input
-        type="file"
-        className="glass-input"
-        onChange={(e) =>
-          setForm({ ...form, file: e.target.files[0] })
-        }
-      />
 
-      <div className="flex justify-between mt-6">
+      <div>
+        <input
+          type="file"
+          onChange={(e) =>
+            setForm({ ...form, file: e.target.files[0] })
+          }
+          className="w-full px-4 py-3 rounded-xl
+                     bg-white dark:bg-[#1a1a1a]
+                     border border-dashed border-gray-300
+                     dark:border-white/20 text-sm cursor-pointer"
+        />
+        <p className="mt-1 text-xs text-gray-400">
+          JPG, PNG or PDF • Max 5MB
+        </p>
+      </div>
+
+      <div className="flex justify-between pt-6">
         <BackButton onClick={back} />
         <SubmitButton onClick={submit} loading={loading} />
       </div>
@@ -210,57 +250,104 @@ function Step3({ form, setForm, submit, back, loading }) {
   );
 }
 
-/* ---------------- SUCCESS ---------------- */
+/* ================= SUCCESS ================= */
 function SuccessScreen() {
   return (
-    <div className="text-center text-black dark:text-white">
-      <CheckCircle2 size={50} className="mx-auto text-green-400" />
-      <p className="mt-4 text-lg">Estimate submitted 🎉</p>
-      <p className="text-sm text-gray-400">
-        Our team will contact you shortly
+    <div className="text-center py-16">
+      <CheckCircle2 size={48} className="mx-auto text-green-500" />
+      <h3 className="mt-6 text-2xl font-bold">
+        Estimate Submitted Successfully
+      </h3>
+      <p className="mt-2 text-sm text-gray-500">
+        Our design team will contact you shortly.
       </p>
     </div>
   );
 }
 
-/* ---------------- UI HELPERS ---------------- */
-const Input = ({ label, ...props }) => (
-  <>
-    <label className="block mb-2 font-semibold">{label}</label>
-    <input {...props} className="glass-input mb-6" />
-  </>
+/* ================= UI HELPERS ================= */
+const Input = ({ label, helper, ...props }) => (
+  <div className="space-y-1">
+    <label className="text-sm text-gray-600 dark:text-gray-400">
+      {label}
+    </label>
+    <motion.input
+      {...props}
+      whileFocus={{ scale: 1.01 }}
+      className="w-full px-4 py-3 rounded-xl
+                 bg-white dark:bg-[#1a1a1a]
+                 border border-gray-300 dark:border-white/10
+                 outline-none text-sm
+                 focus:border-red-500 transition"
+    />
+    {helper && (
+      <p className="text-xs text-gray-400">{helper}</p>
+    )}
+  </div>
 );
 
-const Select = ({ label, value, onChange, options }) => (
-  <>
-    <label className="block mb-2 font-semibold">{label}</label>
-    <select value={value} onChange={onChange} className="glass-input mb-6">
-      <option value="">Select</option>
+const Select = ({ label, helper, value, onChange, options }) => (
+  <div className="space-y-1">
+    <label className="text-sm text-gray-600 dark:text-gray-400">
+      {label}
+    </label>
+    <motion.select
+      value={value}
+      onChange={onChange}
+      whileFocus={{ scale: 1.01 }}
+      className="w-full px-4 py-3 rounded-xl
+                 bg-white dark:bg-[#1a1a1a]
+                 border border-gray-300 dark:border-white/10
+                 outline-none text-sm
+                 focus:border-red-500 transition"
+    >
+      <option value="">Select an option</option>
       {options.map((o) => (
         <option key={o}>{o}</option>
       ))}
-    </select>
-  </>
+    </motion.select>
+    {helper && (
+      <p className="text-xs text-gray-400">{helper}</p>
+    )}
+  </div>
 );
 
-const Textarea = ({ label, ...props }) => (
-  <>
-    <label className="block mb-2 font-semibold">{label}</label>
-    <textarea rows={3} {...props} className="glass-input mb-6" />
-  </>
+const Textarea = ({ label, helper, ...props }) => (
+  <div className="space-y-1">
+    <label className="text-sm text-gray-600 dark:text-gray-400">
+      {label}
+    </label>
+    <motion.textarea
+      {...props}
+      rows={3}
+      whileFocus={{ scale: 1.01 }}
+      className="w-full px-4 py-3 rounded-xl
+                 bg-white dark:bg-[#1a1a1a]
+                 border border-gray-300 dark:border-white/10
+                 outline-none text-sm
+                 focus:border-red-500 transition"
+    />
+    {helper && (
+      <p className="text-xs text-gray-400">{helper}</p>
+    )}
+  </div>
 );
 
 const NextButton = ({ onClick }) => (
-  <button
+  <motion.button
+    whileHover={{ scale: 1.02 }}
+    whileTap={{ scale: 0.96 }}
     onClick={onClick}
-    className="cta-btn w-full bg-gradient-to-r from-orange-500 to-yellow-400 text-black"
+    className="w-full mt-6 py-3 rounded-xl
+               bg-red-600 hover:bg-red-700
+               text-white font-semibold transition"
   >
-    Next →
-  </button>
+    Continue →
+  </motion.button>
 );
 
 const NavButtons = ({ back, next }) => (
-  <div className="flex justify-between">
+  <div className="flex justify-between pt-6">
     <BackButton onClick={back} />
     <NextButton onClick={next} />
   </div>
@@ -269,40 +356,26 @@ const NavButtons = ({ back, next }) => (
 const BackButton = ({ onClick }) => (
   <button
     onClick={onClick}
-    className="cta-btn bg-gray-400 dark:bg-gray-700 text-white"
+    className="px-6 py-3 rounded-xl
+               bg-gray-300 dark:bg-gray-700
+               text-gray-900 dark:text-white
+               font-medium"
   >
     ← Back
   </button>
 );
 
 const SubmitButton = ({ onClick, loading }) => (
-  <button
-    disabled={loading}
+  <motion.button
+    whileHover={{ scale: 1.02 }}
+    whileTap={{ scale: 0.96 }}
     onClick={onClick}
-    className="cta-btn bg-green-500 hover:bg-green-600 text-white flex gap-2 disabled:opacity-50"
+    disabled={loading}
+    className="px-8 py-3 rounded-xl
+               bg-red-600 hover:bg-red-700
+               text-white font-semibold
+               disabled:opacity-50 transition"
   >
-    <CheckCircle2 size={18} /> {loading ? "Submitting..." : "Submit"}
-  </button>
+    {loading ? "Submitting…" : "Submit Estimate"}
+  </motion.button>
 );
-
-/* ---------------- BUBBLES ---------------- */
-function AnimatedBubbles() {
-  return (
-    <div className="absolute inset-0 pointer-events-none">
-      {[...Array(12)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute rounded-full bg-orange-400/15 blur-[50px]"
-          animate={{ y: [-60, 100, -60] }}
-          transition={{ duration: 12 + i, repeat: Infinity }}
-          style={{
-            width: 80 + i * 5,
-            height: 80 + i * 5,
-            left: `${(i * 12) % 100}%`,
-            top: `${(i * 13) % 90}%`,
-          }}
-        />
-      ))}
-    </div>
-  );
-}

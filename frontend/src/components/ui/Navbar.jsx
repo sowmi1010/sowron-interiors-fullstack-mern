@@ -6,12 +6,11 @@ import { useTheme } from "../../context/ThemeContext.jsx";
 export default function Navbar() {
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
+  const [open, setOpen] = useState(false);
 
   const token = localStorage.getItem("userToken");
-  const phone = localStorage.getItem("userPhone");
   const name = localStorage.getItem("userName");
-
-  const [open, setOpen] = useState(false);
+  const phone = localStorage.getItem("userPhone");
 
   const logout = () => {
     localStorage.clear();
@@ -28,150 +27,99 @@ export default function Navbar() {
   ];
 
   return (
-    <nav
-      className="
-        fixed top-4 left-1/2 -translate-x-1/2 z-50
-        w-[92%] max-w-7xl
-        rounded-2xl backdrop-blur-xl
-        bg-white/30 dark:bg-black/40
-        border border-white/40 dark:border-white/10
-        shadow-lg px-6 py-3
-      "
-    >
-      {/* TOP BAR */}
+    <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-7xl glass rounded-2xl px-6 py-3">
       <div className="flex items-center justify-between">
         {/* LOGO */}
         <h1
           onClick={() => navigate("/")}
-          className="
-            text-2xl font-black cursor-pointer
-            bg-gradient-to-r from-orange-500 to-yellow-300
-            bg-clip-text text-transparent
-          "
+          className="cursor-pointer text-2xl font-extrabold tracking-wide
+          bg-gradient-to-r from-brand-red to-brand-yellow
+          bg-clip-text text-transparent animate-fadeUp"
         >
-          Interiors
+          Sowron<span className="opacity-80">Interiors</span>
         </h1>
 
         {/* DESKTOP MENU */}
-        <ul className="hidden md:flex items-center gap-8 text-sm font-medium">
+        <ul className="hidden md:flex gap-8 text-sm font-medium">
           {links.map((l) => (
-            <li key={l.path}>
-              <NavLink
-                to={l.path}
-                className={({ isActive }) =>
-                  `transition hover:text-orange-500 ${
-                    isActive ? "text-orange-500 font-semibold" : ""
-                  }`
-                }
-              >
-                {l.label}
-              </NavLink>
-            </li>
+            <NavLink
+              key={l.path}
+              to={l.path}
+              className={({ isActive }) =>
+                `relative transition text-black dark:text-white ${
+                  isActive ? "text-brand-red dark:text-brand-red" : "hover:text-brand-yellow"
+                }`
+              }
+            >
+              {l.label}
+              <span className=" absolute -bottom-1 left-0 w-0 h-[2px] bg-brand-yellow transition-all group-hover:w-full" />
+            </NavLink>
           ))}
-
-          {token && (
-            <NavLink to="/products" className="hover:text-orange-500">
+           {token && (
+            <NavLink to="/products"  className={({ isActive }) =>
+                `relative transition text-black dark:text-white ${
+                  isActive ? "text-brand-red dark:text-brand-red" : "hover:text-brand-yellow"
+                }`
+              }>
               Products
             </NavLink>
           )}
         </ul>
 
-        {/* RIGHT CONTROLS */}
+        {/* RIGHT */}
         <div className="flex items-center gap-4">
           {/* THEME */}
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="
-              p-2 rounded-lg
-              bg-white/20 dark:bg-white/5
-              hover:scale-105 transition
-            "
+            className="p-2 rounded-lg text-black dark:text-white bg-white/20 dark:bg-white/10 hover:scale-110 transition"
           >
             {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           </button>
 
-          {/* AUTH (DESKTOP) */}
+          {/* AUTH */}
           {!token ? (
-            <div className="hidden md:flex gap-4 text-sm">
-              <NavLink to="/login" className="hover:text-orange-500">
-                Login
-              </NavLink>
-              <NavLink to="/register" className="hover:text-orange-500">
-                Register
-              </NavLink>
-            </div>
+            <NavLink to="/login" className="hidden md:block cta-btn">
+              Login
+            </NavLink>
           ) : (
-            <div className="hidden md:flex items-center gap-4">
-              <span className="text-sm opacity-80">
-                👋 {name || phone}
-              </span>
-              <button
-                onClick={logout}
-                className="text-orange-500 font-semibold hover:text-orange-600"
-              >
+            <div className="hidden md:flex items-center gap-3">
+              <span className="text-xs opacity-80 text-black dark:text-white">👋 {name || phone}</span>
+              <button onClick={logout} className="text-brand-yellow font-semibold">
                 Logout
               </button>
             </div>
           )}
 
-          {/* MOBILE TOGGLE */}
+          {/* MOBILE */}
           <button
             onClick={() => setOpen(!open)}
-            className="md:hidden text-orange-500"
+            className="md:hidden text-brand-red"
           >
-            {open ? <X size={24} /> : <Menu size={24} />}
+            {open ? <X size={26} /> : <Menu size={26} />}
           </button>
         </div>
       </div>
 
       {/* MOBILE MENU */}
       {open && (
-        <div
-          className="
-            mt-4 md:hidden
-            bg-white/80 dark:bg-black/80
-            backdrop-blur-xl rounded-xl
-            p-5 flex flex-col gap-4
-            border border-white/30 dark:border-white/10
-          "
-        >
+        <div className="md:hidden mt-4 glass rounded-xl p-5 flex flex-col gap-4 animate-fadeUp">
           {links.map((l) => (
             <NavLink
               key={l.path}
               to={l.path}
               onClick={() => setOpen(false)}
-              className="text-sm hover:text-orange-500"
+              className="hover:text-brand-yellow"
             >
               {l.label}
             </NavLink>
           ))}
 
-          {token && (
-            <NavLink
-              to="/products"
-              onClick={() => setOpen(false)}
-              className="hover:text-orange-500"
-            >
-              Products
-            </NavLink>
-          )}
-
-          <div className="h-px bg-gray-300 dark:bg-gray-700 my-2" />
-
           {!token ? (
-            <>
-              <NavLink to="/login" onClick={() => setOpen(false)}>
-                Login
-              </NavLink>
-              <NavLink to="/register" onClick={() => setOpen(false)}>
-                Register
-              </NavLink>
-            </>
+            <NavLink to="/login" onClick={() => setOpen(false)} className="cta-btn">
+              Login
+            </NavLink>
           ) : (
-            <button
-              onClick={logout}
-              className="text-orange-500 font-semibold text-left"
-            >
+            <button onClick={logout} className="text-brand-yellow text-left">
               Logout
             </button>
           )}

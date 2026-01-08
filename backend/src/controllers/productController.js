@@ -151,3 +151,29 @@ export const deleteProduct = async (req, res) => {
     res.status(500).json({ message: "Delete failed" });
   }
 };
+
+
+/* ================= GET SINGLE PRODUCT ================= */
+export const getProductById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid product ID" });
+    }
+
+    const product = await Product.findById(id)
+      .populate("category");
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    res.json(product);
+
+  } catch (err) {
+    console.error("GET PRODUCT BY ID ERROR:", err);
+    res.status(500).json({ message: "Failed to fetch product" });
+  }
+};
+

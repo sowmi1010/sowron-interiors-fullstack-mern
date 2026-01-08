@@ -1,34 +1,51 @@
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
   font-family: "Poppins", sans-serif;
-  transition: background 0.4s ease;
   @apply transition-colors duration-300;
 }
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar but allow scroll */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 
 html.dark body {
   background-color: #0f0f0f;
   color: white;
-    scroll-behavior: smooth;
-
 }
 
-.magnetic {
-  transition: transform .25s cubic-bezier(.2, .8, .2, 1);
+/* GLASS EFFECT */
+.glass {
+  @apply backdrop-blur-xl bg-white/30 dark:bg-black/40
+  border border-white/40 dark:border-white/10 shadow-glass;
 }
 
-.magnetic:hover {
-  transform: translateY(-3px) scale(1.03);
-}
-
-.glass-input {
-  @apply bg-white/40 dark:bg-black/30 border border-gray-300 dark:border-white/10 
-  p-3 w-full rounded-xl outline-none text-sm text-gray-800 dark:text-gray-200
-  focus:border-orange-500 transition;
-}
+/* PREMIUM BUTTON */
 .cta-btn {
-  @apply px-5 py-3 rounded-xl font-semibold hover:scale-105 transition shadow-md;
+  @apply px-6 py-3 rounded-xl font-semibold
+  bg-brand-red text-white
+  hover:bg-brand-redDark hover:shadow-glow
+  transition-all duration-300;
+}
+
+/* MAGNETIC */
+.magnetic {
+  transition: transform 0.25s cubic-bezier(.2,.8,.2,1);
+}
+.magnetic:hover {
+  transform: translateY(-4px) scale(1.04);
 }

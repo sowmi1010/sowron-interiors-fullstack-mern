@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { api } from "../lib/api"; // ✅ USE CENTRAL API
+import { api } from "../../lib/api";
 import {
   User,
   Phone,
@@ -41,8 +41,7 @@ export default function EnquiryForm() {
 
       setSuccess(true);
       setForm({ name: "", phone: "", city: "", message: "" });
-
-      setTimeout(() => setSuccess(false), 2500);
+      setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       toast.error(
         err.response?.data?.message || "Failed to submit enquiry"
@@ -54,91 +53,98 @@ export default function EnquiryForm() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
+      transition={{ duration: 0.5 }}
       className="max-w-md mx-auto"
     >
-      {/* ✅ SUCCESS MESSAGE */}
+      {/* SUCCESS */}
       {success && (
-        <motion.div
-          initial={{ opacity: 0, y: 25 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-4 p-3 flex items-center gap-2
-                     text-green-700 bg-green-100
-                     dark:bg-green-800 dark:text-white
-                     rounded-xl text-sm"
-        >
+        <div className="
+          mb-6 flex items-center gap-2
+          rounded-xl p-4 text-sm
+          bg-green-100 text-green-700
+          dark:bg-green-900/40 dark:text-green-200
+        ">
           <CheckCircle size={18} />
-          Enquiry submitted! Our team will call you shortly.
-        </motion.div>
+          Enquiry submitted. Our consultant will call you shortly.
+        </div>
       )}
 
       <form
         onSubmit={submit}
         className="
-          rounded-2xl p-8 backdrop-blur-xl
-          bg-white/40 dark:bg-black/40
-          border border-white/40 dark:border-white/10
-          shadow-lg transition-all duration-300
-          hover:shadow-[0_0_25px_rgba(255,160,60,0.25)]
+          rounded-3xl p-8
+          bg-white dark:bg-[#121212]
+          border border-gray-200 dark:border-white/10
+          shadow-xl
         "
       >
-        <h3 className="text-2xl font-black mb-6
-          bg-gradient-to-r from-orange-500 to-yellow-300
-          bg-clip-text text-transparent"
-        >
-          Request a Free Call Back 📞
-        </h3>
+        {/* HEADER */}
+        <div className="mb-8">
+          <h3 className="text-2xl font-extrabold text-center">
+            Request a Call Back
+          </h3>
+          <p className="mt-2 text-sm text-center text-gray-600 dark:text-gray-400">
+            Speak directly with our interior design consultant
+          </p>
+
+          <span className="
+            block mx-auto mt-4 w-16 h-[3px]
+            bg-gradient-to-r from-red-600 to-yellow-400
+            rounded-full
+          " />
+        </div>
 
         {/* INPUTS */}
-        {[
-          { icon: User, key: "name", label: "Your Name" },
-          { icon: Phone, key: "phone", label: "Phone Number" },
-          { icon: MapPin, key: "city", label: "City" },
-        ].map(({ icon: Icon, key, label }) => (
-          <div className="mb-5 relative" key={key}>
-            <Icon size={17} className="absolute left-3 top-[14px] text-gray-400" />
-            <input
-              value={form[key]}
-              onChange={(e) =>
-                setForm({ ...form, [key]: e.target.value })
-              }
-              className="
-                w-full p-3 pl-10 rounded-xl
-                bg-white/50 dark:bg-black/30
-                dark:text-gray-200
-                border border-gray-300 dark:border-gray-700
-                outline-none text-sm focus:border-orange-500
-                transition
-              "
-              placeholder={label}
-            />
-          </div>
-        ))}
+        <Field
+          label="Your Name"
+          icon={User}
+          value={form.name}
+          onChange={(v) => setForm({ ...form, name: v })}
+        />
+
+        <Field
+          label="Phone Number"
+          icon={Phone}
+          value={form.phone}
+          onChange={(v) => setForm({ ...form, phone: v })}
+        />
+
+        <Field
+          label="City"
+          icon={MapPin}
+          value={form.city}
+          onChange={(v) => setForm({ ...form, city: v })}
+        />
 
         {/* MESSAGE */}
-        <div className="mb-6 relative">
-          <MessageCircle
-            size={18}
-            className="absolute left-3 top-[14px] text-gray-400"
-          />
-          <textarea
-            rows={3}
-            placeholder="Write your message…"
-            value={form.message}
-            onChange={(e) =>
-              setForm({ ...form, message: e.target.value })
-            }
-            className="
-              w-full p-3 pl-10 rounded-xl
-              bg-white/50 dark:bg-black/30
-              dark:text-gray-200
-              border border-gray-300 dark:border-gray-700
-              outline-none text-sm focus:border-orange-500
-              transition
-            "
-          />
+        <div className="mb-6">
+          <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">
+            Message <span className="opacity-60">(Optional)</span>
+          </label>
+
+          <div className="relative">
+            <MessageCircle
+              size={16}
+              className="absolute left-3 top-3 text-gray-400"
+            />
+            <textarea
+              rows={3}
+              value={form.message}
+              onChange={(e) =>
+                setForm({ ...form, message: e.target.value })
+              }
+              className="
+                w-full rounded-xl pl-10 p-3
+                bg-gray-50 dark:bg-[#1a1a1a]
+                border border-gray-300 dark:border-white/10
+                outline-none text-sm
+                focus:border-red-500 transition
+              "
+              placeholder="Tell us briefly about your requirement"
+            />
+          </div>
         </div>
 
         {/* SUBMIT */}
@@ -147,14 +153,15 @@ export default function EnquiryForm() {
           whileTap={{ scale: 0.96 }}
           disabled={loading}
           className="
-            w-full py-3 rounded-xl font-semibold
-            flex justify-center gap-2 items-center
-            bg-gradient-to-r from-orange-500 to-yellow-400
-            text-black hover:shadow-lg
-            transition disabled:opacity-50
+            w-full flex items-center justify-center gap-2
+            py-3 rounded-xl font-semibold
+            bg-gradient-to-r from-red-600 to-red-700
+            text-white
+            hover:shadow-red-600/40
+            transition disabled:opacity-60
           "
         >
-          {loading ? "Sending..." : (
+          {loading ? "Submitting…" : (
             <>
               <Send size={18} /> Submit Enquiry
             </>
@@ -162,5 +169,32 @@ export default function EnquiryForm() {
         </motion.button>
       </form>
     </motion.div>
+  );
+}
+
+/* INPUT FIELD */
+function Field({ label, icon: Icon, value, onChange }) {
+  return (
+    <div className="mb-5">
+      <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">
+        {label}
+      </label>
+
+      <div className="relative">
+        <Icon size={16} className="absolute left-3 top-3 text-gray-400" />
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="
+            w-full rounded-xl pl-10 p-3
+            bg-gray-50 dark:bg-[#1a1a1a]
+            border border-gray-300 dark:border-white/10
+            outline-none text-sm
+            focus:border-red-500 transition
+          "
+          placeholder={label}
+        />
+      </div>
+    </div>
   );
 }

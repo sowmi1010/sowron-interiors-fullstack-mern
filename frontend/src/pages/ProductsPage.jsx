@@ -1,67 +1,90 @@
 import { useEffect, useState } from "react";
-import { api } from "../../lib/api"; // ✅ use shared api
+import { api } from "../lib/api";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Filter, Heart, Image } from "lucide-react";
+import { Heart, Image } from "lucide-react";
 import toast from "react-hot-toast";
 
+/* ================= TYPING TEXT ================= */
+const PHRASES = [
+  "Premium Furniture Collection",
+  "Designed for Modern Living",
+  "Crafted with Precision",
+  "Built to Elevate Your Space",
+];
+
 export default function ProductsPage() {
-  const [data, setData] = useState([]);
+  const [products, setProducts] = useState([]);
   const [filter, setFilter] = useState("all");
   const [liked, setLiked] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  /* 🔄 Load products */
-  const load = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get("/products");
-      setData(res.data);
-    } catch {
-      toast.error("Failed to load products");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [text, setText] = useState("");
+  const [index, setIndex] = useState(0);
 
+  /* ================= AUTO TYPE ================= */
   useEffect(() => {
+    let i = 0;
+    const interval = setInterval(() => {
+      setText(PHRASES[index].slice(0, i));
+      i++;
+      if (i > PHRASES[index].length) {
+        clearInterval(interval);
+        setTimeout(() => {
+          setIndex((p) => (p + 1) % PHRASES.length);
+        }, 1600);
+      }
+    }, 70);
+
+    return () => clearInterval(interval);
+  }, [index]);
+
+  /* ================= LOAD ================= */
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        const res = await api.get("/products");
+        setProducts(res.data || []);
+      } catch {
+        toast.error("Failed to load products");
+      } finally {
+        setLoading(false);
+      }
+    };
     load();
     window.scrollTo(0, 0);
   }, []);
 
-  /* 🔥 AUTO categories from backend */
   const categories = [
     "all",
     ...new Set(
-      data
-        .map((p) => p.category?.name)
-        .filter(Boolean)
+      products.map((p) => p.category?.name).filter(Boolean)
     ),
   ];
 
-  /* 🔥 AUTO filtering */
-  const filtered =
+  const visible =
     filter === "all"
-      ? data
-      : data.filter(
+      ? products
+      : products.filter(
           (p) =>
-            p.category?.name
-              ?.toLowerCase() === filter.toLowerCase()
+            p.category?.name?.toLowerCase() ===
+            filter.toLowerCase()
         );
 
   const toggleLike = (id) => {
-    setLiked((prev) =>
-      prev.includes(id)
-        ? prev.filter((x) => x !== id)
-        : [...prev, id]
+    setLiked((p) =>
+      p.includes(id) ? p.filter((x) => x !== id) : [...p, id]
     );
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7] dark:bg-[#050505] text-gray-800 dark:text-gray-200">
+    <section className="min-h-screen bg-[#fafafa] dark:bg-[#0b0b0b] text-gray-900 dark:text-gray-100">
 
-      {/* HERO */}
-      <section className="relative h-[330px] md:h-[400px] w-full overflow-hidden rounded-b-[40px] shadow-lg">
+      {/* ================= CINEMATIC HERO ================= */}
+      <section className="relative h-[70vh] min-h-[520px] overflow-hidden">
+
+        {/* VIDEO */}
         <video
           autoPlay
           muted
@@ -70,131 +93,141 @@ export default function ProductsPage() {
           className="absolute inset-0 w-full h-full object-cover"
           src="/v3.mp4"
         />
-        <div className="absolute inset-0 bg-black/40 dark:bg-black/60" />
 
+        {/* OVERLAY */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-black/80" />
+
+        {/* GLOW */}
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2
+                        w-[600px] h-[600px]
+                        bg-red-500/20 blur-[160px]" />
+
+        {/* CONTENT */}
         <motion.div
-          initial={{ opacity: 0, y: 50 }}
+          initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
-          className="absolute inset-0 flex items-center justify-center text-center"
+          transition={{ duration: 1 }}
+          className="relative z-10 h-full flex flex-col
+                     justify-center items-center text-center px-6"
         >
-          <h2 className="text-white font-extrabold text-4xl md:text-6xl">
-            Premium Furniture
-            <br />
-            <span className="bg-gradient-to-r from-orange-400 to-yellow-300 text-transparent bg-clip-text">
-              Collection
-            </span>
-          </h2>
+          <span className="text-yellow-400 tracking-[0.3em] text-xs mb-5">
+            SOWRON COLLECTION
+          </span>
+
+          <h1 className="text-4xl md:text-6xl font-extrabold text-white">
+            {text}
+            <span className="border-r-2 border-yellow-400 ml-1 animate-pulse" />
+          </h1>
+
+          <div className="mt-6 w-24 h-[3px]
+                          bg-gradient-to-r from-red-600 to-yellow-400
+                          rounded-full" />
+
+          <p className="mt-6 max-w-xl text-gray-300 text-sm md:text-base">
+            Discover furniture that blends aesthetics, durability,
+            and intelligent craftsmanship — curated exclusively
+            for refined interiors.
+          </p>
         </motion.div>
       </section>
 
-      {/* FILTERS */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-wrap justify-center gap-3 py-10 px-4"
-      >
-        <span className="text-sm flex items-center gap-2 opacity-80">
-          <Filter size={16} /> Category:
-        </span>
-
-        {categories.map((c) => (
-          <motion.button
-            key={c}
-            whileHover={{ scale: 1.08 }}
-            onClick={() => setFilter(c)}
-            className={`px-5 py-2 rounded-full text-sm font-semibold transition
-              ${
-                filter === c
-                  ? "bg-gradient-to-r from-orange-500 to-yellow-400 text-black"
-                  : "bg-white/30 dark:bg-black/30 border"
-              }`}
-          >
-            {c.toUpperCase()}
-          </motion.button>
-        ))}
-      </motion.div>
-
-      {/* GRID */}
-      {loading ? (
-        <p className="text-center py-20 text-gray-400">
-          Loading products…
-        </p>
-      ) : (
-        <div className="px-4 md:px-20 pb-24 grid sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-10">
-          {filtered.map((p, index) => (
-            <motion.div
-              key={p._id}
-              initial={{ opacity: 0, y: 35 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              whileHover={{ scale: 1.03 }}
-              className="group rounded-3xl overflow-hidden bg-white/35 dark:bg-[#1a1a1a]/40 backdrop-blur-xl border shadow-lg"
+      {/* ================= CATEGORY BAR ================= */}
+      <section className="sticky top-20 z-20 bg-[#fafafa]/90 dark:bg-[#0b0b0b]/90 backdrop-blur border-b border-gray-200 dark:border-white/10">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex gap-3 overflow-x-auto">
+          {categories.map((c) => (
+            <button
+              key={c}
+              onClick={() => setFilter(c)}
+              className={`px-5 py-2 rounded-full text-sm font-semibold transition
+                ${
+                  filter === c
+                    ? "bg-red-600 text-white"
+                    : "bg-white dark:bg-[#161616] text-gray-600 dark:text-gray-300"
+                }`}
             >
-              <div className="relative">
-                <Link to={`/products/${p._id}`}>
-                  {p.images?.[0]?.url ? (
-                    <motion.img
-                      src={p.images[0].url}
-                      alt={p.title}
-                      whileHover={{ scale: 1.15 }}
-                      className="object-cover w-full h-[270px]"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-[270px] bg-gray-200 dark:bg-[#111]">
-                      <Image className="text-gray-400" />
-                    </div>
-                  )}
-                </Link>
-
-                <button
-                  onClick={() => toggleLike(p._id)}
-                  className="absolute top-3 left-3 bg-white/20 px-2 py-1 rounded-full"
-                >
-                  <Heart
-                    size={18}
-                    className={
-                      liked.includes(p._id)
-                        ? "fill-red-500 text-red-500"
-                        : "text-white"
-                    }
-                  />
-                </button>
-
-                <span className="absolute bottom-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded">
-                  {p.category?.name}
-                </span>
-              </div>
-
-              <div className="p-5">
-                <h3 className="font-bold text-xl truncate">
-                  {p.title}
-                </h3>
-                <p className="text-sm line-clamp-2">
-                  {p.description || "No description"}
-                </p>
-                <p className="mt-3 font-bold text-xl text-orange-500">
-                  ₹ {p.price}
-                </p>
-
-                <Link to={`/products/${p._id}`}>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    className="mt-4 w-full py-2 rounded-xl bg-gradient-to-r from-orange-500 to-yellow-400 text-black font-semibold"
-                  >
-                    View Details →
-                  </motion.button>
-                </Link>
-              </div>
-            </motion.div>
+              {c.toUpperCase()}
+            </button>
           ))}
         </div>
-      )}
+      </section>
 
-      {!loading && filtered.length === 0 && (
-        <p className="text-center py-20 text-gray-400">
-          No products found…
-        </p>
-      )}
-    </div>
+      {/* ================= PRODUCTS ================= */}
+      <section className="max-w-7xl mx-auto px-6 py-24">
+        {loading ? (
+          <p className="text-center text-gray-400 py-20">
+            Loading collection…
+          </p>
+        ) : visible.length === 0 ? (
+          <p className="text-center text-gray-400 py-20">
+            No products found
+          </p>
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-16">
+            {visible.map((p, i) => (
+              <motion.article
+                key={p._id}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.05 }}
+              >
+                <div className="relative rounded-[30px] overflow-hidden shadow-xl">
+                  <Link to={`/products/${p._id}`}>
+                    {p.images?.[0]?.url ? (
+                      <motion.img
+                        src={p.images[0].url}
+                        alt={p.title}
+                        whileHover={{ scale: 1.08 }}
+                        transition={{ duration: 0.6 }}
+                        className="h-[320px] w-full object-cover"
+                      />
+                    ) : (
+                      <div className="h-[320px] flex items-center justify-center bg-gray-200 dark:bg-[#111]">
+                        <Image className="text-gray-400" />
+                      </div>
+                    )}
+                  </Link>
+
+                  <button
+                    onClick={() => toggleLike(p._id)}
+                    className="absolute top-4 right-4 bg-white/90 dark:bg-black/70 p-2 rounded-full shadow"
+                  >
+                    <Heart
+                      size={18}
+                      className={
+                        liked.includes(p._id)
+                          ? "fill-red-600 text-red-600"
+                          : "text-gray-500"
+                      }
+                    />
+                  </button>
+                </div>
+
+                <div className="mt-6 px-2">
+                  <h3 className="text-xl font-semibold">
+                    {p.title}
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {p.category?.name}
+                  </p>
+
+                  <div className="mt-4 flex justify-between items-center">
+                    <p className="text-xl font-bold text-red-600">
+                      ₹ {p.price}
+                    </p>
+                    <Link
+                      to={`/products/${p._id}`}
+                      className="font-semibold hover:text-red-600 transition"
+                    >
+                      View →
+                    </Link>
+                  </div>
+                </div>
+              </motion.article>
+            ))}
+          </div>
+        )}
+      </section>
+    </section>
   );
 }

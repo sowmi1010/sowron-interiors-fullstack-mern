@@ -1,8 +1,7 @@
-// src/pages/Login.jsx
 import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Smartphone, KeyRound } from "lucide-react";
-import { api } from "./../lib/api";
+import { api } from "../lib/api";
 
 export default function Login() {
   const [phone, setPhone] = useState("");
@@ -12,43 +11,40 @@ export default function Login() {
   const [cooldown, setCooldown] = useState(0);
   const otpRef = useRef(null);
 
-  /* 🔁 COOLDOWN TIMER */
+  /* ⏳ COOLDOWN TIMER */
   useEffect(() => {
     if (cooldown > 0) {
-      const t = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
       return () => clearTimeout(t);
     }
   }, [cooldown]);
 
-  /* ================= SEND OTP ================= */
+  /* SEND OTP */
   const sendOtp = async () => {
     if (phone.length !== 10) {
-      return setError("Enter valid 10-digit number");
+      return setError("Enter valid 10-digit mobile number");
     }
-
     try {
       setError("");
       await api.post("/otp/send", { phone });
       setStep(2);
-      setCooldown(30); // ⏳ RESEND AFTER 30s
+      setCooldown(30);
       setTimeout(() => otpRef.current?.focus(), 300);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to send OTP");
     }
   };
 
-  /* ================= VERIFY OTP ================= */
+  /* VERIFY OTP */
   const verifyOtp = async () => {
     if (otp.length !== 6) {
       return setError("Enter 6-digit OTP");
     }
-
     try {
       const res = await api.post("/otp/verify", { phone, otp });
 
       localStorage.setItem("userToken", res.data.token);
       localStorage.setItem("userPhone", phone);
-
       if (res.data.user?.name) {
         localStorage.setItem("userName", res.data.user.name);
       }
@@ -60,102 +56,176 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#050505] text-white px-6">
+    <div
+      className="
+        min-h-screen flex items-center justify-center px-6
+        bg-gray-50 dark:bg-[#0a0a0a]
+        text-gray-900 dark:text-gray-100
+        relative overflow-hidden
+      "
+    >
+      {/* BACKGROUND GLOWS */}
+      <div className="absolute -top-40 left-1/2 -translate-x-1/2
+                      w-[520px] h-[520px]
+                      bg-red-600/20 blur-[200px]" />
+      <div className="absolute bottom-0 right-0
+                      w-[420px] h-[420px]
+                      bg-yellow-400/20 blur-[180px]" />
+
+      {/* LOGIN CARD */}
       <motion.div
-        initial={{ opacity: 0, y: 40 }}
+        initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-sm p-8 rounded-2xl bg-black/40 backdrop-blur border border-white/10"
+        className="
+          relative z-10 w-full max-w-sm
+          rounded-3xl p-8 sm:p-10
+          bg-white/80 dark:bg-white/5
+          backdrop-blur-xl
+          border border-gray-200 dark:border-white/10
+          shadow-xl
+        "
       >
-        <h2 className="text-4xl font-extrabold text-center mb-4
-                       bg-gradient-to-r from-orange-500 to-yellow-300
-                       bg-clip-text text-transparent">
-          Login With OTP
+        {/* TITLE */}
+        <h2
+          className="
+            text-4xl font-extrabold text-center mb-2
+            bg-gradient-to-r from-red-600 to-yellow-400
+            bg-clip-text text-transparent
+          "
+        >
+          Welcome Back
         </h2>
 
+        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-8">
+          Secure login using your mobile number
+        </p>
+
         {error && (
-          <p className="text-red-400 text-sm mb-3 text-center">{error}</p>
+          <p className="text-red-600 text-sm mb-4 text-center">
+            {error}
+          </p>
         )}
 
-        {/* STEP 1 */}
-        {step === 1 && (
-          <>
-            <div className="relative mb-4">
-              <Smartphone
-                className="absolute left-3 top-3 text-gray-400"
-                size={18}
-              />
-              <input
-                className="w-full pl-10 p-3 rounded-xl bg-black/30 border border-gray-600"
-                placeholder="Phone Number"
-                maxLength={10}
-                value={phone}
-                onChange={(e) =>
-                  setPhone(e.target.value.replace(/\D/g, ""))
-                }
-              />
-            </div>
-
-            <button
-              disabled={cooldown > 0}
-              onClick={sendOtp}
-              className="w-full py-3 rounded-xl bg-orange-500 text-black font-semibold
-                         disabled:opacity-50"
+        <AnimatePresence mode="wait">
+          {/* STEP 1 */}
+          {step === 1 && (
+            <motion.div
+              key="phone"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="space-y-5"
             >
-              {cooldown > 0 ? `Resend in ${cooldown}s` : "Send OTP →"}
-            </button>
+              <div className="relative">
+                <Smartphone
+                  size={18}
+                  className="absolute left-4 top-4 text-gray-400"
+                />
+                <input
+                  className="
+                    w-full pl-12 py-4 rounded-xl
+                    bg-white dark:bg-black/40
+                    border border-gray-300 dark:border-white/10
+                    focus:border-red-600 focus:ring-2
+                    focus:ring-red-600/30
+                    outline-none transition
+                  "
+                  placeholder="Enter mobile number"
+                  maxLength={10}
+                  value={phone}
+                  onChange={(e) =>
+                    setPhone(e.target.value.replace(/\D/g, ""))
+                  }
+                />
+              </div>
 
-            <p className="mt-6 text-center text-sm text-white">
-              New user?{" "}
-              <a
-                href="/register"
-                className="text-orange-400 font-semibold hover:underline"
+              <button
+                disabled={cooldown > 0}
+                onClick={sendOtp}
+                className="
+                  w-full py-4 rounded-xl font-semibold
+                  bg-gradient-to-r from-red-600 to-yellow-400
+                  text-black
+                  hover:brightness-110
+                  disabled:opacity-50 transition
+                "
               >
-                Create an account
-              </a>
-            </p>
-          </>
-        )}
+                {cooldown > 0
+                  ? `Resend in ${cooldown}s`
+                  : "Send OTP →"}
+              </button>
 
-        {/* STEP 2 */}
-        {step === 2 && (
-          <>
-            <div className="relative mb-4">
-              <KeyRound
-                className="absolute left-3 top-3 text-gray-400"
-                size={18}
-              />
-              <input
-                ref={otpRef}
-                className="w-full pl-10 p-3 rounded-xl bg-black/30
-                           border border-gray-600 text-center tracking-widest"
-                placeholder="123456"
-                maxLength={6}
-                value={otp}
-                onChange={(e) =>
-                  setOtp(e.target.value.replace(/\D/g, ""))
-                }
-              />
-            </div>
+              <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+                New user?{" "}
+                <a
+                  href="/register"
+                  className="text-red-600 font-semibold hover:underline"
+                >
+                  Create account
+                </a>
+              </p>
+            </motion.div>
+          )}
 
-            <button
-              onClick={verifyOtp}
-              className="w-full py-3 rounded-xl bg-green-500 font-semibold"
+          {/* STEP 2 */}
+          {step === 2 && (
+            <motion.div
+              key="otp"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="space-y-5"
             >
-              Verify OTP ✔
-            </button>
+              <div className="relative">
+                <KeyRound
+                  size={18}
+                  className="absolute left-4 top-4 text-gray-400"
+                />
+                <input
+                  ref={otpRef}
+                  className="
+                    w-full pl-12 py-4 rounded-xl
+                    bg-white dark:bg-black/40
+                    border border-gray-300 dark:border-white/10
+                    text-center tracking-[0.4em]
+                    focus:border-red-600 focus:ring-2
+                    focus:ring-red-600/30
+                    outline-none transition
+                  "
+                  placeholder="● ● ● ● ● ●"
+                  maxLength={6}
+                  value={otp}
+                  onChange={(e) =>
+                    setOtp(e.target.value.replace(/\D/g, ""))
+                  }
+                />
+              </div>
 
-            <button
-              onClick={() => {
-                setStep(1);
-                setOtp("");
-                setError("");
-              }}
-              className="mt-3 w-full text-sm text-gray-400"
-            >
-              ← Change Number
-            </button>
-          </>
-        )}
+              <button
+                onClick={verifyOtp}
+                className="
+                  w-full py-4 rounded-xl font-semibold
+                  bg-gradient-to-r from-red-600 to-yellow-400
+                  text-black
+                  hover:brightness-110 transition
+                "
+              >
+                Verify & Continue ✔
+              </button>
+
+              <button
+                onClick={() => {
+                  setStep(1);
+                  setOtp("");
+                  setError("");
+                }}
+                className="w-full text-sm text-gray-500 dark:text-gray-400"
+              >
+                ← Change number
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </div>
   );

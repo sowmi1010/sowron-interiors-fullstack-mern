@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import OtpLogin from "../components/ui/OtpLogin";
 import BookingForm from "../components/forms/BookingForm";
 import { motion, AnimatePresence } from "framer-motion";
+import { Helmet } from "react-helmet";
 
 export default function BookDemo() {
   const [logged, setLogged] = useState(
@@ -12,94 +13,118 @@ export default function BookDemo() {
     if (localStorage.getItem("userToken")) {
       setLogged(true);
     }
+    window.scrollTo(0, 0);
   }, []);
 
   return (
-    <div className="relative min-h-screen bg-[#f6f6f6] dark:bg-[#040404] overflow-hidden">
-      <AnimatedBubbles />
-
-      {/* HERO */}
-      <section className="relative h-[380px] md:h-[460px] overflow-hidden rounded-b-[60px] shadow-xl">
-        <video
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-          src="/v2.mp4"
+    <>
+      {/* ================= SEO ================= */}
+      <Helmet>
+        <title>Book Free Interior Consultation | Sowron Interiors</title>
+        <meta
+          name="description"
+          content="Book a free interior design consultation with Sowron Interiors. Get expert guidance, 3D concepts, and budget planning."
         />
-        <div className="absolute inset-0 bg-black/60" />
+      </Helmet>
 
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1 }}
-          className="absolute bottom-36 px-6 text-center w-full"
-        >
-          <h1 className="text-4xl md:text-6xl font-extrabold text-white">
-            Book Your Free Interior{" "}
-            <span className="text-orange-400">Design Consultation</span>
-          </h1>
-          <p className="mt-4 text-gray-300">
-            3D visualization • Modular concepts • Space planning — FREE
-          </p>
-        </motion.div>
-      </section>
+      <section
+        className="
+          min-h-screen
+          bg-white dark:bg-[#0a0a0a]
+          text-gray-900 dark:text-gray-100
+        "
+      >
+        {/* ================= HERO ================= */}
+        <section className="relative h-[340px] md:h-[420px] overflow-hidden">
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover opacity-40"
+            src="/v2.mp4"
+          />
+          <div className="absolute inset-0 bg-black/70" />
 
-      {/* CONTENT */}
-      <div className="px-6 md:px-20 py-20 flex flex-col md:flex-row gap-14 max-w-7xl mx-auto">
-        {/* LEFT */}
-        <div className="max-w-xl text-gray-900 dark:text-gray-100">
-          <h2 className="text-4xl font-extrabold">Plan Your Dream Home ✨</h2>
-          <ul className="mt-6 space-y-3 text-gray-600 dark:text-gray-400">
-            <li>📐 Virtual 3D Layout Concepts</li>
-            <li>🏠 Modular Wardrobe + Kitchen Guidance</li>
-            <li>🕒 20-minute Discovery Consultation</li>
-            <li>🎨 Material Samples + Budget Estimate</li>
-            <li>✔ Fully Free</li>
-          </ul>
-        </div>
-
-        {/* RIGHT CARD */}
-        <AnimatePresence mode="wait">
           <motion.div
-            key={logged ? "form" : "otp"}
-            initial={{ opacity: 0, y: 50 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="w-full max-w-md rounded-3xl p-10 backdrop-blur-xl
-              bg-white/70 dark:bg-[#0d0d0d]/70 border border-white/30"
+            transition={{ duration: 0.9 }}
+            className="relative z-10 h-full flex flex-col
+                       justify-center items-center text-center px-6"
           >
-            {!logged ? (
-              <OtpLogin onSuccess={() => setLogged(true)} />
-            ) : (
-              <BookingForm />
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </div>
-    </div>
-  );
-}
+            <span className="text-yellow-400 text-xs tracking-widest uppercase mb-4">
+              Free Consultation
+            </span>
 
-/* BUBBLES */
-function AnimatedBubbles() {
-  return (
-    <div className="absolute inset-0 pointer-events-none">
-      {[...Array(10)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute rounded-full bg-orange-400/20 blur-[60px]"
-          animate={{ y: [-80, 120, -80] }}
-          transition={{ duration: 12 + i, repeat: Infinity }}
-          style={{
-            width: 120,
-            height: 120,
-            left: `${i * 10}%`,
-            top: `${i * 8}%`,
-          }}
-        />
-      ))}
-    </div>
+            <h1 className="text-4xl md:text-5xl font-extrabold text-white">
+              Book Your Interior Design Consultation
+            </h1>
+
+            <p className="mt-4 max-w-xl text-sm md:text-base text-gray-300">
+              Speak directly with our interior expert and get clarity on
+              layouts, materials, timelines, and budget — completely free.
+            </p>
+          </motion.div>
+        </section>
+
+        {/* ================= CONTENT ================= */}
+        <section className="max-w-7xl mx-auto px-6 py-24
+                            grid grid-cols-1 lg:grid-cols-2 gap-20">
+
+          {/* ================= LEFT ================= */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-3xl font-extrabold">
+              What You’ll Get
+            </h2>
+
+            <span
+              className="
+                block mt-4 w-16 h-[3px]
+                bg-gradient-to-r from-red-600 to-yellow-400
+                rounded-full
+              "
+            />
+
+            <ul className="mt-10 space-y-5 text-gray-700 dark:text-gray-300 text-sm md:text-base">
+              <li>✔ Personalized interior guidance</li>
+              <li>✔ Space planning & layout suggestions</li>
+              <li>✔ Modular kitchen & wardrobe consultation</li>
+              <li>✔ Material & finish recommendations</li>
+              <li>✔ Transparent budget estimation</li>
+              <li>✔ No obligation • Completely free</li>
+            </ul>
+          </motion.div>
+
+          {/* ================= RIGHT ================= */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={logged ? "form" : "otp"}
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
+              className="
+                w-full max-w-md mx-auto
+                rounded-3xl p-8
+                bg-gray-50 dark:bg-[#121212]
+                border border-gray-200 dark:border-white/10
+                shadow-xl
+              "
+            >
+              {!logged ? (
+                <OtpLogin onSuccess={() => setLogged(true)} />
+              ) : (
+                <BookingForm />
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </section>
+      </section>
+    </>
   );
 }

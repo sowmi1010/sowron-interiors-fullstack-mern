@@ -1,8 +1,6 @@
-// src/components/Hero.jsx
-import { motion } from "framer-motion";
+import { motion, useMotionValue, useTransform, useSpring } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
-import { useMotionValue, useTransform, useSpring } from "framer-motion";
 
 export default function Hero() {
   const phrases = [
@@ -11,136 +9,214 @@ export default function Hero() {
     "TV Units",
     "Office Interiors",
     "Turnkey Projects",
-    "Premium Custom Furniture"
+    "Premium Custom Furniture",
   ];
 
   const [index, setIndex] = useState(0);
   const [displayText, setDisplayText] = useState("");
 
-  // 🎹 Typing Animation Logic
+  /* ================= Typing Effect ================= */
   useEffect(() => {
     let current = 0;
+    let timeout;
+
     const type = () => {
       if (current <= phrases[index].length) {
         setDisplayText(phrases[index].slice(0, current));
         current++;
-        setTimeout(type, 60);
+        timeout = setTimeout(type, 60);
       } else {
-        setTimeout(() => erase(), 1200);
+        timeout = setTimeout(erase, 1200);
       }
     };
+
     const erase = () => {
       if (current >= 0) {
         setDisplayText(phrases[index].slice(0, current));
         current--;
-        setTimeout(erase, 40);
+        timeout = setTimeout(erase, 40);
       } else {
         setIndex((prev) => (prev + 1) % phrases.length);
       }
     };
+
     type();
+    return () => clearTimeout(timeout);
   }, [index]);
 
-  // 🔥 Mouse Glow
-  const ref = useRef();
+  /* ================= Mouse Glow ================= */
+  const ref = useRef(null);
   const x = useMotionValue(0);
   const y = useMotionValue(0);
-  const move = (e) => {
-    const bounds = ref.current.getBoundingClientRect();
-    x.set(e.clientX - bounds.left - bounds.width / 2);
-    y.set(e.clientY - bounds.top - bounds.height / 2);
+
+  const handleMove = (e) => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    x.set(e.clientX - rect.left - rect.width / 2);
+    y.set(e.clientY - rect.top - rect.height / 2);
   };
-  const glowX = useSpring(useTransform(x, [-500, 500], [-120, 120]));
-  const glowY = useSpring(useTransform(y, [-500, 500], [-120, 120]));
+
+  const glowX = useSpring(useTransform(x, [-600, 600], [-160, 160]), {
+    stiffness: 45,
+    damping: 18,
+  });
+  const glowY = useSpring(useTransform(y, [-600, 600], [-160, 160]), {
+    stiffness: 45,
+    damping: 18,
+  });
 
   return (
     <section
       ref={ref}
-      onMouseMove={move}
-      className="relative h-[92vh] flex items-center justify-center overflow-hidden 
-      bg-white dark:bg-black text-gray-900 dark:text-gray-100"
+      onMouseMove={handleMove}
+      className="
+        relative h-screen w-full overflow-hidden
+        flex items-center justify-center
+        bg-gradient-to-b from-white via-white to-yellow-50/40
+        dark:from-black dark:via-[#0b0b0b] dark:to-black
+        text-gray-900 dark:text-gray-100
+      "
     >
-      {/* 🎞 Background Cinematic Video */}
+      {/* ================= BACKGROUND VIDEO ================= */}
       <video
         src="/v3.mp4"
         autoPlay
         muted
         loop
         playsInline
-        className="absolute inset-0 w-full h-full object-cover opacity-[.25] dark:opacity-[.35]"
+        className="absolute inset-0 w-full h-full object-cover opacity-30 dark:opacity-45"
       />
 
-      {/* ⭐ Noise Layer */}
-      <div className="pointer-events-none fixed inset-0 opacity-[0.06] bg-[url('/i7.jpg')] mix-blend-overlay" />
+      {/* ================= OVERLAY ================= */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/25 to-black/70" />
 
-      {/* 🟣 Mouse Glow */}
+      {/* ================= NOISE ================= */}
+      <div className="pointer-events-none absolute inset-0 opacity-[0.045] bg-[url('/noise.png')] mix-blend-overlay" />
+
+      {/* ================= RED PRIMARY MOUSE GLOW ================= */}
       <motion.div
         style={{ translateX: glowX, translateY: glowY }}
-        className="absolute w-[320px] h-[320px] rounded-full bg-orange-500/25 blur-[140px] pointer-events-none"
+        className="
+          absolute w-[380px] h-[380px] rounded-full
+          bg-red-600/35 blur-[170px]
+          pointer-events-none
+        "
       />
 
-      {/* ✨ Floating Bubble */}
+      {/* ================= YELLOW SECONDARY ORB ================= */}
       <motion.div
-        animate={{ scale: [1, 1.2, 1], rotate: [0, 25, 0] }}
-        transition={{ duration: 8, repeat: Infinity }}
-        className="absolute w-[600px] h-[600px] rounded-full bg-orange-400/20 dark:bg-orange-600/30 blur-[200px]"
+        animate={{ y: [0, -50, 0], scale: [1, 1.12, 1] }}
+        transition={{ duration: 10, repeat: Infinity }}
+        className="
+          absolute w-[700px] h-[700px] rounded-full
+          bg-yellow-400/25 blur-[240px]
+        "
       />
 
-      {/* 🏆 HERO CONTENT */}
+      {/* ================= CONTENT ================= */}
       <motion.div
-        initial={{ opacity: 0, y: 50 }}
+        initial={{ opacity: 0, y: 60 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1 }}
-        className="relative z-20 text-center px-6"
+        transition={{ duration: 1.1 }}
+        className="relative z-10 max-w-5xl mx-auto text-center px-6"
       >
-        {/* 🧊 Heading */}
-        <motion.h1
-          animate={{ opacity: [0, 1], y: [30, 0] }}
-          transition={{ duration: 1.2 }}
-          className="text-5xl md:text-7xl font-extrabold leading-tight"
+        {/* ================= BADGE ================= */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+          className="
+            inline-block mb-6 px-5 py-2 rounded-full
+            bg-red-100/80 dark:bg-red-500/10
+            text-red-600 dark:text-red-400
+            font-semibold text-sm tracking-wide
+          "
         >
-          Transform Your Home<br />
-          <span className="bg-gradient-to-r from-orange-500 via-red-500 to-yellow-400 bg-clip-text text-transparent">
+          Premium Interior Design & Turnkey Solutions
+        </motion.div>
+
+        {/* ================= HEADLINE ================= */}
+        <motion.h1
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 1 }}
+          className="
+            text-4xl md:text-6xl xl:text-7xl
+            font-extrabold leading-tight
+          "
+        >
+          Transform Your Space <br />
+          <span className="
+            bg-gradient-to-r
+            from-red-600 via-red-500 to-yellow-400
+            bg-clip-text text-transparent
+          ">
             Into Something Extraordinary
           </span>
         </motion.h1>
 
-        {/* 🟠 Typing Changing Words */}
+        {/* ================= TYPING ================= */}
         <motion.p
-          animate={{ opacity: [0, 1], y: [20, 0] }}
-          transition={{ delay: 0.3 }}
-          className="mt-6 text-xl font-semibold text-orange-600 dark:text-orange-400"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="
+            mt-6 text-xl md:text-2xl font-semibold
+            text-red-600 dark:text-red-400
+          "
         >
-          We Build – <span className="border-r-2 border-orange-500 animate-pulse px-1">
+          We Build —{" "}
+          <span className="border-r-2 border-yellow-400 px-1 animate-pulse">
             {displayText}
           </span>
         </motion.p>
 
-        {/* 🧾 Sub-Text */}
+        {/* ================= SUBTEXT ================= */}
         <motion.p
-          animate={{ opacity: [0, 1], y: [20, 0] }}
-          transition={{ delay: 0.5 }}
-          className="text-gray-600 dark:text-gray-300 text-lg mt-4 max-w-2xl mx-auto"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="
+            mt-5 max-w-3xl mx-auto
+            text-gray-700 dark:text-gray-300
+            text-base md:text-lg
+          "
         >
-          Crafting beautiful, luxury kitchens, wardrobes, commercial interiors & custom spaces across Chennai.
+          Luxury modular kitchens, wardrobes, commercial interiors and
+          factory-made custom furniture — executed with precision across Chennai.
         </motion.p>
 
-        {/* 🎯 Buttons */}
+        {/* ================= CTA ================= */}
         <motion.div
-          animate={{ opacity: [0, 1], y: [30, 0] }}
-          transition={{ delay: 0.7 }}
-          className="flex justify-center gap-4 mt-10"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.9 }}
+          className="mt-12 flex flex-col sm:flex-row justify-center gap-5"
         >
+          {/* PRIMARY CTA */}
           <Link
             to="/book-demo"
-            className="px-8 py-3 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition shadow-lg"
+            className="
+              magnetic px-10 py-4 rounded-2xl
+              bg-gradient-to-r from-red-600 to-red-700
+              text-white font-semibold text-lg
+              shadow-xl hover:shadow-red-600/40
+              transition-all
+            "
           >
             Book Free Consultation →
           </Link>
+
+          {/* SECONDARY CTA */}
           <Link
             to="/portfolio"
-            className="px-8 py-3 border border-orange-600 text-orange-600 dark:border-orange-500 dark:text-orange-400
-            hover:bg-orange-500 hover:text-white rounded-xl font-semibold transition shadow-lg"
+            className="
+              magnetic px-10 py-4 rounded-2xl
+              border-2 border-yellow-400
+              text-yellow-600 dark:text-yellow-400
+              hover:bg-yellow-400 hover:text-black
+              transition-all font-semibold text-lg
+            "
           >
             View Portfolio
           </Link>
