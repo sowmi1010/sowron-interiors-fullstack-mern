@@ -26,7 +26,7 @@ export default function EnquiriesAdmin() {
   const [selected, setSelected] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
 
-  const { query } = useSearch();
+  const { query = "" } = useSearch();
   const navigate = useNavigate();
 
   /* ================= LOAD ================= */
@@ -44,6 +44,13 @@ export default function EnquiriesAdmin() {
     load();
   }, []);
 
+  /* ================= ESC TO CLOSE ================= */
+  useEffect(() => {
+    const esc = (e) => e.key === "Escape" && setSelected(null);
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, []);
+
   /* ================= SEARCH ================= */
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
@@ -54,6 +61,8 @@ export default function EnquiriesAdmin() {
         e.city?.toLowerCase().includes(q)
     );
   }, [data, query]);
+
+  useEffect(() => setPage(1), [query]);
 
   const paginated = filtered.slice(
     (page - 1) * PER_PAGE,
@@ -84,7 +93,7 @@ export default function EnquiriesAdmin() {
   const deleteItem = async () => {
     try {
       await api.delete(`/enquiry/${deleteId}`);
-      toast.success("Deleted ✓");
+      toast.success("Enquiry deleted");
       setDeleteId(null);
       load();
     } catch {
@@ -104,7 +113,7 @@ export default function EnquiriesAdmin() {
         replyMessage: selected.replyMessage,
       });
 
-      toast.success("Reply saved ✓");
+      toast.success("Reply saved");
       setSelected(null);
       load();
     } catch {
@@ -121,45 +130,57 @@ Regarding your enquiry:
 "${msg}"
 
 Thank you – Sowron Interiors 😊`;
+
     window.open(
       `https://wa.me/91${clean}?text=${encodeURIComponent(text)}`,
       "_blank"
     );
   };
 
-  /* ================= UI ================= */
   return (
     <div className="p-6 text-white">
+
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-[#ff6b00]">
-          Customer Enquiries
-        </h2>
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h2 className="text-3xl font-semibold text-brand-red">
+            Customer Enquiries
+          </h2>
+          <p className="text-sm text-gray-400">
+            Manage & respond to customer messages
+          </p>
+        </div>
 
         <div className="flex gap-3">
-          <span className="text-xs bg-[#171717] px-3 py-1 rounded">
+          <span className="text-xs bg-black/40 border border-white/10
+                           px-3 py-1 rounded-full">
             Total: {filtered.length}
           </span>
+
           <button
             onClick={downloadExcel}
-            className="flex items-center gap-2 bg-[#ff6b00] text-black px-4 py-2 rounded"
+            className="flex items-center gap-2
+                       bg-brand-red text-white px-4 py-2
+                       rounded-lg font-semibold hover:bg-brand-redDark"
           >
-            <FileSpreadsheet size={14} /> Excel
+            <FileSpreadsheet size={14} /> Export
           </button>
         </div>
       </div>
 
       {/* TABLE */}
-      <div className="bg-[#121212] rounded-xl border border-[#1f1f1f] overflow-hidden">
+      <div className="bg-black/60 backdrop-blur-xl
+                      border border-white/10
+                      rounded-2xl overflow-hidden shadow-glass">
+
         <table className="w-full text-sm">
-          <thead className="bg-[#181818] text-xs uppercase">
+          <thead className="bg-white/5 text-xs uppercase text-gray-300">
             <tr>
-              <th className="px-5 py-3 text-left">Name</th>
-              <th className="px-5 py-3 text-left">Phone</th>
-              <th className="px-5 py-3 text-left">City</th>
-              <th className="px-5 py-3 text-left">Message</th>
-              <th className="px-5 py-3 text-center">Status</th>
-              <th className="px-5 py-3 text-center">Action</th>
+              <th className="px-5 py-4 text-left">Customer</th>
+              <th className="px-5 py-4 text-left">City</th>
+              <th className="px-5 py-4 text-left">Message</th>
+              <th className="px-5 py-4 text-center">Status</th>
+              <th className="px-5 py-4 text-center">Action</th>
             </tr>
           </thead>
 
@@ -168,116 +189,174 @@ Thank you – Sowron Interiors 😊`;
               <tr
                 key={e._id}
                 onClick={() => setSelected(e)}
-                className="border-t border-[#1e1e1e] hover:bg-[#1b1b1b] cursor-pointer"
+                className="border-t border-white/5
+                           hover:bg-white/5 transition cursor-pointer"
               >
-                <td className="px-5 py-3">{e.name}</td>
-                <td className="px-5 py-3">{e.phone}</td>
-                <td className="px-5 py-3">{e.city}</td>
-                <td className="px-5 py-3 truncate max-w-[200px]">
+                <td className="px-5 py-4">
+                  <div className="flex flex-col">
+                    <span className="font-medium flex gap-2 items-center">
+                      <User2 size={14} /> {e.name}
+                    </span>
+                    <span className="text-xs text-gray-400 flex gap-1">
+                      <Phone size={12} /> {e.phone}
+                    </span>
+                  </div>
+                </td>
+
+                <td className="px-5 py-4 text-gray-300 flex gap-1 items-center">
+                  <MapPin size={14} /> {e.city}
+                </td>
+
+                <td className="px-5 py-4 truncate max-w-[220px] text-gray-300">
                   {e.message}
                 </td>
-                <td className="px-5 py-3 text-center">
+
+                <td className="px-5 py-4 text-center">
                   <span
-                    className={`px-2 py-1 rounded text-xs ${
-                      e.status === "replied"
-                        ? "bg-green-600"
-                        : "bg-yellow-500 text-black"
-                    }`}
+                    className={`px-3 py-1 rounded-full text-xs font-medium
+                      ${
+                        e.status === "replied"
+                          ? "bg-green-500/20 text-green-400"
+                          : "bg-yellow-400/20 text-yellow-300"
+                      }`}
                   >
                     {e.status}
                   </span>
                 </td>
+
                 <td
-                  className="px-5 py-3 text-center"
+                  className="px-5 py-4 text-center"
                   onClick={(ev) => ev.stopPropagation()}
                 >
                   <button
                     onClick={() => setDeleteId(e._id)}
-                    className="bg-red-600 px-3 py-1 rounded"
+                    className="text-red-500 hover:underline"
                   >
-                    <Trash2 size={14} />
+                    Delete
                   </button>
                 </td>
               </tr>
             ))}
+
+            {!paginated.length && (
+              <tr>
+                <td colSpan="5" className="py-16 text-center text-gray-500">
+                  No enquiries found
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
 
+      {/* PAGINATION */}
       <Pagination
         page={page}
         total={filtered.length}
-        perPage={PER_PAGE}
+        limit={PER_PAGE}
         onChange={setPage}
       />
 
       {/* DRAWER */}
       <AnimatePresence>
         {selected && (
-          <motion.div
-            initial={{ x: 350 }}
-            animate={{ x: 0 }}
-            exit={{ x: 350 }}
-            className="fixed top-0 right-0 w-80 h-full bg-[#0f0f0f] p-6 z-50"
-          >
-            <div className="flex justify-between mb-4">
-              <h3 className="text-lg text-[#ff6b00]">Enquiry</h3>
-              <X onClick={() => setSelected(null)} />
-            </div>
-
-            <div className="space-y-3 text-sm">
-              <p><User2 size={14} className="inline" /> {selected.name}</p>
-              <p><Phone size={14} className="inline" /> {selected.phone}</p>
-              <p><MapPin size={14} className="inline" /> {selected.city}</p>
-              <p className="flex gap-2"><MessageSquare size={14} /> {selected.message}</p>
-
-              {selected.repliedAt && (
-                <p className="text-xs text-gray-400 flex gap-1">
-                  <Clock4 size={12} />
-                  {new Date(selected.repliedAt).toLocaleString()}
-                </p>
-              )}
-            </div>
-
-            <textarea
-              className="mt-4 w-full bg-[#1a1a1a] p-2 rounded"
-              placeholder="Reply message..."
-              value={selected.replyMessage || ""}
-              onChange={(e) =>
-                setSelected({ ...selected, replyMessage: e.target.value })
-              }
+          <>
+            {/* BACKDROP */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelected(null)}
+              className="fixed inset-0 bg-black/60 z-40"
             />
 
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={() => saveReply("replied")}
-                className="flex-1 bg-green-600 py-2 rounded"
-              >
-                Save
-              </button>
-              <button
-                onClick={() => saveReply("pending")}
-                className="flex-1 bg-yellow-500 text-black py-2 rounded"
-              >
-                Pending
-              </button>
-            </div>
-
-            <button
-              onClick={() => sendWhatsapp(selected.phone, selected.message)}
-              className="mt-4 w-full bg-green-700 py-2 rounded flex gap-2 justify-center"
+            {/* PANEL */}
+            <motion.div
+              initial={{ x: 380 }}
+              animate={{ x: 0 }}
+              exit={{ x: 380 }}
+              transition={{ type: "spring", stiffness: 260, damping: 30 }}
+              className="fixed top-0 right-0 w-[360px] h-full
+                         bg-black/85 backdrop-blur-xl
+                         border-l border-white/10
+                         p-6 z-50"
             >
-              <Send size={14} /> WhatsApp
-            </button>
-          </motion.div>
+              <div className="flex justify-between mb-4">
+                <h3 className="text-lg font-semibold text-brand-red">
+                  Enquiry Details
+                </h3>
+
+                <button
+                  onClick={() => setSelected(null)}
+                  className="w-8 h-8 rounded-full
+                             bg-white/10 hover:bg-white/20
+                             flex items-center justify-center"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="space-y-3 text-sm text-gray-200">
+                <p className="flex gap-2"><User2 size={14} /> {selected.name}</p>
+                <p className="flex gap-2"><Phone size={14} /> {selected.phone}</p>
+                <p className="flex gap-2"><MapPin size={14} /> {selected.city}</p>
+                <p className="flex gap-2"><MessageSquare size={14} /> {selected.message}</p>
+
+                {selected.repliedAt && (
+                  <p className="text-xs text-gray-400 flex gap-1">
+                    <Clock4 size={12} />
+                    {new Date(selected.repliedAt).toLocaleString()}
+                  </p>
+                )}
+              </div>
+
+              <textarea
+                className="mt-4 w-full bg-white/5 border border-white/10
+                           p-2 rounded resize-none"
+                placeholder="Reply message..."
+                value={selected.replyMessage || ""}
+                onChange={(e) =>
+                  setSelected({ ...selected, replyMessage: e.target.value })
+                }
+              />
+
+              <div className="flex gap-2 mt-4">
+                <button
+                  onClick={() => saveReply("replied")}
+                  className="flex-1 bg-green-600 py-2 rounded"
+                >
+                  Save
+                </button>
+
+                <button
+                  onClick={() => saveReply("pending")}
+                  className="flex-1 bg-yellow-500 text-black py-2 rounded"
+                >
+                  Pending
+                </button>
+              </div>
+
+              <button
+                onClick={() =>
+                  sendWhatsapp(selected.phone, selected.message)
+                }
+                className="mt-4 w-full bg-green-700 py-2 rounded
+                           flex gap-2 justify-center"
+              >
+                <Send size={14} /> WhatsApp
+              </button>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 
       {/* DELETE MODAL */}
       <AnimatePresence>
         {deleteId && (
-          <motion.div className="fixed inset-0 bg-black/60 flex items-center justify-center">
-            <div className="bg-[#1b1b1b] p-6 rounded w-80 text-center">
+          <motion.div className="fixed inset-0 bg-black/60
+                                 flex items-center justify-center z-50">
+            <div className="bg-[#111] border border-white/10
+                            p-6 rounded-xl w-80 text-center">
               <p className="mb-4">Delete this enquiry?</p>
               <div className="flex justify-between">
                 <button onClick={() => setDeleteId(null)}>Cancel</button>
@@ -292,6 +371,7 @@ Thank you – Sowron Interiors 😊`;
           </motion.div>
         )}
       </AnimatePresence>
+
     </div>
   );
 }

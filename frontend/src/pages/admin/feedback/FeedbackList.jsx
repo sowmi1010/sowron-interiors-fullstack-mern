@@ -16,6 +16,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
+const PER_PAGE = 8;
+
 export default function FeedbackList() {
   const [list, setList] = useState([]);
   const [page, setPage] = useState(1);
@@ -27,7 +29,7 @@ export default function FeedbackList() {
   const { query = "" } = useSearch();
   const navigate = useNavigate();
 
-  /* 🔄 LOAD */
+  /* ================= LOAD ================= */
   const load = async () => {
     try {
       setLoading(true);
@@ -44,15 +46,12 @@ export default function FeedbackList() {
     load();
   }, []);
 
-  /* 🔍 RESET PAGE ON SEARCH */
-  useEffect(() => {
-    setPage(1);
-  }, [query]);
+  /* RESET PAGE ON SEARCH */
+  useEffect(() => setPage(1), [query]);
 
-  /* ❌ DELETE */
+  /* ================= DELETE ================= */
   const remove = async () => {
     if (deleting) return;
-
     try {
       setDeleting(true);
       await api.delete(`/feedback/${deleteId}`);
@@ -68,55 +67,60 @@ export default function FeedbackList() {
     }
   };
 
-  /* 🔍 SAFE SEARCH */
+  /* ================= SEARCH ================= */
   const filtered = list.filter(
     (f) =>
       f.name?.toLowerCase().includes(query.toLowerCase()) ||
       f.city?.toLowerCase().includes(query.toLowerCase())
   );
 
-  const perPage = 8;
   const paginated = filtered.slice(
-    (page - 1) * perPage,
-    page * perPage
+    (page - 1) * PER_PAGE,
+    page * PER_PAGE
   );
 
   return (
-    <div className="p-6 text-white relative">
-      <div className="flex justify-between mb-6">
-        <h2 className="text-2xl font-bold text-[#ff6b00]">
-          Customer Feedback
-        </h2>
+    <div className="p-6 text-white">
+
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h2 className="text-3xl font-semibold text-brand-red">
+            Customer Feedback
+          </h2>
+          <p className="text-sm text-gray-400">
+            Manage testimonials & customer reviews
+          </p>
+        </div>
 
         <button
           onClick={() => navigate("/admin/feedback/add")}
-          className="bg-[#ff6b00] hover:bg-[#ff842e]
-                     text-black px-4 py-2 rounded-lg font-semibold"
+          className="bg-brand-red text-white px-5 py-2.5 rounded-lg
+                     font-semibold hover:bg-brand-redDark transition"
         >
           + Add Feedback
         </button>
       </div>
 
-      {/* TABLE */}
-      <div className="bg-[#121212] rounded-xl border border-[#1f1f1f] overflow-hidden">
+      {/* TABLE CARD */}
+      <div className="bg-black/60 backdrop-blur-xl
+                      border border-white/10
+                      rounded-2xl overflow-hidden shadow-glass">
+
         <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-[#181818] text-[#ccc] uppercase">
-              <th className="px-5 py-3 text-left">Photo</th>
-              <th className="px-5 py-3 text-left">Name</th>
-              <th className="px-5 py-3 text-left">City</th>
-              <th className="px-5 py-3 text-left">Rating</th>
-              <th className="px-5 py-3 text-center">Actions</th>
+          <thead className="bg-white/5 uppercase text-xs text-gray-300">
+            <tr>
+              <th className="px-5 py-4 text-left">Customer</th>
+              <th className="px-5 py-4 text-left">City</th>
+              <th className="px-5 py-4 text-left">Rating</th>
+              <th className="px-5 py-4 text-center">Actions</th>
             </tr>
           </thead>
 
           <tbody>
             {loading ? (
               <tr>
-                <td
-                  colSpan="5"
-                  className="py-10 text-center text-gray-500"
-                >
+                <td colSpan="4" className="py-16 text-center text-gray-400">
                   Loading feedback…
                 </td>
               </tr>
@@ -124,40 +128,42 @@ export default function FeedbackList() {
               paginated.map((f) => (
                 <tr
                   key={f._id}
-                  className="border-t border-[#232323]
-                             hover:bg-[#1c1c1c] cursor-pointer"
                   onClick={() => setSelected(f)}
+                  className="border-t border-white/5
+                             hover:bg-white/5 transition cursor-pointer"
                 >
-                  {/* PHOTO */}
-                  <td className="px-5 py-3">
+                  {/* CUSTOMER */}
+                  <td className="px-5 py-4 flex items-center gap-3">
                     {f.photo?.url ? (
                       <img
                         src={f.photo.url}
-                        alt={f.name}
                         className="w-10 h-10 rounded-full object-cover
-                                   border border-[#333]"
+                                   border border-white/10"
+                        alt={f.name}
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-[#222]
-                                      flex items-center justify-center
-                                      text-gray-500">
+                      <div className="w-10 h-10 rounded-full bg-white/10
+                                      flex items-center justify-center">
                         <ImageIcon size={16} />
                       </div>
                     )}
+                    <span className="font-medium">{f.name}</span>
                   </td>
 
-                  <td className="px-5 py-3">{f.name}</td>
-                  <td className="px-5 py-3">{f.city}</td>
+                  {/* CITY */}
+                  <td className="px-5 py-4 text-gray-300">
+                    {f.city}
+                  </td>
 
                   {/* RATING */}
-                  <td className="px-5 py-3">
+                  <td className="px-5 py-4">
                     <div className="flex gap-1">
                       {[...Array(Number(f.rating))].map((_, i) => (
                         <Star
                           key={i}
                           size={16}
-                          className="text-yellow-400"
-                          fill="yellow"
+                          className="text-brand-yellow"
+                          fill="currentColor"
                         />
                       ))}
                     </div>
@@ -165,24 +171,24 @@ export default function FeedbackList() {
 
                   {/* ACTIONS */}
                   <td
-                    className="px-5 py-3 text-center"
+                    className="px-5 py-4 text-center"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <div className="flex gap-2 justify-center">
+                    <div className="flex gap-3 justify-center">
                       <button
                         onClick={() =>
                           navigate(`/admin/feedback/edit/${f._id}`)
                         }
-                        className="text-yellow-400 flex items-center gap-1"
+                        className="text-brand-yellow hover:underline"
                       >
-                        <Edit3 size={15} /> Edit
+                        Edit
                       </button>
 
                       <button
                         onClick={() => setDeleteId(f._id)}
-                        className="text-red-500 flex items-center gap-1"
+                        className="text-red-500 hover:underline"
                       >
-                        <Trash2 size={15} /> Delete
+                        Delete
                       </button>
                     </div>
                   </td>
@@ -190,10 +196,7 @@ export default function FeedbackList() {
               ))
             ) : (
               <tr>
-                <td
-                  colSpan="5"
-                  className="py-10 text-center text-gray-500"
-                >
+                <td colSpan="4" className="py-16 text-center text-gray-500">
                   No feedback found
                 </td>
               </tr>
@@ -202,26 +205,29 @@ export default function FeedbackList() {
         </table>
       </div>
 
+      {/* PAGINATION */}
       <Pagination
         page={page}
         total={filtered.length}
+        limit={PER_PAGE}
         onChange={setPage}
       />
 
-      {/* DRAWER */}
+      {/* DETAILS DRAWER */}
       <AnimatePresence>
         {selected && (
           <motion.div
-            initial={{ x: 350 }}
+            initial={{ x: 380 }}
             animate={{ x: 0 }}
-            exit={{ x: 350 }}
-            className="fixed top-0 right-0 w-80 h-full
-                       bg-[#0f0f0f] border-l border-[#222]
-                       shadow-lg p-6 z-50"
+            exit={{ x: 380 }}
+            className="fixed top-0 right-0 w-[360px] h-full
+                       bg-black/80 backdrop-blur-xl
+                       border-l border-white/10
+                       p-6 z-50"
           >
-            <div className="flex justify-between">
-              <h3 className="text-lg text-[#ff6b00] font-semibold">
-                Details
+            <div className="flex justify-between mb-4">
+              <h3 className="text-lg font-semibold text-brand-red">
+                Feedback Details
               </h3>
               <X
                 onClick={() => setSelected(null)}
@@ -229,22 +235,25 @@ export default function FeedbackList() {
               />
             </div>
 
-            <div className="space-y-4 mt-4 text-gray-200">
+            <div className="space-y-4 text-gray-200">
               {selected.photo?.url && (
                 <img
                   src={selected.photo.url}
-                  alt={selected.name}
-                  className="w-full h-40 rounded-lg object-cover"
+                  className="w-full h-40 rounded-xl object-cover"
+                  alt=""
                 />
               )}
+
               <p className="flex gap-2 items-center">
                 <User2 size={16} /> {selected.name}
               </p>
+
               <p className="flex gap-2 items-center">
                 <MapPin size={16} /> {selected.city}
               </p>
+
               {selected.message && (
-                <p className="flex gap-2 items-center">
+                <p className="flex gap-2">
                   <MessageCircle size={16} />
                   {selected.message}
                 </p>
@@ -257,14 +266,19 @@ export default function FeedbackList() {
       {/* DELETE MODAL */}
       <AnimatePresence>
         {deleteId && (
-          <motion.div className="fixed inset-0 bg-black/60
-                                  flex justify-center items-center z-50">
-            <motion.div className="bg-[#1b1b1b] p-6 rounded-xl
-                                   text-center w-80
-                                   border border-[#2a2a2a]">
+          <motion.div
+            className="fixed inset-0 bg-black/60
+                       flex justify-center items-center z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="bg-[#111] border border-white/10
+                            rounded-xl p-6 w-80 text-center">
               <h3 className="text-lg mb-4">
                 Delete this feedback?
               </h3>
+
               <div className="flex gap-3 justify-center">
                 <button
                   className="bg-gray-600 px-4 py-2 rounded"
@@ -272,6 +286,7 @@ export default function FeedbackList() {
                 >
                   Cancel
                 </button>
+
                 <button
                   disabled={deleting}
                   className="bg-red-600 px-4 py-2 rounded
@@ -281,7 +296,7 @@ export default function FeedbackList() {
                   {deleting ? "Deleting…" : "Delete"}
                 </button>
               </div>
-            </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

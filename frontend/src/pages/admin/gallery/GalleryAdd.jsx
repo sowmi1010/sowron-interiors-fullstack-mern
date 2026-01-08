@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../../lib/api";
 import toast from "react-hot-toast";
-import { Upload, X } from "lucide-react";
+import { Upload, X, ImagePlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet";
 
@@ -23,7 +23,6 @@ export default function GalleryAdd() {
       .catch(() => toast.error("Failed to load categories"));
 
     return () => {
-      // 🧹 CLEAN PREVIEW MEMORY
       preview.forEach((url) => URL.revokeObjectURL(url));
     };
   }, []);
@@ -31,17 +30,15 @@ export default function GalleryAdd() {
   /* 📸 IMAGE PICK (MEMORY SAFE) */
   const handleFiles = (e) => {
     const selected = Array.from(e.target.files);
-
     preview.forEach((url) => URL.revokeObjectURL(url));
 
     setFiles(selected);
     setPreview(selected.map((f) => URL.createObjectURL(f)));
   };
 
-  /* ❌ REMOVE SELECTED IMAGE */
+  /* ❌ REMOVE IMAGE */
   const removeImage = (index) => {
     URL.revokeObjectURL(preview[index]);
-
     setFiles((prev) => prev.filter((_, i) => i !== index));
     setPreview((prev) => prev.filter((_, i) => i !== index));
   };
@@ -59,7 +56,7 @@ export default function GalleryAdd() {
 
       const fd = new FormData();
       fd.append("title", title.trim());
-      fd.append("category", category); // must match backend
+      fd.append("category", category);
       files.forEach((file) => fd.append("images", file));
 
       await api.post("/gallery/add", fd);
@@ -74,47 +71,65 @@ export default function GalleryAdd() {
   };
 
   return (
-    <div className="flex justify-center p-8 text-white">
+    <div className="max-w-2xl mx-auto text-white p-6">
       <Helmet>
         <title>Add Gallery</title>
       </Helmet>
 
-      <div className="bg-[#151515] border border-[#262626]
-                      p-8 rounded-xl shadow-xl w-full max-w-xl">
-
-        <h2 className="text-3xl font-bold text-[#ff6b00] mb-6">
-          Add Gallery Item
+      {/* HEADER */}
+      <div className="mb-8 text-center">
+        <h2 className="text-3xl font-semibold text-brand-red flex items-center justify-center gap-2">
+          <ImagePlus /> Add Gallery Item
         </h2>
+        <p className="text-sm text-gray-400 mt-1">
+          Upload and organize gallery visuals
+        </p>
+      </div>
+
+      {/* CARD */}
+      <div className="bg-black/60 backdrop-blur-xl
+                      border border-white/10
+                      rounded-2xl p-6 shadow-glass">
 
         <form onSubmit={submitHandler} className="space-y-4">
 
           {/* TITLE */}
           <input
             type="text"
-            placeholder="Enter Title"
-            className="bg-[#1b1b1b] border border-[#333] p-3 rounded w-full"
+            placeholder="Gallery title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            className="w-full px-4 py-3 rounded-lg
+                       bg-white/5 border border-white/10
+                       outline-none focus:border-brand-yellow transition"
           />
 
           {/* CATEGORY */}
           <select
-            className="bg-[#1a1a1a] border border-[#333] p-3 rounded w-full"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
+            className="w-full px-4 py-3 rounded-lg
+                       bg-white/5 border border-white/10
+                       outline-none focus:border-brand-yellow transition"
           >
             <option value="">Select Category</option>
             {categories.map((c) => (
               <option key={c._id} value={c.slug}>
-                {c.name.toUpperCase()}
+                {c.name}
               </option>
             ))}
           </select>
 
           {/* IMAGE PICKER */}
-          <label className="border border-[#333] rounded-lg bg-[#1a1a1a]
-                            p-4 flex items-center gap-3 cursor-pointer">
-            <Upload size={20} /> Select Images
+          <label className="flex items-center justify-center gap-2
+                            border border-dashed border-white/20
+                            rounded-xl bg-white/5 py-6
+                            cursor-pointer hover:border-brand-yellow
+                            transition">
+            <Upload size={20} />
+            <span className="text-sm text-gray-300">
+              Click to select images
+            </span>
             <input
               type="file"
               multiple
@@ -126,20 +141,26 @@ export default function GalleryAdd() {
 
           {/* PREVIEW */}
           {preview.length > 0 && (
-            <div className="grid grid-cols-3 gap-2 mt-3">
+            <div className="grid grid-cols-3 gap-3 mt-4">
               {preview.map((src, i) => (
-                <div key={i} className="relative group">
+                <div
+                  key={i}
+                  className="relative group rounded-xl overflow-hidden
+                             border border-white/10"
+                >
                   <img
                     src={src}
                     alt="Preview"
-                    className="rounded h-24 w-full object-cover"
+                    className="h-24 w-full object-cover"
                   />
+
                   <button
                     type="button"
                     onClick={() => removeImage(i)}
-                    className="absolute top-1 right-1 bg-black/60
-                               text-white p-1 rounded opacity-0
-                               group-hover:opacity-100 transition"
+                    className="absolute top-2 right-2
+                               bg-black/70 p-1.5 rounded-full
+                               opacity-0 group-hover:opacity-100
+                               transition"
                   >
                     <X size={14} />
                   </button>
@@ -152,11 +173,14 @@ export default function GalleryAdd() {
           <button
             type="submit"
             disabled={loading}
-            className="bg-[#ff6b00] w-full py-3 rounded
-                       text-black font-semibold disabled:opacity-70"
+            className="w-full py-3 rounded-lg font-semibold
+                       bg-brand-red text-white
+                       hover:bg-brand-redDark transition
+                       disabled:opacity-60"
           >
             {loading ? "Uploading..." : "Save Gallery"}
           </button>
+
         </form>
       </div>
     </div>

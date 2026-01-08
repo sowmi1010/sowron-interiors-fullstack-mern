@@ -49,7 +49,7 @@ export default function PortfolioAdmin() {
     try {
       setDeleting(true);
       await api.delete(`/portfolio/${deleteId}`);
-      toast.success("Portfolio deleted ✔");
+      toast.success("Portfolio deleted");
 
       setList((prev) => prev.filter((p) => p._id !== deleteId));
       setDeleteId(null);
@@ -76,16 +76,26 @@ export default function PortfolioAdmin() {
   );
 
   return (
-    <div className="p-6 text-white">
+    <div className="p-6 text-white max-w-[1400px] mx-auto">
+
       {/* HEADER */}
-      <div className="flex justify-between mb-8">
-        <h2 className="text-3xl font-bold text-[#ff6b00] tracking-wide">
-          Completed Projects
-        </h2>
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h2 className="text-3xl font-semibold text-brand-red">
+            Completed Projects
+          </h2>
+          <p className="text-sm text-gray-400 mt-1">
+            {query
+              ? `Showing results for “${query}”`
+              : "Manage your completed interior projects"}
+          </p>
+        </div>
 
         <button
           onClick={() => navigate("/admin/portfolio/add")}
-          className="bg-[#ff6b00] text-black px-4 py-2 rounded-lg font-semibold"
+          className="bg-brand-red text-white px-5 py-2.5
+                     rounded-lg font-semibold
+                     hover:bg-brand-redDark transition"
         >
           + Add Project
         </button>
@@ -93,71 +103,85 @@ export default function PortfolioAdmin() {
 
       {/* CONTENT */}
       {loading ? (
-        <p className="text-gray-400 text-center py-20">
+        <p className="text-gray-400 text-center py-24">
           Loading portfolio…
         </p>
       ) : paginated.length === 0 ? (
-        <p className="text-gray-400 text-center py-20">
-          No Completed Projects Found
-        </p>
+        <div className="text-center py-24">
+          <p className="text-gray-400">
+            {query ? "No matching projects found" : "No projects added yet"}
+          </p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {paginated.map((p) => (
             <motion.div
               key={p._id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-[#141414] border border-[#222]
-                         rounded-xl shadow-md overflow-hidden"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              whileHover={{ y: -6 }}
+              className="group bg-black/60 backdrop-blur-xl
+                         border border-white/10 rounded-2xl
+                         overflow-hidden shadow-glass
+                         hover:border-brand-red/40 transition"
             >
               {/* IMAGE */}
-              <div
-                className="h-44 bg-[#111] bg-cover bg-center"
-                style={
-                  p.images?.length
-                    ? { backgroundImage: `url(${p.images[0].url})` }
-                    : {}
-                }
-              >
-                {!p.images?.length && (
-                  <div className="flex justify-center items-center h-full text-gray-500">
+              <div className="relative h-44 bg-black">
+                {p.images?.length ? (
+                  <img
+                    src={p.images[0].url}
+                    alt={p.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500">
                     <ImgIcon size={30} />
                   </div>
                 )}
+
+                {/* OVERLAY */}
+                <div className="absolute inset-0 bg-gradient-to-t
+                                from-black/70 to-transparent" />
               </div>
 
               {/* CONTENT */}
               <div className="p-4">
-                <h3 className="font-semibold">{p.title}</h3>
+                <h3 className="font-semibold text-lg truncate">
+                  {p.title}
+                </h3>
 
                 {p.location && (
-                  <span className="text-xs bg-[#222] px-2 py-1 rounded
-                                   inline-flex items-center gap-1
-                                   text-gray-300 mt-2">
-                    <MapPin size={12} /> {p.location}
-                  </span>
+                  <div className="flex items-center gap-1
+                                  text-xs text-gray-400 mt-1">
+                    <MapPin size={12} />
+                    {p.location}
+                  </div>
                 )}
 
                 <p className="text-xs text-gray-500 mt-2">
-                  {p.images?.length || 0} Image(s)
+                  {p.images?.length || 0} Images
                 </p>
 
                 {/* ACTIONS */}
                 <div className="flex justify-between mt-4">
                   <button
-                    className="text-yellow-400 flex items-center gap-1"
                     onClick={() =>
                       navigate(`/admin/portfolio/edit/${p._id}`)
                     }
+                    className="text-brand-yellow text-sm
+                               flex items-center gap-1
+                               hover:underline"
                   >
-                    <Edit3 size={15} /> Edit
+                    <Edit3 size={14} /> Edit
                   </button>
 
                   <button
-                    className="text-red-500 flex items-center gap-1"
                     onClick={() => setDeleteId(p._id)}
+                    className="text-red-400 text-sm
+                               flex items-center gap-1
+                               hover:underline"
                   >
-                    <Trash2 size={15} /> Delete
+                    <Trash2 size={14} /> Delete
                   </button>
                 </div>
               </div>
@@ -168,11 +192,14 @@ export default function PortfolioAdmin() {
 
       {/* PAGINATION */}
       {filtered.length > PER_PAGE && (
-        <Pagination
-          page={page}
-          total={filtered.length}
-          onChange={setPage}
-        />
+        <div className="mt-10 flex justify-center">
+          <Pagination
+            page={page}
+            total={filtered.length}
+            limit={PER_PAGE}
+            onChange={setPage}
+          />
+        </div>
       )}
 
       {/* DELETE CONFIRM */}
@@ -185,10 +212,10 @@ export default function PortfolioAdmin() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <div className="bg-[#1b1b1b] p-6 rounded-xl
-                            text-center border border-[#2a2a2a]
-                            w-80">
-              <h3 className="text-lg font-semibold text-gray-200 mb-4">
+            <div className="bg-black/80 backdrop-blur-xl
+                            border border-white/10
+                            p-6 rounded-xl w-80 text-center">
+              <h3 className="text-lg font-semibold mb-4">
                 Delete this project?
               </h3>
 
@@ -202,8 +229,7 @@ export default function PortfolioAdmin() {
 
                 <button
                   disabled={deleting}
-                  className="bg-red-600 hover:bg-red-700
-                             px-4 py-2 rounded
+                  className="bg-red-600 px-4 py-2 rounded
                              disabled:opacity-50"
                   onClick={remove}
                 >

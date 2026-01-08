@@ -1,34 +1,30 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../../../lib/api";
 import { useSearch } from "../../../context/SearchContext";
-import { Edit3, Trash2, Package, Image } from "lucide-react";
+import { Edit3, Trash2, Package, Image, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import Pagination from "../../../components/ui/Pagination";
+
+const LIMIT = 6;
 
 export default function ProductsList() {
   const [products, setProducts] = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [page, setPage] = useState(1);
 
   const { query = "" } = useSearch();
   const navigate = useNavigate();
 
+  /* ================= LOAD ================= */
   const loadProducts = async () => {
     try {
       setLoading(true);
       const res = await api.get("/products");
-      setProducts(res.data);
-
-      if (selected) {
-        const stillExists = res.data.find(
-          (p) => p._id === selected._id
-        );
-        setSelected(stillExists || null);
-      } else if (res.data.length > 0) {
-        setSelected(res.data[0]);
-      }
+      setProducts(res.data || []);
     } catch {
       toast.error("Failed to load products");
     } finally {
@@ -40,9 +36,9 @@ export default function ProductsList() {
     loadProducts();
   }, []);
 
+  /* ================= DELETE ================= */
   const removeProduct = async (id) => {
     if (deleting) return;
-
     if (!window.confirm("Delete this product permanently?")) return;
 
     try {
@@ -58,93 +54,137 @@ export default function ProductsList() {
     }
   };
 
-  /* 🔍 SAFE SEARCH */
-  const filtered = products.filter((p) => {
+  /* ================= SEARCH ================= */
+  const filtered = useMemo(() => {
+    if (!query) return products;
+
     const q = query.toLowerCase();
-    return (
-      p.title?.toLowerCase().includes(q) ||
-      p.category?.name?.toLowerCase().includes(q)
+    return products.filter(
+      (p) =>
+        p.title?.toLowerCase().includes(q) ||
+        p.category?.name?.toLowerCase().includes(q)
     );
-  });
+  }, [products, query]);
+
+  /* ================= PAGINATION ================= */
+  const total = filtered.length;
+  const start = (page - 1) * LIMIT;
+  const paginated = filtered.slice(start, start + LIMIT);
+
+  useEffect(() => {
+    setPage(1);
+    setSelected(null);
+  }, [query]);
+
+  useEffect(() => {
+    if (!selected && paginated.length > 0) {
+      setSelected(paginated[0]);
+    }
+  }, [paginated, selected]);
 
   return (
-    <div className="flex h-[88vh] overflow-hidden bg-[#0e0e0e] text-white">
+    <div className="flex h-[88vh] overflow-hidden text-white">
 
-      {/* LEFT PANEL */}
-      <div className="w-[32%] bg-[#111] border-r border-[#222] overflow-y-auto">
-        <div className="flex justify-between items-center p-4 border-b border-[#1d1d1d]">
-          <h2 className="text-xl font-bold text-[#ff6b00]">
+      {/* ================= LEFT PANEL ================= */}
+      <div className="w-[34%] bg-black/60 backdrop-blur-xl
+                      border-r border-white/10 flex flex-col">
+
+        {/* HEADER */}
+        <div className="flex justify-between items-center p-4 border-b border-white/10">
+          <h2 className="text-xl font-semibold text-brand-red">
             Products
           </h2>
           <button
             onClick={() => navigate("/admin/products/add")}
-            className="bg-[#ff6b00] text-black px-3 py-1 rounded-lg font-semibold"
+            className="flex items-center gap-1
+                       bg-brand-red text-white px-3 py-1.5
+                       rounded-lg font-semibold hover:bg-brand-redDark transition"
           >
-            + Add
+            <Plus size={16} /> Add
           </button>
         </div>
 
-        {loading ? (
-          <p className="text-gray-500 text-center mt-10">
-            Loading...
-          </p>
-        ) : filtered.length === 0 ? (
-          <p className="text-gray-500 text-center mt-10">
-            No products found
-          </p>
-        ) : (
-          filtered.map((p) => (
-            <motion.div
-              key={p._id}
-              onClick={() => setSelected(p)}
-              whileHover={{ backgroundColor: "#1a1a1a" }}
-              className={`cursor-pointer px-4 py-3 border-b border-[#1b1b1b]
-                ${selected?._id === p._id ? "bg-[#1a1a1a]" : ""}`}
-            >
-              <div className="flex gap-3 items-center">
-                <div className="w-12 h-12 bg-[#222] rounded overflow-hidden flex items-center justify-center">
-                  {p.images?.[0]?.url ? (
-                    <img
-                      src={p.images[0].url}
-                      alt={p.title}
-                      className="object-cover w-full h-full"
-                    />
-                  ) : (
-                    <Package size={20} className="text-gray-400" />
-                  )}
-                </div>
+        {/* LIST */}
+        <div className="flex-1 overflow-y-auto">
+          {loading ? (
+            <p className="text-gray-500 text-center mt-10">Loading...</p>
+          ) : paginated.length === 0 ? (
+            <p className="text-gray-500 text-center mt-10">
+              No products found
+            </p>
+          ) : (
+            paginated.map((p) => (
+              <motion.div
+                key={p._id}
+                onClick={() => setSelected(p)}
+                whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}
+                className={`cursor-pointer px-4 py-3 border-b border-white/5
+                ${
+                  selected?._id === p._id
+                    ? "bg-white/10"
+                    : ""
+                }`}
+              >
+                <div className="flex gap-3 items-center">
+                  <div className="w-12 h-12 bg-white/10 rounded-lg overflow-hidden
+                                  flex items-center justify-center">
+                    {p.images?.[0]?.url ? (
+                      <img
+                        src={p.images[0].url}
+                        alt={p.title}
+                        className="object-cover w-full h-full"
+                      />
+                    ) : (
+                      <Package size={20} className="text-gray-400" />
+                    )}
+                  </div>
 
-                <div>
-                  <h4 className="text-sm font-semibold">
-                    {p.title}
-                  </h4>
-                  <p className="text-[11px] text-gray-400">
-                    {p.category?.name || "Uncategorized"}
-                  </p>
+                  <div>
+                    <h4 className="text-sm font-semibold">
+                      {p.title}
+                    </h4>
+                    <p className="text-[11px] text-gray-400">
+                      {p.category?.name || "Uncategorized"}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          ))
-        )}
+              </motion.div>
+            ))
+          )}
+        </div>
+
+        {/* PAGINATION */}
+        <Pagination
+          page={page}
+          total={total}
+          limit={LIMIT}
+          onChange={setPage}
+        />
       </div>
 
-      {/* RIGHT PANEL */}
-      <div className="flex-1 p-6 overflow-y-auto">
+      {/* ================= RIGHT PANEL ================= */}
+      <div className="flex-1 p-8 overflow-y-auto bg-brand-darkBg">
         {!selected ? (
           <p className="text-gray-500 text-center mt-20">
             Select a product
           </p>
         ) : (
-          <motion.div className="max-w-3xl mx-auto">
-            <h2 className="text-2xl font-bold text-[#ff6b00] mb-2">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-3xl mx-auto"
+          >
+            <h2 className="text-2xl font-semibold text-brand-red mb-2">
               {selected.title}
             </h2>
 
-            <span className="inline-block text-xs bg-[#222] px-3 py-1 rounded">
+            <span className="inline-block text-xs
+                             bg-white/5 border border-white/10
+                             px-3 py-1 rounded-full">
               {selected.category?.name}
             </span>
 
-            <p className="text-xl mt-3 text-[#ff6b00] font-semibold">
+            <p className="text-xl mt-4 text-brand-yellow font-semibold">
               ₹ {selected.price}
             </p>
 
@@ -152,6 +192,7 @@ export default function ProductsList() {
               {selected.description || "No description"}
             </p>
 
+            {/* IMAGES */}
             <h3 className="mt-6 mb-2 text-sm text-gray-400">
               Images
             </h3>
@@ -163,7 +204,7 @@ export default function ProductsList() {
                     key={i}
                     src={img.url}
                     alt={`${selected.title} ${i + 1}`}
-                    className="rounded-lg object-cover h-32 w-full"
+                    className="rounded-xl object-cover h-32 w-full"
                   />
                 ))
               ) : (
@@ -173,12 +214,15 @@ export default function ProductsList() {
               )}
             </div>
 
+            {/* ACTIONS */}
             <div className="flex gap-4 mt-8">
               <button
                 onClick={() =>
                   navigate(`/admin/product/edit/${selected._id}`)
                 }
-                className="bg-blue-600 px-4 py-2 rounded flex gap-2"
+                className="flex items-center gap-2
+                           bg-white/10 hover:bg-white/20
+                           px-4 py-2 rounded-lg transition"
               >
                 <Edit3 size={16} /> Edit
               </button>
@@ -186,9 +230,12 @@ export default function ProductsList() {
               <button
                 disabled={deleting}
                 onClick={() => removeProduct(selected._id)}
-                className="bg-red-600 px-4 py-2 rounded flex gap-2 disabled:opacity-60"
+                className="flex items-center gap-2
+                           bg-red-600 hover:bg-red-700
+                           px-4 py-2 rounded-lg
+                           disabled:opacity-60 transition"
               >
-                <Trash2 size={16} />{" "}
+                <Trash2 size={16} />
                 {deleting ? "Deleting..." : "Delete"}
               </button>
             </div>

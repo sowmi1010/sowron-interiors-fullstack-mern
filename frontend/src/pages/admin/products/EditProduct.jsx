@@ -28,7 +28,7 @@ export default function EditProduct() {
     setCategories(res.data);
   };
 
-  /* 🔄 Load SINGLE product (FIXED) */
+  /* 🔄 Load single product */
   const loadProduct = async () => {
     const res = await api.get(`/products/${id}`);
     const product = res.data;
@@ -61,10 +61,9 @@ export default function EditProduct() {
     (c) => c._id === form.category
   );
 
-  /* 📸 New image preview (MEMORY SAFE) */
+  /* 📸 New image preview (memory-safe) */
   const handleImages = (e) => {
     const files = Array.from(e.target.files);
-
     preview.forEach((url) => URL.revokeObjectURL(url));
 
     setNewImages(files);
@@ -77,7 +76,6 @@ export default function EditProduct() {
 
     try {
       const data = new FormData();
-
       data.append("title", form.title.trim());
       data.append("description", form.description.trim());
       data.append("category", form.category);
@@ -106,28 +104,37 @@ export default function EditProduct() {
   }
 
   return (
-    <div className="flex justify-center">
-      <div className="max-w-2xl w-full bg-[#141414] border border-[#1f1f1f] rounded-xl p-8 text-white">
+    <div className="max-w-2xl mx-auto text-white">
 
-        {/* HEADER */}
-        <div className="flex items-center gap-3 mb-8">
-          <Package size={26} className="text-[#ff6b00]" />
-          <h2 className="text-2xl font-bold text-[#ff6b00]">
-            Edit Product
-          </h2>
-        </div>
+      {/* HEADER */}
+      <div className="mb-8 text-center">
+        <h2 className="text-3xl font-semibold text-brand-red flex items-center justify-center gap-2">
+          <Package /> Edit Product
+        </h2>
+        <p className="text-sm text-gray-400 mt-1">
+          Update product details and images
+        </p>
+      </div>
 
+      {/* FORM CARD */}
+      <div className="bg-black/60 backdrop-blur-xl
+                      border border-white/10
+                      rounded-2xl p-6 shadow-glass">
         <form onSubmit={updateHandler} className="space-y-4">
 
+          {/* TITLE */}
           <input
             value={form.title}
             onChange={(e) =>
               setForm({ ...form, title: e.target.value })
             }
-            placeholder="Title"
-            className="w-full bg-[#1a1a1a] p-3 rounded"
+            placeholder="Product title"
+            className="w-full px-4 py-3 rounded-lg
+                       bg-white/5 border border-white/10
+                       outline-none focus:border-brand-yellow transition"
           />
 
+          {/* DESCRIPTION */}
           <textarea
             value={form.description}
             onChange={(e) =>
@@ -135,7 +142,9 @@ export default function EditProduct() {
             }
             rows="3"
             placeholder="Description"
-            className="w-full bg-[#1a1a1a] p-3 rounded"
+            className="w-full px-4 py-3 rounded-lg
+                       bg-white/5 border border-white/10
+                       outline-none focus:border-brand-yellow transition"
           />
 
           {/* CATEGORY */}
@@ -148,7 +157,9 @@ export default function EditProduct() {
                 subCategory: "",
               })
             }
-            className="w-full bg-[#1a1a1a] p-3 rounded"
+            className="w-full px-4 py-3 rounded-lg
+                       bg-white/5 border border-white/10
+                       outline-none focus:border-brand-yellow transition"
           >
             <option value="">Select Category</option>
             {categories.map((c) => (
@@ -165,7 +176,9 @@ export default function EditProduct() {
               onChange={(e) =>
                 setForm({ ...form, subCategory: e.target.value })
               }
-              className="w-full bg-[#1a1a1a] p-3 rounded"
+              className="w-full px-4 py-3 rounded-lg
+                         bg-white/5 border border-white/10
+                         outline-none focus:border-brand-yellow transition"
             >
               <option value="">Select Sub Category</option>
               {selectedCategory.subCategories.map((s, i) => (
@@ -176,6 +189,7 @@ export default function EditProduct() {
             </select>
           )}
 
+          {/* PRICE */}
           <input
             type="number"
             value={form.price}
@@ -183,45 +197,63 @@ export default function EditProduct() {
               setForm({ ...form, price: e.target.value })
             }
             placeholder="Price"
-            className="w-full bg-[#1a1a1a] p-3 rounded"
+            className="w-full px-4 py-3 rounded-lg
+                       bg-white/5 border border-white/10
+                       outline-none focus:border-brand-yellow transition"
           />
 
           {/* EXISTING IMAGES */}
           {existingImages.length > 0 && (
-            <div className="grid grid-cols-3 gap-2">
-              {existingImages.map((img, i) => (
-                <img
-                  key={i}
-                  src={img.url}
-                  alt="Product"
-                  className="h-24 object-cover rounded border"
-                />
-              ))}
-            </div>
+            <>
+              <p className="text-sm text-gray-400 mt-2">
+                Existing Images
+              </p>
+              <div className="grid grid-cols-3 gap-3">
+                {existingImages.map((img, i) => (
+                  <img
+                    key={i}
+                    src={img.url}
+                    alt="Product"
+                    className="h-24 rounded-xl object-cover
+                               border border-white/10"
+                  />
+                ))}
+              </div>
+            </>
           )}
 
           {/* NEW IMAGES */}
-          <label className="block text-sm text-gray-400 mt-3">
+          <label className="block text-sm text-gray-400 mt-4">
             Replace Images
           </label>
-          <input type="file" multiple onChange={handleImages} />
+          <input
+            type="file"
+            multiple
+            onChange={handleImages}
+            className="text-sm"
+          />
 
           {preview.length > 0 && (
-            <div className="grid grid-cols-3 gap-2 mt-2">
+            <div className="grid grid-cols-3 gap-3 mt-3">
               {preview.map((src, i) => (
                 <img
                   key={i}
                   src={src}
-                  className="h-24 rounded object-cover"
+                  alt="Preview"
+                  className="h-24 rounded-xl object-cover
+                             border border-white/10"
                 />
               ))}
             </div>
           )}
 
+          {/* SAVE */}
           <button
             type="submit"
-            className="w-full bg-[#ff6b00] py-3 rounded font-semibold
-                       flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-lg font-semibold
+                       bg-brand-red text-white
+                       hover:bg-brand-redDark
+                       transition flex items-center justify-center gap-2"
           >
             <Save size={18} /> Update Product
           </button>

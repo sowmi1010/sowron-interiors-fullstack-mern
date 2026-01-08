@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { PackagePlus } from "lucide-react";
+import { PackagePlus, ImagePlus } from "lucide-react";
 import { api } from "../../../lib/api";
 import toast from "react-hot-toast";
 import { Helmet } from "react-helmet";
@@ -29,11 +29,9 @@ export default function ProductsAdd() {
       .catch(() => toast.error("Failed to load categories"));
   }, []);
 
-  /* 📸 Image preview (FIXED MEMORY LEAK) */
+  /* 📸 Image preview */
   const handleFilePreview = (e) => {
     const selected = Array.from(e.target.files);
-
-    // revoke old previews
     preview.forEach((url) => URL.revokeObjectURL(url));
 
     setFiles(selected);
@@ -61,10 +59,7 @@ export default function ProductsAdd() {
       data.append("category", form.category);
       data.append("subCategory", subCategory);
       data.append("price", Number(form.price));
-
-      files.forEach((file) => {
-        data.append("images", file); // MUST match backend field
-      });
+      files.forEach((file) => data.append("images", file));
 
       await api.post("/products/add", data, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -84,36 +79,50 @@ export default function ProductsAdd() {
   );
 
   return (
-    <div className="p-6 text-white">
+    <div className="max-w-2xl mx-auto text-white">
       <Helmet>
         <title>Add Product</title>
       </Helmet>
 
-      <h2 className="text-3xl font-bold text-[#ff6b00] mb-8 flex justify-center gap-2">
-        <PackagePlus /> Add Product
-      </h2>
+      {/* HEADER */}
+      <div className="mb-8 text-center">
+        <h2 className="text-3xl font-semibold text-brand-red flex items-center justify-center gap-2">
+          <PackagePlus /> Add Product
+        </h2>
+        <p className="text-gray-400 text-sm mt-1">
+          Create a new product listing
+        </p>
+      </div>
 
+      {/* FORM CARD */}
       <form
         onSubmit={submitHandler}
         encType="multipart/form-data"
-        className="bg-[#141414] border border-[#222] p-6 rounded-xl max-w-xl mx-auto"
+        className="bg-black/60 backdrop-blur-xl border border-white/10
+                   rounded-2xl p-6 shadow-glass"
       >
+        {/* TITLE */}
         <input
           placeholder="Product Name"
           value={form.title}
           onChange={(e) =>
             setForm({ ...form, title: e.target.value })
           }
-          className="w-full p-3 mb-3 bg-[#1b1b1b] rounded"
+          className="w-full px-4 py-3 mb-3 rounded-lg
+                     bg-white/5 border border-white/10
+                     outline-none focus:border-brand-yellow transition"
         />
 
+        {/* DESCRIPTION */}
         <textarea
           placeholder="Description"
           value={form.description}
           onChange={(e) =>
             setForm({ ...form, description: e.target.value })
           }
-          className="w-full p-3 mb-3 bg-[#1b1b1b] rounded"
+          className="w-full px-4 py-3 mb-3 rounded-lg
+                     bg-white/5 border border-white/10
+                     outline-none focus:border-brand-yellow transition"
         />
 
         {/* CATEGORY */}
@@ -123,7 +132,9 @@ export default function ProductsAdd() {
             setForm({ ...form, category: e.target.value });
             setSubCategory("");
           }}
-          className="w-full p-3 mb-3 bg-[#1b1b1b] rounded"
+          className="w-full px-4 py-3 mb-3 rounded-lg
+                     bg-white/5 border border-white/10
+                     outline-none focus:border-brand-yellow transition"
         >
           <option value="">Select Category</option>
           {categories.map((c) => (
@@ -138,7 +149,9 @@ export default function ProductsAdd() {
           <select
             value={subCategory}
             onChange={(e) => setSubCategory(e.target.value)}
-            className="w-full p-3 mb-3 bg-[#1b1b1b] rounded"
+            className="w-full px-4 py-3 mb-3 rounded-lg
+                       bg-white/5 border border-white/10
+                       outline-none focus:border-brand-yellow transition"
           >
             <option value="">Select Sub Category</option>
             {selectedCategory.subCategories.map((s, i) => (
@@ -149,6 +162,7 @@ export default function ProductsAdd() {
           </select>
         )}
 
+        {/* PRICE */}
         <input
           type="number"
           placeholder="Price"
@@ -156,35 +170,51 @@ export default function ProductsAdd() {
           onChange={(e) =>
             setForm({ ...form, price: e.target.value })
           }
-          className="w-full p-3 mb-3 bg-[#1b1b1b] rounded"
+          className="w-full px-4 py-3 mb-4 rounded-lg
+                     bg-white/5 border border-white/10
+                     outline-none focus:border-brand-yellow transition"
         />
 
-        {/* IMAGES */}
-        <input
-          type="file"
-          multiple
-          accept="image/*"
-          onChange={handleFilePreview}
-          className="w-full mb-3"
-        />
+        {/* IMAGE UPLOAD */}
+        <label className="block mb-3 text-sm text-gray-400">
+          Product Images
+        </label>
 
+        <div className="border border-dashed border-white/20
+                        rounded-xl p-4 mb-4 text-center
+                        hover:border-brand-yellow transition">
+          <ImagePlus className="mx-auto mb-2 text-gray-400" />
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={handleFilePreview}
+            className="w-full text-sm"
+          />
+        </div>
+
+        {/* PREVIEW */}
         {preview.length > 0 && (
-          <div className="grid grid-cols-3 gap-2 mb-4">
+          <div className="grid grid-cols-3 gap-3 mb-6">
             {preview.map((src, i) => (
               <img
                 key={i}
                 src={src}
                 alt="Preview"
-                className="h-20 rounded object-cover"
+                className="h-24 rounded-xl object-cover border border-white/10"
               />
             ))}
           </div>
         )}
 
+        {/* SUBMIT */}
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-[#ff6b00] text-black py-3 rounded font-semibold"
+          className="w-full py-3 rounded-lg font-semibold
+                     bg-brand-red text-white
+                     hover:bg-brand-redDark
+                     transition disabled:opacity-60"
         >
           {loading ? "Uploading..." : "Save Product"}
         </button>

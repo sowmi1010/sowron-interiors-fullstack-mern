@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { api } from "../../../lib/api";
 import toast from "react-hot-toast";
-import { UploadCloud } from "lucide-react";
+import { UploadCloud, Briefcase } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet";
 
@@ -25,7 +25,6 @@ export default function PortfolioAdd() {
   const handleFiles = (e) => {
     const selected = Array.from(e.target.files);
 
-    // 🔒 VALIDATION
     for (const file of selected) {
       if (!file.type.startsWith("image/")) {
         return toast.error("Only image files are allowed");
@@ -67,15 +66,13 @@ export default function PortfolioAdd() {
       fd.append("location", form.location.trim());
       fd.append("description", form.description.trim());
       if (form.video) fd.append("video", form.video);
-
       files.forEach((file) => fd.append("images", file));
 
       await api.post("/portfolio/add", fd);
 
-      toast.success("Portfolio added successfully ✔");
+      toast.success("Portfolio added successfully");
       navigate("/admin/portfolio");
     } catch (err) {
-      console.error("PORTFOLIO ADD ERROR:", err);
       toast.error(err.response?.data?.message || "Upload failed");
     } finally {
       setLoading(false);
@@ -83,65 +80,86 @@ export default function PortfolioAdd() {
   };
 
   return (
-    <div className="p-6 text-white">
+    <div className="max-w-5xl mx-auto text-white p-6">
       <Helmet>
         <title>Add Portfolio</title>
       </Helmet>
 
-      <h2 className="text-3xl font-bold text-[#ff6b00] text-center mb-8">
-        Add Completed Project
-      </h2>
+      {/* HEADER */}
+      <div className="mb-8 text-center">
+        <h2 className="text-3xl font-semibold text-brand-red flex items-center justify-center gap-2">
+          <Briefcase /> Add Portfolio Project
+        </h2>
+        <p className="text-sm text-gray-400 mt-1">
+          Showcase completed interior projects
+        </p>
+      </div>
 
+      {/* FORM */}
       <form
         onSubmit={submitHandler}
-        className="bg-[#121212] border border-[#272727] rounded-xl
-                   max-w-4xl mx-auto p-8 grid grid-cols-1 lg:grid-cols-2 gap-8"
+        className="bg-black/60 backdrop-blur-xl
+                   border border-white/10
+                   rounded-2xl p-8 shadow-glass
+                   grid grid-cols-1 lg:grid-cols-2 gap-8"
       >
-        {/* LEFT */}
+        {/* LEFT COLUMN */}
         <div className="space-y-4">
           <input
             placeholder="Project Title"
-            className="bg-[#0d0d0d] border border-[#333] p-3 rounded-lg w-full"
             value={form.title}
             onChange={(e) =>
               setForm({ ...form, title: e.target.value })
             }
+            className="w-full px-4 py-3 rounded-lg
+                       bg-white/5 border border-white/10
+                       outline-none focus:border-brand-yellow transition"
           />
 
           <input
             placeholder="Location (optional)"
-            className="bg-[#0d0d0d] border border-[#333] p-3 rounded-lg w-full"
             value={form.location}
             onChange={(e) =>
               setForm({ ...form, location: e.target.value })
             }
+            className="w-full px-4 py-3 rounded-lg
+                       bg-white/5 border border-white/10
+                       outline-none focus:border-brand-yellow transition"
           />
 
           <textarea
             rows="4"
             placeholder="Short description"
-            className="bg-[#0d0d0d] border border-[#333] p-3 rounded-lg w-full resize-none"
             value={form.description}
             onChange={(e) =>
               setForm({ ...form, description: e.target.value })
             }
+            className="w-full px-4 py-3 rounded-lg resize-none
+                       bg-white/5 border border-white/10
+                       outline-none focus:border-brand-yellow transition"
           />
 
           <input
             placeholder="Video URL (optional)"
-            className="bg-[#0d0d0d] border border-[#333] p-3 rounded-lg w-full"
             value={form.video}
             onChange={(e) =>
               setForm({ ...form, video: e.target.value })
             }
+            className="w-full px-4 py-3 rounded-lg
+                       bg-white/5 border border-white/10
+                       outline-none focus:border-brand-yellow transition"
           />
         </div>
 
-        {/* RIGHT */}
-        <div className="bg-[#0f0f0f] border border-[#333] rounded-xl p-6">
-          <label className="flex flex-col items-center gap-3 cursor-pointer">
-            <UploadCloud size={40} className="text-[#ff6b00]" />
-            <span className="text-gray-300">Upload Images</span>
+        {/* RIGHT COLUMN */}
+        <div className="bg-white/5 border border-white/10
+                        rounded-xl p-6 flex flex-col justify-center">
+          <label className="flex flex-col items-center gap-3
+                            cursor-pointer hover:text-brand-yellow transition">
+            <UploadCloud size={42} className="text-brand-red" />
+            <span className="text-sm text-gray-300">
+              Click to upload images
+            </span>
 
             <input
               type="file"
@@ -153,24 +171,29 @@ export default function PortfolioAdd() {
           </label>
 
           {preview.length > 0 && (
-            <div className="grid grid-cols-3 gap-2 mt-4">
+            <div className="grid grid-cols-3 gap-3 mt-5">
               {preview.map((src, i) => (
                 <img
                   key={i}
                   src={src}
-                  className="h-20 w-full object-cover rounded border"
                   alt="preview"
+                  className="h-24 rounded-xl object-cover
+                             border border-white/10"
                 />
               ))}
             </div>
           )}
         </div>
 
+        {/* SUBMIT */}
         <button
           disabled={loading}
           type="submit"
-          className="bg-[#ff6b00] text-black py-3 rounded-lg font-semibold
-                     col-span-2 hover:bg-[#ff7b13] disabled:opacity-50"
+          className="col-span-1 lg:col-span-2
+                     py-3 rounded-lg font-semibold
+                     bg-brand-red text-white
+                     hover:bg-brand-redDark transition
+                     disabled:opacity-50"
         >
           {loading ? "Uploading..." : "Upload Portfolio"}
         </button>

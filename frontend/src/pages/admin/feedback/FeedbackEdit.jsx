@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../../../lib/api";
 import { useParams, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { X } from "lucide-react";
+import { X, Star } from "lucide-react";
 
 export default function FeedbackEdit() {
   const { id } = useParams();
@@ -21,7 +21,7 @@ export default function FeedbackEdit() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  /* 🔄 LOAD FEEDBACK */
+  /* ================= LOAD ================= */
   useEffect(() => {
     api
       .get(`/feedback/${id}`)
@@ -46,7 +46,7 @@ export default function FeedbackEdit() {
     };
   }, [id]);
 
-  /* 📸 NEW PHOTO */
+  /* ================= PHOTO PICK ================= */
   const handlePhoto = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -57,7 +57,7 @@ export default function FeedbackEdit() {
     setPreview(URL.createObjectURL(file));
   };
 
-  /* 💾 UPDATE */
+  /* ================= UPDATE ================= */
   const submit = async (e) => {
     e.preventDefault();
 
@@ -89,72 +89,105 @@ export default function FeedbackEdit() {
 
   if (loading) {
     return (
-      <p className="text-center text-gray-400 mt-10">
-        Loading…
+      <p className="text-center text-gray-400 mt-16">
+        Loading feedback…
       </p>
     );
   }
 
   return (
-    <div className="p-6 text-white max-w-xl mx-auto">
-      <h2 className="text-2xl font-bold text-[#ff6b00] mb-6">
-        Edit Feedback
-      </h2>
+    <div className="p-6 text-white max-w-[1100px] mx-auto">
 
-      <form onSubmit={submit} className="space-y-4">
+      {/* HEADER */}
+      <div className="mb-8 text-center">
+        <h2 className="text-3xl font-semibold text-brand-red">
+          Edit Feedback
+        </h2>
+        <p className="text-sm text-gray-400 mt-1">
+          Update customer testimonial details
+        </p>
+      </div>
 
+      {/* FORM CARD */}
+      <form
+        onSubmit={submit}
+        className="bg-black/60 backdrop-blur-xl
+                   border border-white/10
+                   rounded-2xl p-8
+                   max-w-xl mx-auto
+                   shadow-glass space-y-5"
+      >
+        {/* NAME */}
         <input
           value={form.name}
           onChange={(e) =>
             setForm({ ...form, name: e.target.value })
           }
-          placeholder="Name"
-          className="bg-[#141414] border p-3 w-full rounded"
+          placeholder="Customer Name"
+          className="bg-white/5 border border-white/10
+                     px-4 py-3 rounded-lg w-full
+                     outline-none focus:border-brand-yellow transition"
         />
 
+        {/* CITY */}
         <input
           value={form.city}
           onChange={(e) =>
             setForm({ ...form, city: e.target.value })
           }
           placeholder="City"
-          className="bg-[#141414] border p-3 w-full rounded"
+          className="bg-white/5 border border-white/10
+                     px-4 py-3 rounded-lg w-full
+                     outline-none focus:border-brand-yellow transition"
         />
 
-        <select
-          value={form.rating}
-          onChange={(e) =>
-            setForm({ ...form, rating: e.target.value })
-          }
-          className="bg-[#141414] border p-3 w-full rounded"
-        >
-          <option value="">Rating</option>
-          <option value="5">⭐ 5 – Excellent</option>
-          <option value="4">⭐ 4 – Good</option>
-          <option value="3">⭐ 3 – Average</option>
-          <option value="2">⭐ 2 – Poor</option>
-          <option value="1">⭐ 1 – Very Poor</option>
-        </select>
+        {/* RATING */}
+        <div>
+          <label className="text-sm text-gray-400 mb-1 block">
+            Rating
+          </label>
+          <select
+            value={form.rating}
+            onChange={(e) =>
+              setForm({ ...form, rating: e.target.value })
+            }
+            className="bg-white/5 border border-white/10
+                       px-4 py-3 rounded-lg w-full
+                       outline-none focus:border-brand-yellow transition"
+          >
+            <option value="">Select Rating</option>
+            <option value="5">⭐⭐⭐⭐⭐ – Excellent</option>
+            <option value="4">⭐⭐⭐⭐ – Good</option>
+            <option value="3">⭐⭐⭐ – Average</option>
+            <option value="2">⭐⭐ – Poor</option>
+            <option value="1">⭐ – Very Poor</option>
+          </select>
+        </div>
 
+        {/* MESSAGE */}
         <textarea
           value={form.message}
           onChange={(e) =>
             setForm({ ...form, message: e.target.value })
           }
-          placeholder="Message"
-          className="bg-[#141414] border p-3 w-full rounded min-h-[90px]"
+          placeholder="Customer message"
+          className="bg-white/5 border border-white/10
+                     px-4 py-3 rounded-lg w-full min-h-[100px]
+                     outline-none resize-none
+                     focus:border-brand-yellow transition"
         />
 
-        {/* OLD PHOTO */}
+        {/* CURRENT PHOTO */}
         {oldPhoto && !preview && (
           <div>
-            <p className="text-sm text-gray-400 mb-1">
+            <p className="text-sm text-gray-400 mb-2">
               Current Photo
             </p>
             <img
               src={oldPhoto}
-              className="h-20 rounded border"
               alt="Current"
+              className="h-24 w-24 object-cover rounded-xl
+                         border border-white/10"
             />
           </div>
         )}
@@ -165,7 +198,8 @@ export default function FeedbackEdit() {
             <img
               src={preview}
               alt="Preview"
-              className="rounded object-cover w-full h-full border"
+              className="rounded-xl object-cover w-full h-full
+                         border border-white/10"
             />
             <button
               type="button"
@@ -174,27 +208,37 @@ export default function FeedbackEdit() {
                 setPreview(null);
                 setPhoto(null);
               }}
-              className="absolute -top-2 -right-2 bg-black/70 p-1 rounded-full"
+              className="absolute -top-2 -right-2
+                         bg-black/80 p-1 rounded-full
+                         hover:bg-brand-red transition"
             >
               <X size={14} />
             </button>
           </div>
         )}
 
+        {/* PHOTO INPUT */}
         <input
           type="file"
           accept="image/*"
           onChange={handlePhoto}
-          className="bg-[#141414] border p-2 w-full rounded"
+          className="block w-full text-sm text-gray-400
+                     file:bg-brand-red file:text-white
+                     file:border-0 file:px-4 file:py-2
+                     file:rounded-lg cursor-pointer"
         />
 
+        {/* SUBMIT */}
         <button
           disabled={saving}
-          className="bg-[#ff6b00] text-black py-3
-                     w-full rounded font-semibold
+          className="w-full flex items-center justify-center gap-2
+                     bg-brand-red text-white
+                     font-semibold py-3 rounded-lg
+                     hover:bg-brand-redDark transition
                      disabled:opacity-60"
         >
-          {saving ? "Updating..." : "Update Feedback"}
+          <Star size={16} />
+          {saving ? "Updating Feedback..." : "Update Feedback"}
         </button>
       </form>
     </div>

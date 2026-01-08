@@ -12,41 +12,49 @@ import {
 import { useSearch } from "../../../context/SearchContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import Pagination from "../../../components/ui/Pagination";
 
 export default function GalleryList() {
+  const navigate = useNavigate();
+  const { query } = useSearch();
+
   const [items, setItems] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const limit = 9;
+
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [viewImages, setViewImages] = useState([]);
 
-  const { query } = useSearch();
-  const navigate = useNavigate();
-
   /* ================= LOAD GALLERY ================= */
+  const loadGallery = async () => {
+    try {
+      setLoading(true);
+
+      const res = await api.get(
+        `/gallery/admin?page=${page}&limit=${limit}&q=${query}`
+      );
+
+      setItems(res.data.items || []);
+      setTotal(res.data.total || 0);
+    } catch {
+      toast.error("Failed to load gallery");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* 🔄 LOAD ON PAGE / SEARCH */
   useEffect(() => {
-    let mounted = true;
-
-    const loadGallery = async () => {
-      try {
-const res = await api.get("/gallery/admin");
-        if (mounted) {
-          setItems(res.data?.items || []);
-        }
-      } catch {
-        toast.error("Failed to load gallery");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-    
-
     loadGallery();
+  }, [page, query]);
 
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  /* 🔄 RESET PAGE WHEN SEARCH CHANGES */
+  useEffect(() => {
+    setPage(1);
+  }, [query]);
 
   /* ================= DELETE ================= */
   const deleteItem = async () => {
@@ -56,9 +64,9 @@ const res = await api.get("/gallery/admin");
       setDeleting(true);
       await api.delete(`/gallery/${deleteId}`);
 
-      toast.success("Gallery item deleted ✔");
-      setItems((prev) => prev.filter((i) => i._id !== deleteId));
+      toast.success("Gallery item deleted");
       setDeleteId(null);
+      loadGallery();
     } catch {
       toast.error("Delete failed");
     } finally {
@@ -66,54 +74,56 @@ const res = await api.get("/gallery/admin");
     }
   };
 
-  /* ================= SEARCH (SAFE) ================= */
-  const filtered = items.filter((i) => {
-    const q = query.toLowerCase();
-    return (
-      i.title?.toLowerCase().includes(q) ||
-      i.category?.toLowerCase().includes(q)
-    );
-  });
-
   if (loading) {
     return (
       <p className="text-gray-400 p-6 text-center">
-        Loading gallery...
+        Loading gallery…
       </p>
     );
   }
 
   return (
-    <div className="p-6 text-white">
+    <div className="p-6 text-white max-w-7xl mx-auto">
+
       {/* HEADER */}
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-[#ff6b00]">
-          Gallery
-        </h2>
+        <div>
+          <h2 className="text-2xl font-bold text-brand-red">
+            Gallery
+          </h2>
+          <p className="text-sm text-gray-400">
+            Manage gallery images
+          </p>
+        </div>
+
         <button
-          className="bg-[#ff6b00] text-black px-4 py-2 rounded font-semibold"
+          className="bg-brand-red text-white px-4 py-2 rounded-lg font-semibold
+                     hover:bg-brand-redDark transition"
           onClick={() => navigate("/admin/gallery/add")}
         >
-          + Add
+          + Add Gallery
         </button>
       </div>
 
       {/* GRID */}
-      {filtered.length === 0 ? (
-        <p className="text-gray-500 text-center mt-10">
+      {items.length === 0 ? (
+        <p className="text-gray-500 text-center mt-16">
           No gallery items found
         </p>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
-          {filtered.map((item) => (
+          {items.map((item) => (
             <motion.div
               key={item._id}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-[#141414] rounded-xl border border-[#222] overflow-hidden"
+              className="bg-black/60 backdrop-blur-xl
+                         rounded-xl border border-white/10
+                         overflow-hidden hover:border-brand-red/40
+                         transition"
             >
               {/* IMAGE */}
-              <div className="h-40 overflow-hidden flex justify-center items-center bg-black">
+              <div className="h-40 bg-black flex items-center justify-center">
                 {item.images?.length ? (
                   <img
                     src={item.images[0].url}
@@ -126,13 +136,15 @@ const res = await api.get("/gallery/admin");
               </div>
 
               {/* CONTENT */}
-              <div className="p-3">
+              <div className="p-4">
                 <h4 className="font-semibold truncate">
                   {item.title}
                 </h4>
 
                 {item.category && (
-                  <span className="text-xs bg-[#222] px-2 py-1 rounded mt-1 inline-flex items-center gap-1">
+                  <span className="mt-1 inline-flex items-center gap-1
+                                   text-xs bg-white/5 border border-white/10
+                                   px-2 py-1 rounded">
                     <Folder size={12} />
                     {item.category.replace(/-/g, " ")}
                   </span>
@@ -169,6 +181,14 @@ const res = await api.get("/gallery/admin");
         </div>
       )}
 
+      {/* PAGINATION */}
+      <Pagination
+        page={page}
+        total={total}
+        limit={limit}
+        onChange={setPage}
+      />
+
       {/* IMAGE VIEWER */}
       <AnimatePresence>
         {viewImages.length > 0 && (
@@ -179,14 +199,14 @@ const res = await api.get("/gallery/admin");
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <div className="bg-[#1b1b1b] p-6 rounded-lg
+            <div className="bg-[#1b1b1b] p-6 rounded-xl
                             grid grid-cols-2 md:grid-cols-3 gap-3
                             max-h-[80vh] overflow-y-auto">
               {viewImages.map((img, idx) => (
                 <img
                   key={img.public_id || idx}
                   src={img.url}
-                  className="rounded"
+                  className="rounded-xl object-cover"
                   alt=""
                 />
               ))}
@@ -212,7 +232,7 @@ const res = await api.get("/gallery/admin");
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <div className="bg-[#1b1b1b] p-6 rounded-lg w-72 text-center">
+            <div className="bg-[#1b1b1b] p-6 rounded-xl w-72 text-center">
               <p className="mb-4 text-white">
                 Delete this gallery item?
               </p>

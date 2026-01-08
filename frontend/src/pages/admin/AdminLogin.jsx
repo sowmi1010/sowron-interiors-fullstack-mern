@@ -22,7 +22,6 @@ export default function AdminLogin() {
 
       const res = await api.post("/admin/login", { email, password });
 
-      // ✅ STORE RAW JWT TOKEN (NO btoa)
       localStorage.setItem("adminToken", res.data.token);
       localStorage.setItem("adminName", res.data.admin.name || "Admin");
 
@@ -35,53 +34,78 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0F0F0F] text-white">
+    <div className="min-h-screen flex items-center justify-center bg-brand-darkBg text-white">
       <Helmet>
         <title>Admin Login</title>
       </Helmet>
 
+      {/* GLASS CARD */}
       <form
         onSubmit={login}
-        className="bg-[#141414] p-8 rounded-xl w-full max-w-md border border-[#222]"
+        className="w-full max-w-md p-8 rounded-2xl
+                   bg-black/60 backdrop-blur-xl
+                   border border-white/10 shadow-glass"
       >
-        <h2 className="text-2xl font-bold text-[#ff6b00] mb-4 text-center">
+        {/* TITLE */}
+        <h2 className="text-2xl font-semibold text-brand-red text-center mb-6">
           Admin Login
         </h2>
 
-        {error && <p className="text-red-400 mb-3">{error}</p>}
+        {/* ERROR */}
+        {error && (
+          <p className="mb-4 text-sm text-red-400 bg-red-400/10 px-3 py-2 rounded">
+            {error}
+          </p>
+        )}
 
+        {/* FIELDS */}
         <div className="space-y-4">
-          <div className="flex gap-2 bg-[#1b1b1b] p-2 rounded">
-            <Mail size={18} />
+          {/* EMAIL */}
+          <div className="flex items-center gap-3 px-4 py-3 rounded-lg
+                          bg-white/5 border border-white/10
+                          focus-within:border-brand-yellow transition">
+            <Mail size={18} className="text-gray-400" />
             <input
               type="email"
-              className="bg-transparent w-full outline-none"
-              placeholder="Email"
+              className="bg-transparent w-full outline-none text-sm"
+              placeholder="Email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
 
-          <div className="flex gap-2 bg-[#1b1b1b] p-2 rounded">
-            <LockKeyhole size={18} />
+          {/* PASSWORD */}
+          <div className="flex items-center gap-3 px-4 py-3 rounded-lg
+                          bg-white/5 border border-white/10
+                          focus-within:border-brand-yellow transition">
+            <LockKeyhole size={18} className="text-gray-400" />
             <input
               type="password"
-              className="bg-transparent w-full outline-none"
+              className="bg-transparent w-full outline-none text-sm"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
 
+          {/* BUTTON */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#ff6b00] text-black py-2 rounded font-semibold"
+            className="w-full py-3 rounded-lg font-semibold
+                       bg-brand-red text-white
+                       hover:bg-brand-redDark
+                       transition disabled:opacity-60"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
-          <p className="mt-4 text-center text-sm text-gray-400">
-            <a href="/admin/forgot" className="text-orange-400 hover:underline">
+
+          {/* FORGOT */}
+          <p className="text-center text-sm text-gray-400 mt-4">
+            <a
+              href="/admin/forgot"
+              className="text-brand-yellow hover:underline"
+            >
               Forgot password?
             </a>
           </p>
