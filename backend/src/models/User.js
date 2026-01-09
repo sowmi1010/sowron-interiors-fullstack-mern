@@ -7,6 +7,14 @@ const userSchema = new mongoose.Schema(
     name: String,
     city: String,
 
+    email: {
+      type: String,
+      unique: true,
+      sparse: true,
+      lowercase: true,
+      trim: true,
+    },
+
     phone: {
       type: String,
       unique: true,
@@ -14,11 +22,10 @@ const userSchema = new mongoose.Schema(
       index: true,
     },
 
+    password: String,
 
-    password: String, // admin only
     resetPasswordToken: String,
     resetPasswordExpires: Date,
-
 
     otpHash: String,
     otpExpires: Date,
@@ -35,18 +42,18 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-/* PASSWORD HASH */
+// Hash password
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
   this.password = await bcrypt.hash(this.password, 10);
 });
 
-/* ADMIN PASSWORD CHECK */
+// Compare password
 userSchema.methods.comparePassword = function (password) {
   return bcrypt.compare(password, this.password);
 };
 
-/* 🔐 GENERATE RESET TOKEN */
+// Create reset token
 userSchema.methods.createPasswordResetToken = function () {
   const rawToken = crypto.randomBytes(32).toString("hex");
 
@@ -55,8 +62,7 @@ userSchema.methods.createPasswordResetToken = function () {
     .update(rawToken)
     .digest("hex");
 
-  this.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 mins
-
+  this.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
   return rawToken;
 };
 

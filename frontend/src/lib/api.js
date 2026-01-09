@@ -4,7 +4,7 @@ export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
 });
 
-// attach admin OR user token automatically
+// Attach token automatically
 api.interceptors.request.use((config) => {
   const adminToken = localStorage.getItem("adminToken");
   const userToken = localStorage.getItem("userToken");
@@ -17,3 +17,16 @@ api.interceptors.request.use((config) => {
 
   return config;
 });
+
+// Auto logout on token expiry
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      localStorage.removeItem("adminToken");
+      localStorage.removeItem("adminName");
+      window.location.replace("/admin/login");
+    }
+    return Promise.reject(err);
+  }
+);

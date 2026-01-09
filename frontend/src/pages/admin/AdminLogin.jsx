@@ -36,34 +36,24 @@ export default function AdminLogin() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-brand-darkBg text-white">
       <Helmet>
-        <title>Admin Login</title>
+        <title>Admin Login | Sowro Interiors</title>
       </Helmet>
 
-      {/* GLASS CARD */}
-      <form
-        onSubmit={login}
-        className="w-full max-w-md p-8 rounded-2xl
-                   bg-black/60 backdrop-blur-xl
-                   border border-white/10 shadow-glass"
-      >
-        {/* TITLE */}
+      <form onSubmit={login} className="w-full max-w-md p-8 rounded-2xl bg-black/60 backdrop-blur-xl border border-white/10 shadow-glass">
+
         <h2 className="text-2xl font-semibold text-brand-red text-center mb-6">
           Admin Login
         </h2>
 
-        {/* ERROR */}
         {error && (
           <p className="mb-4 text-sm text-red-400 bg-red-400/10 px-3 py-2 rounded">
             {error}
           </p>
         )}
 
-        {/* FIELDS */}
         <div className="space-y-4">
-          {/* EMAIL */}
-          <div className="flex items-center gap-3 px-4 py-3 rounded-lg
-                          bg-white/5 border border-white/10
-                          focus-within:border-brand-yellow transition">
+
+          <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/5 border border-white/10">
             <Mail size={18} className="text-gray-400" />
             <input
               type="email"
@@ -74,10 +64,7 @@ export default function AdminLogin() {
             />
           </div>
 
-          {/* PASSWORD */}
-          <div className="flex items-center gap-3 px-4 py-3 rounded-lg
-                          bg-white/5 border border-white/10
-                          focus-within:border-brand-yellow transition">
+          <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/5 border border-white/10">
             <LockKeyhole size={18} className="text-gray-400" />
             <input
               type="password"
@@ -88,27 +75,20 @@ export default function AdminLogin() {
             />
           </div>
 
-          {/* BUTTON */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-lg font-semibold
-                       bg-brand-red text-white
-                       hover:bg-brand-redDark
-                       transition disabled:opacity-60"
+            className="w-full py-3 rounded-lg font-semibold bg-brand-red text-white hover:bg-brand-redDark transition disabled:opacity-60"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
 
-          {/* FORGOT */}
           <p className="text-center text-sm text-gray-400 mt-4">
-            <a
-              href="/admin/forgot"
-              className="text-brand-yellow hover:underline"
-            >
+            <a href="/admin/forgot" className="text-brand-yellow hover:underline">
               Forgot password?
             </a>
           </p>
+
         </div>
       </form>
     </div>
