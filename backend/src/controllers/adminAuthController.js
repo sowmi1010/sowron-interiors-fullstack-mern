@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import sendEmail from "../utils/sendEmail.js";
 
+/* ---------------- ADMIN LOGIN ---------------- */
 export const adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -39,48 +40,62 @@ export const adminLogin = async (req, res) => {
   }
 };
 
+/* ---------------- FORGOT PASSWORD ---------------- */
 export const adminForgotPassword = async (req, res) => {
-  const { email } = req.body;
+  try {
+    const { email } = req.body;
 
-  const admin = await User.findOne({ email, role: "admin" });
-  if (!admin) return res.status(404).json({ message: "Admin not found" });
+    const admin = await User.findOne({ email, role: "admin" });
+    if (!admin) return res.status(404).json({ message: "Admin not found" });
 
-  const resetToken = admin.createPasswordResetToken();
-  await admin.save({ validateBeforeSave: false });
+    const resetToken = admin.createPasswordResetToken();
+    await admin.save({ validateBeforeSave: false });
 
-  const resetUrl = `${process.env.ADMIN_URL}/reset-password/${resetToken}`;
+    const resetUrl = `${process.env.ADMIN_URL}/reset/${resetToken}`;
 
-  await sendEmail({
-    to: admin.email,
-    subject: "Admin Password Reset",
-    html: `
-      <p>You requested a password reset</p>
-      <p>Valid for 15 minutes</p>
-      <a href="${resetUrl}">${resetUrl}</a>
-    `,
-  });
+    await sendEmail({
+      to: admin.email,
+      subject: "Admin Password Reset - Sowro Interiors",
+      html: `
+        <h3>Password Reset Request</h3>
+        <p>This link is valid for 15 minutes.</p>
+        <a href="${resetUrl}">${resetUrl}</a>
+      `,
+    });
 
-  res.json({ success: true, message: "Reset link sent" });
+    res.json({ success: true, message: "Reset link sent to email" });
+  } catch (error) {
+    res.status(500).json({ message: "Email service error" });
+  }
 };
 
+/* ---------------- RESET PASSWORD ---------------- */
 export const adminResetPassword = async (req, res) => {
-  const { token, password } = req.body;
+  try {
+    const { token, password } = req.body;
 
-  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+    if (!password || password.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    }
 
-  const admin = await User.findOne({
-    resetPasswordToken: hashedToken,
-    resetPasswordExpires: { $gt: Date.now() },
-    role: "admin",
-  });
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-  if (!admin) return res.status(400).json({ message: "Invalid token" });
+    const admin = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: Date.now() },
+      role: "admin",
+    });
 
-  admin.password = password;
-  admin.resetPasswordToken = null;
-  admin.resetPasswordExpires = null;
+    if (!admin) return res.status(400).json({ message: "Token invalid or expired" });
 
-  await admin.save();
+    admin.password = password;
+    admin.resetPasswordToken = null;
+    admin.resetPasswordExpires = null;
 
-  res.json({ success: true, message: "Password reset successful" });
+    await admin.save();
+
+    res.json({ success: true, message: "Password reset successful" });
+  } catch (error) {
+    res.status(500).json({ message: "Password reset failed" });
+  }
 };
