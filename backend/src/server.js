@@ -1,9 +1,10 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { connectDB } from "./config/db.js";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -11,16 +12,20 @@ import { Server } from "socket.io";
 import http from "http";
 import multer from "multer";
 
-
-
+/* ===========================
+   APP SETUP
+=========================== */
 const app = express();
+const server = http.createServer(app);
 
 /* ===========================
-   HTTP + SOCKET
+   SOCKET SETUP
 =========================== */
-const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: "*" },
+  cors: {
+    origin: ["https://www.sowroninteriors.com", "http://localhost:5173"],
+    methods: ["GET", "POST"],
+  },
 });
 
 global._io = io;
@@ -36,23 +41,35 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /* ===========================
-   MIDDLEWARE (ORDER IS CRITICAL)
+   SECURITY MIDDLEWARE
 =========================== */
-app.use(cors());
+app.use(helmet());
+
+app.use(cors({
+  origin: ["https://www.sowroninteriors.com", "http://localhost:5173"],
+  credentials: true,
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ⚠️ KEEP uploads ONLY if you still want local images (optional)
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
-
 /* ===========================
-   ENV CHECK
+   RATE LIMITING
 =========================== */
-console.log("ENV CHECK:", {
-  mongo: !!process.env.MONGO_URI,
-  cloud: process.env.CLOUDINARY_CLOUD_NAME,
-  key: process.env.CLOUDINARY_API_KEY,
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
 });
+
+const otpLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 5,
+  message: "Too many OTP requests. Please try again later.",
+});
+
+app.use(apiLimiter);
 
 /* ===========================
    CONNECT DATABASE
@@ -91,7 +108,7 @@ app.use("/api/gallery", galleryRoutes);
 app.use("/api/portfolio", portfolioRoutes);
 app.use("/api/enquiry", enquiryRoutes);
 app.use("/api/booking", bookingRoutes);
-app.use("/api/otp", otpRoutes);
+app.use("/api/otp", otpLimiter, otpRoutes);
 app.use("/api/estimate", estimateRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/admin", dashboardRoutes);
@@ -99,19 +116,15 @@ app.use("/api/user", userRoutes);
 app.use("/api/categories", categoryRoutes);
 
 /* ===========================
-   🔥 GLOBAL ERROR HANDLER (VERY IMPORTANT)
+   GLOBAL ERROR HANDLER
 =========================== */
 app.use((err, req, res, next) => {
   console.error("🔥 GLOBAL ERROR:", err);
 
-  // Multer errors
   if (err instanceof multer.MulterError) {
-    return res.status(400).json({
-      message: err.message,
-    });
+    return res.status(400).json({ message: err.message });
   }
 
-  // Cloudinary / other errors
   res.status(500).json({
     message: err.message || "Internal Server Error",
   });
@@ -122,5 +135,5 @@ app.use((err, req, res, next) => {
 =========================== */
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`🚀 Server running with WebSockets on ${PORT}`);
+  console.log(`🚀 Secure Server running on ${PORT}`);
 });

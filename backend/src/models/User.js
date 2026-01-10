@@ -4,8 +4,15 @@ import crypto from "crypto";
 
 const userSchema = new mongoose.Schema(
   {
-    name: String,
-    city: String,
+    name: {
+      type: String,
+      trim: true,
+    },
+
+    city: {
+      type: String,
+      trim: true,
+    },
 
     email: {
       type: String,
@@ -20,9 +27,16 @@ const userSchema = new mongoose.Schema(
       unique: true,
       sparse: true,
       index: true,
+      validate: {
+        validator: (v) => /^\d{10}$/.test(v),
+        message: "Invalid phone number",
+      },
     },
 
-    password: String,
+    password: {
+      type: String,
+      select: false, // never return password by default
+    },
 
     resetPasswordToken: String,
     resetPasswordExpires: Date,
@@ -37,23 +51,32 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ["user", "admin"],
       default: "user",
+      index: true,
     },
   },
   { timestamps: true }
 );
 
-// Hash password
-userSchema.pre("save", async function () {
-  if (!this.isModified("password")) return;
-  this.password = await bcrypt.hash(this.password, 10);
+/* ===========================
+   PASSWORD HASHING
+=========================== */
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+
+  this.password = await bcrypt.hash(this.password, 12);
+  next();
 });
 
-// Compare password
+/* ===========================
+   PASSWORD COMPARE
+=========================== */
 userSchema.methods.comparePassword = function (password) {
   return bcrypt.compare(password, this.password);
 };
 
-// Create reset token
+/* ===========================
+   RESET TOKEN GENERATOR
+=========================== */
 userSchema.methods.createPasswordResetToken = function () {
   const rawToken = crypto.randomBytes(32).toString("hex");
 
@@ -63,6 +86,7 @@ userSchema.methods.createPasswordResetToken = function () {
     .digest("hex");
 
   this.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
+
   return rawToken;
 };
 
