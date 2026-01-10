@@ -11,7 +11,10 @@ export default function PublicLayout() {
       <Navbar />
 
       {/* Page Content */}
-      <main className="">
+      <main role="main" className="">
+        {/* SEO Main Heading for Google */}
+        <h1 className="sr-only">Sowron Interiors – Best Interior Designers in India</h1>
+
         <Suspense
           fallback={
             <div className="text-center text-gray-400 p-10">Loading...</div>

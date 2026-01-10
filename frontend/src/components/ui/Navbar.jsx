@@ -27,42 +27,56 @@ export default function Navbar() {
   ];
 
   return (
-    <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-7xl glass rounded-2xl px-6 py-3">
+    <nav
+      role="navigation"
+      aria-label="Main Navigation"
+      className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-7xl glass rounded-2xl px-6 py-3"
+    >
       <div className="flex items-center justify-between">
         {/* LOGO */}
-        <h1
+        <div
           onClick={() => navigate("/")}
           className="cursor-pointer text-2xl font-extrabold tracking-wide
           bg-gradient-to-r from-brand-red to-brand-yellow
           bg-clip-text text-transparent animate-fadeUp"
         >
           Sowron<span className="opacity-80">Interiors</span>
-        </h1>
+        </div>
 
         {/* DESKTOP MENU */}
         <ul className="hidden md:flex gap-8 text-sm font-medium">
           {links.map((l) => (
-            <NavLink
-              key={l.path}
-              to={l.path}
-              className={({ isActive }) =>
-                `relative transition text-black dark:text-white ${
-                  isActive ? "text-brand-red dark:text-brand-red" : "hover:text-brand-yellow"
-                }`
-              }
-            >
-              {l.label}
-              <span className=" absolute -bottom-1 left-0 w-0 h-[2px] bg-brand-yellow transition-all group-hover:w-full" />
-            </NavLink>
+            <li key={l.path}>
+              <NavLink
+                to={l.path}
+                className={({ isActive }) =>
+                  `relative transition text-black dark:text-white ${
+                    isActive
+                      ? "text-brand-red dark:text-brand-red"
+                      : "hover:text-brand-yellow"
+                  }`
+                }
+              >
+                {l.label}
+              </NavLink>
+            </li>
           ))}
-           {token && (
-            <NavLink to="/products"  className={({ isActive }) =>
-                `relative transition text-black dark:text-white ${
-                  isActive ? "text-brand-red dark:text-brand-red" : "hover:text-brand-yellow"
-                }`
-              }>
-              Products
-            </NavLink>
+
+          {token && (
+            <li>
+              <NavLink
+                to="/products"
+                className={({ isActive }) =>
+                  `relative transition text-black dark:text-white ${
+                    isActive
+                      ? "text-brand-red dark:text-brand-red"
+                      : "hover:text-brand-yellow"
+                  }`
+                }
+              >
+                Products
+              </NavLink>
+            </li>
           )}
         </ul>
 
@@ -83,14 +97,19 @@ export default function Navbar() {
             </NavLink>
           ) : (
             <div className="hidden md:flex items-center gap-3">
-              <span className="text-xs opacity-80 text-black dark:text-white">👋 {name || phone}</span>
-              <button onClick={logout} className="text-brand-yellow font-semibold">
+              <span className="text-xs opacity-80 text-black dark:text-white">
+                👋 {name || phone}
+              </span>
+              <button
+                onClick={logout}
+                className="text-brand-yellow font-semibold"
+              >
                 Logout
               </button>
             </div>
           )}
 
-          {/* MOBILE */}
+          {/* MOBILE BUTTON */}
           <button
             onClick={() => setOpen(!open)}
             className="md:hidden text-brand-red"
@@ -114,8 +133,22 @@ export default function Navbar() {
             </NavLink>
           ))}
 
+          {token && (
+            <NavLink
+              to="/products"
+              onClick={() => setOpen(false)}
+              className="hover:text-brand-yellow"
+            >
+              Products
+            </NavLink>
+          )}
+
           {!token ? (
-            <NavLink to="/login" onClick={() => setOpen(false)} className="cta-btn">
+            <NavLink
+              to="/login"
+              onClick={() => setOpen(false)}
+              className="cta-btn"
+            >
               Login
             </NavLink>
           ) : (

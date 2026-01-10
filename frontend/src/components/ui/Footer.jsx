@@ -1,9 +1,13 @@
-import { Phone, Mail, Facebook, Instagram } from "lucide-react";
+import { Phone, Mail, Facebook, Instagram, MapPin } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function Footer() {
   return (
-    <footer className="relative w-full overflow-hidden text-gray-900 dark:text-gray-200">
+    <footer
+      role="contentinfo"
+      aria-label="Website Footer"
+      className="relative w-full overflow-hidden text-gray-900 dark:text-gray-200"
+    >
       {/* ================= BACKGROUND GRADIENT ================= */}
       <motion.div
         className="
@@ -39,12 +43,14 @@ export default function Footer() {
         "
       >
         <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-12">
+
           {/* ================= BRAND ================= */}
           <div>
             <img
               src="/logo.png"
               className="w-44 mb-4 drop-shadow-xl"
-              alt="Sowron Infrastructure and Solutions Logo"
+              alt="Sowron Infrastructure and Solutions Pvt Ltd Logo"
+              loading="lazy"
             />
 
             <h2 className="text-lg font-bold tracking-wide">
@@ -52,14 +58,30 @@ export default function Footer() {
             </h2>
 
             <p className="text-sm opacity-80 mt-3 leading-6">
-              Delivering premium interior & infrastructure solutions across
-              Chennai — built with precision, trust, and long-lasting quality.
+              Premium turnkey interior & infrastructure solutions in Chennai.
+              Modular kitchens, home interiors, office interiors and factory-made
+              furniture with expert project execution.
             </p>
 
             {/* SOCIAL */}
             <div className="flex gap-4 items-center mt-6">
-              <Facebook className="text-red-600 hover:text-yellow-400 cursor-pointer transition-transform hover:scale-110" />
-              <Instagram className="text-red-600 hover:text-yellow-400 cursor-pointer transition-transform hover:scale-110" />
+              <a
+                href="https://www.facebook.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Sowron Facebook"
+              >
+                <Facebook className="text-red-600 hover:text-yellow-400 cursor-pointer transition-transform hover:scale-110" />
+              </a>
+
+              <a
+                href="https://www.instagram.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Sowron Instagram"
+              >
+                <Instagram className="text-red-600 hover:text-yellow-400 cursor-pointer transition-transform hover:scale-110" />
+              </a>
             </div>
           </div>
 
@@ -70,8 +92,8 @@ export default function Footer() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <h3 className="font-semibold text-red-600 mb-4 text-lg">
-              Corporate Address
+            <h3 className="font-semibold text-red-600 mb-4 text-lg flex items-center gap-2">
+              <MapPin size={18} /> Corporate Office
             </h3>
 
             <p className="text-sm opacity-80 leading-6">
@@ -89,8 +111,8 @@ export default function Footer() {
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.1 }}
           >
-            <h3 className="font-semibold text-red-600 mb-4 text-lg">
-              Factory Address
+            <h3 className="font-semibold text-red-600 mb-4 text-lg flex items-center gap-2">
+              <MapPin size={18} /> Factory Unit
             </h3>
 
             <p className="text-sm opacity-80 leading-6">
@@ -103,12 +125,19 @@ export default function Footer() {
             <div className="mt-5 space-y-3 text-sm">
               <p className="flex items-center gap-3 font-medium">
                 <Phone size={16} className="text-yellow-500" />
-                +91 90431 77470
+                <a href="tel:+919043177470" className="hover:underline">
+                  +91 90431 77470
+                </a>
               </p>
 
               <p className="flex items-center gap-3 opacity-90">
                 <Mail size={16} className="text-yellow-500" />
-                sowron.info@gmail.com
+                <a
+                  href="mailto:sowron.info@gmail.com"
+                  className="hover:underline"
+                >
+                  sowron.info@gmail.com
+                </a>
               </p>
             </div>
           </motion.div>

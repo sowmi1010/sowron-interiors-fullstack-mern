@@ -10,7 +10,7 @@ import {
   Image as ImgIcon,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { Helmet } from "react-helmet";
+import SEO from "../components/SEO";
 
 export default function ViewGallery() {
   const { id } = useParams();
@@ -76,13 +76,11 @@ export default function ViewGallery() {
   return (
     <>
       {/* ================= SEO ================= */}
-      <Helmet>
-        <title>{item.title} | Sowron Interiors Gallery</title>
-        <meta
-          name="description"
-          content={`Explore ${item.title} interior project by Sowron Interiors. Premium turnkey interior execution.`}
-        />
-      </Helmet>
+      <SEO
+        title={`${item.title} | Sowron Interiors Gallery`}
+        description={`Explore ${item.title} interior project by Sowron Interiors. Premium turnkey interior execution and modular furniture.`}
+        keywords="interior design project, modular kitchen, turnkey interiors, Sowron Interiors"
+      />
 
       <section
         className="
@@ -173,6 +171,7 @@ export default function ViewGallery() {
                   key={activeIndex}
                   src={images[activeIndex].url}
                   alt={item.title}
+                  loading="lazy"
                   initial={{ opacity: 0, scale: 1.02 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
@@ -204,7 +203,8 @@ export default function ViewGallery() {
             <motion.img
               key={img.public_id || idx}
               src={img.url}
-              alt={`Gallery ${idx + 1}`}
+              alt={`Interior project image ${idx + 1}`}
+              loading="lazy"
               whileHover={{ scale: 1.05 }}
               onClick={() => setActiveIndex(idx)}
               className={`

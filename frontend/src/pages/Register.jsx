@@ -8,6 +8,7 @@ import {
   Shield
 } from "lucide-react";
 import { api } from "../lib/api";
+import SEO from "../components/SEO";
 
 export default function Register() {
   const [form, setForm] = useState({ name: "", phone: "", city: "" });
@@ -17,6 +18,11 @@ export default function Register() {
   const [error, setError] = useState("");
   const [cooldown, setCooldown] = useState(0);
   const otpRef = useRef(null);
+
+  /* ================= SEO ================= */
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   /* ⏳ COOLDOWN */
   useEffect(() => {
@@ -82,133 +88,142 @@ export default function Register() {
   };
 
   return (
-    <div
-      className="
-        min-h-screen flex items-center justify-center px-6 py-16
-        bg-gray-50 dark:bg-[#0a0a0a]
-        text-gray-900 dark:text-gray-100
-        relative overflow-hidden
-      "
-    >
-      {/* SOFT BACKGROUND GLOWS */}
-      <div className="absolute -top-40 left-1/2 -translate-x-1/2
-                      w-[520px] h-[520px]
-                      bg-red-600/20 blur-[200px]" />
-      <div className="absolute bottom-0 right-0
-                      w-[420px] h-[420px]
-                      bg-yellow-400/20 blur-[180px]" />
+    <>
+      {/* ================= SEO ================= */}
+      <SEO
+        title="Register | Sowron Interiors – Create Account"
+        description="Create your Sowron Interiors account using mobile OTP. Register securely to book consultations and get interior estimates."
+        keywords="register Sowron Interiors, interior consultation login, OTP registration"
+      />
 
-      {/* CARD */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
+      <div
         className="
-          relative z-10 w-full max-w-md
-          rounded-3xl p-8 sm:p-10
-          bg-white/80 dark:bg-white/5
-          backdrop-blur-xl
-          border border-gray-200 dark:border-white/10
-          shadow-xl
+          min-h-screen flex items-center justify-center px-6 py-16
+          bg-gray-50 dark:bg-[#0a0a0a]
+          text-gray-900 dark:text-gray-100
+          relative overflow-hidden
         "
       >
-        <h2
+        {/* BACKGROUND GLOWS */}
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2
+                        w-[520px] h-[520px]
+                        bg-red-600/20 blur-[200px]" />
+        <div className="absolute bottom-0 right-0
+                        w-[420px] h-[420px]
+                        bg-yellow-400/20 blur-[180px]" />
+
+        {/* CARD */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
           className="
-            text-4xl font-extrabold text-center mb-3
-            bg-gradient-to-r from-red-600 to-yellow-400
-            bg-clip-text text-transparent
+            relative z-10 w-full max-w-md
+            rounded-3xl p-8 sm:p-10
+            bg-white/80 dark:bg-white/5
+            backdrop-blur-xl
+            border border-gray-200 dark:border-white/10
+            shadow-xl
           "
         >
-          Create Account
-        </h2>
+          <h1
+            className="
+              text-4xl font-extrabold text-center mb-3
+              bg-gradient-to-r from-red-600 to-yellow-400
+              bg-clip-text text-transparent
+            "
+          >
+            Create Account
+          </h1>
 
-        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-8">
-          Register securely using your mobile number
-        </p>
-
-        {error && (
-          <p className="text-red-600 text-sm mb-4 text-center">
-            {error}
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-8">
+            Register securely using your mobile number
           </p>
-        )}
 
-        <AnimatePresence mode="wait">
-          {/* STEP 1 */}
-          {step === 1 && (
-            <motion.div
-              key="details"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="space-y-4"
-            >
-              <Field
-                icon={<User size={18} />}
-                placeholder="Full Name"
-                value={form.name}
-                onChange={(v) => setForm({ ...form, name: v })}
-              />
-              <Field
-                icon={<MapPin size={18} />}
-                placeholder="City"
-                value={form.city}
-                onChange={(v) => setForm({ ...form, city: v })}
-              />
-              <Field
-                icon={<Smartphone size={18} />}
-                placeholder="Phone Number"
-                maxLength={10}
-                value={form.phone}
-                onChange={(v) =>
-                  setForm({ ...form, phone: v.replace(/\D/g, "") })
-                }
-              />
-
-              <PrimaryBtn onClick={sendOtp} loading={loading || cooldown > 0}>
-                {cooldown > 0 ? `Resend in ${cooldown}s` : "Send OTP →"}
-              </PrimaryBtn>
-            </motion.div>
+          {error && (
+            <p className="text-red-600 text-sm mb-4 text-center">
+              {error}
+            </p>
           )}
 
-          {/* STEP 2 */}
-          {step === 2 && (
-            <motion.div
-              key="otp"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="space-y-5"
-            >
-              <p className="text-center text-xs text-gray-500 dark:text-gray-400">
-                <Shield size={14} className="inline" /> OTP sent to {form.phone}
-              </p>
+          <AnimatePresence mode="wait">
+            {/* STEP 1 */}
+            {step === 1 && (
+              <motion.div
+                key="details"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="space-y-4"
+              >
+                <Field
+                  icon={<User size={18} />}
+                  placeholder="Full Name"
+                  value={form.name}
+                  onChange={(v) => setForm({ ...form, name: v })}
+                />
+                <Field
+                  icon={<MapPin size={18} />}
+                  placeholder="City"
+                  value={form.city}
+                  onChange={(v) => setForm({ ...form, city: v })}
+                />
+                <Field
+                  icon={<Smartphone size={18} />}
+                  placeholder="Phone Number"
+                  maxLength={10}
+                  value={form.phone}
+                  onChange={(v) =>
+                    setForm({ ...form, phone: v.replace(/\D/g, "") })
+                  }
+                />
 
-              <input
-                ref={otpRef}
-                className="
-                  w-full text-center text-2xl tracking-widest
-                  rounded-xl p-4
-                  bg-white dark:bg-black/40
-                  border border-gray-300 dark:border-white/10
-                  focus:border-red-600 focus:ring-2
-                  focus:ring-red-600/30
-                  outline-none transition
-                "
-                placeholder="● ● ● ● ● ●"
-                maxLength={6}
-                value={otp}
-                onChange={(e) =>
-                  setOtp(e.target.value.replace(/\D/g, ""))
-                }
-              />
+                <PrimaryBtn onClick={sendOtp} loading={loading || cooldown > 0}>
+                  {cooldown > 0 ? `Resend in ${cooldown}s` : "Send OTP →"}
+                </PrimaryBtn>
+              </motion.div>
+            )}
 
-              <PrimaryBtn onClick={verify} loading={loading}>
-                <Check size={18} /> Verify & Register
-              </PrimaryBtn>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-    </div>
+            {/* STEP 2 */}
+            {step === 2 && (
+              <motion.div
+                key="otp"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="space-y-5"
+              >
+                <p className="text-center text-xs text-gray-500 dark:text-gray-400">
+                  <Shield size={14} className="inline" /> OTP sent to {form.phone}
+                </p>
+
+                <input
+                  ref={otpRef}
+                  className="
+                    w-full text-center text-2xl tracking-widest
+                    rounded-xl p-4
+                    bg-white dark:bg-black/40
+                    border border-gray-300 dark:border-white/10
+                    focus:border-red-600 focus:ring-2
+                    focus:ring-red-600/30
+                    outline-none transition
+                  "
+                  placeholder="● ● ● ● ● ●"
+                  maxLength={6}
+                  value={otp}
+                  onChange={(e) =>
+                    setOtp(e.target.value.replace(/\D/g, ""))
+                  }
+                />
+
+                <PrimaryBtn onClick={verify} loading={loading}>
+                  <Check size={18} /> Verify & Register
+                </PrimaryBtn>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </div>
+    </>
   );
 }
 

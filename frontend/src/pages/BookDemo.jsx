@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import OtpLogin from "../components/ui/OtpLogin";
 import BookingForm from "../components/forms/BookingForm";
 import { motion, AnimatePresence } from "framer-motion";
-import { Helmet } from "react-helmet";
+import SEO from "../components/SEO";
 
 export default function BookDemo() {
   const [logged, setLogged] = useState(
@@ -19,13 +19,11 @@ export default function BookDemo() {
   return (
     <>
       {/* ================= SEO ================= */}
-      <Helmet>
-        <title>Book Free Interior Consultation | Sowron Interiors</title>
-        <meta
-          name="description"
-          content="Book a free interior design consultation with Sowron Interiors. Get expert guidance, 3D concepts, and budget planning."
-        />
-      </Helmet>
+      <SEO
+        title="Book Free Interior Consultation | Sowron Interiors"
+        description="Book a free interior design consultation with Sowron Interiors. Get expert guidance, 3D concepts, and budget planning."
+        keywords="book interior consultation, interior design consultation, Sowron Interiors"
+      />
 
       <section
         className="

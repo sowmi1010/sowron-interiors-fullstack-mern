@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Home, Wallet, FileUp, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
+import SEO from "../components/SEO";
 
 export default function Estimate() {
   const navigate = useNavigate();
@@ -54,67 +55,76 @@ export default function Estimate() {
   };
 
   return (
-    <section className="min-h-screen bg-white dark:bg-[#0a0a0a]
-                        text-gray-900 dark:text-gray-100 py-28 px-6">
-      <div className="max-w-3xl mx-auto">
+    <>
+      {/* ================= SEO ================= */}
+      <SEO
+        title="Get Interior Cost Estimate | Sowron Interiors"
+        description="Get a detailed interior design cost estimate from Sowron Interiors. Personalized pricing for modular kitchens, wardrobes and home interiors."
+        keywords="interior estimate, home interior cost, modular kitchen price, Sowron Interiors"
+      />
 
-        {/* ================= HEADER ================= */}
-        <div className="text-center mb-14">
-          <h1 className="text-4xl font-extrabold">
-            Get a Detailed Interior Estimate
-          </h1>
-          <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-            Answer a few questions and our design experts will prepare a
-            personalized cost estimate for your home.
-          </p>
+      <section className="min-h-screen bg-white dark:bg-[#0a0a0a]
+                          text-gray-900 dark:text-gray-100 py-28 px-6">
+        <div className="max-w-3xl mx-auto">
 
-          <span className="block mx-auto mt-6 w-20 h-[3px]
-                           bg-gradient-to-r from-red-600 to-yellow-400
-                           rounded-full" />
+          {/* ================= HEADER ================= */}
+          <div className="text-center mb-14">
+            <h1 className="text-4xl font-extrabold">
+              Get a Detailed Interior Estimate
+            </h1>
+            <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+              Answer a few questions and our design experts will prepare a
+              personalized cost estimate for your home.
+            </p>
+
+            <span className="block mx-auto mt-6 w-20 h-[3px]
+                             bg-gradient-to-r from-red-600 to-yellow-400
+                             rounded-full" />
+          </div>
+
+          {/* ================= CARD ================= */}
+          <div className="rounded-3xl p-10
+                          bg-gray-50 dark:bg-[#121212]
+                          border border-gray-200 dark:border-white/10
+                          shadow-xl">
+
+            {submitted ? (
+              <SuccessScreen />
+            ) : (
+              <>
+                <Stepper step={step} />
+                <p className="text-center text-xs text-gray-500 mb-10">
+                  Step {step} of 3
+                </p>
+
+                <AnimatePresence mode="wait">
+                  {step === 1 && (
+                    <Step1 form={form} setForm={setForm} next={next} />
+                  )}
+                  {step === 2 && (
+                    <Step2
+                      form={form}
+                      setForm={setForm}
+                      next={next}
+                      back={back}
+                    />
+                  )}
+                  {step === 3 && (
+                    <Step3
+                      form={form}
+                      setForm={setForm}
+                      submit={submit}
+                      back={back}
+                      loading={loading}
+                    />
+                  )}
+                </AnimatePresence>
+              </>
+            )}
+          </div>
         </div>
-
-        {/* ================= CARD ================= */}
-        <div className="rounded-3xl p-10
-                        bg-gray-50 dark:bg-[#121212]
-                        border border-gray-200 dark:border-white/10
-                        shadow-xl">
-
-          {submitted ? (
-            <SuccessScreen />
-          ) : (
-            <>
-              <Stepper step={step} />
-              <p className="text-center text-xs text-gray-500 mb-10">
-                Step {step} of 3
-              </p>
-
-              <AnimatePresence mode="wait">
-                {step === 1 && (
-                  <Step1 form={form} setForm={setForm} next={next} />
-                )}
-                {step === 2 && (
-                  <Step2
-                    form={form}
-                    setForm={setForm}
-                    next={next}
-                    back={back}
-                  />
-                )}
-                {step === 3 && (
-                  <Step3
-                    form={form}
-                    setForm={setForm}
-                    submit={submit}
-                    back={back}
-                    loading={loading}
-                  />
-                )}
-              </AnimatePresence>
-            </>
-          )}
-        </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }
 

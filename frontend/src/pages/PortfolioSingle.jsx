@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, ArrowLeft, X } from "lucide-react";
 import EnquiryForm from "../components/forms/EnquiryForm";
-import { Helmet } from "react-helmet";
+import SEO from "../components/SEO";
 
 export default function PortfolioSingle() {
   const { id } = useParams();
@@ -53,13 +53,14 @@ export default function PortfolioSingle() {
   return (
     <>
       {/* ================= SEO ================= */}
-      <Helmet>
-        <title>{item.title} | Sowron Interiors Portfolio</title>
-        <meta
-          name="description"
-          content={item.description || "Premium interior project by Sowron Interiors"}
-        />
-      </Helmet>
+      <SEO
+        title={`${item.title} | Sowron Interiors Portfolio`}
+        description={
+          item.description ||
+          "Premium turnkey interior project by Sowron Interiors. Luxury residential and commercial interiors."
+        }
+        keywords="interior project, luxury interiors, turnkey interiors, Sowron Interiors"
+      />
 
       <section
         className="
@@ -90,6 +91,7 @@ export default function PortfolioSingle() {
               <motion.img
                 src={heroImage}
                 alt={item.title}
+                loading="lazy"
                 initial={{ opacity: 0, scale: 1.03 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.9 }}
@@ -170,7 +172,8 @@ export default function PortfolioSingle() {
                 <motion.img
                   key={img.public_id || idx}
                   src={img.url}
-                  alt={`${item.title} image ${idx + 1}`}
+                  alt={`${item.title} interior image ${idx + 1}`}
+                  loading="lazy"
                   onClick={() => setPreview(img.url)}
                   whileHover={{ scale: 1.02 }}
                   className="
@@ -230,6 +233,7 @@ export default function PortfolioSingle() {
 
             <motion.img
               src={preview}
+              alt="Interior project preview"
               initial={{ scale: 0.95 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.95 }}

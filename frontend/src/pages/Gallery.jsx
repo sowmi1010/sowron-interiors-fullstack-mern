@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Image as ImgIcon } from "lucide-react";
-import { Helmet } from "react-helmet";
+import SEO from "../components/SEO";
 
 export default function Gallery() {
   const [allItems, setAllItems] = useState([]);
@@ -59,17 +59,11 @@ export default function Gallery() {
   return (
     <>
       {/* ================= SEO ================= */}
-      <Helmet>
-        <title>Interior Design Gallery | Sowron Interiors Chennai</title>
-        <meta
-          name="description"
-          content="Explore premium interior design projects by Sowron Interiors — modular kitchens, wardrobes, turnkey interiors and custom furniture."
-        />
-        <meta
-          name="keywords"
-          content="interior design gallery, modular kitchen designs, turnkey interiors, Sowron Interiors"
-        />
-      </Helmet>
+      <SEO
+        title="Interior Design Gallery | Sowron Interiors Chennai"
+        description="Explore premium interior design projects by Sowron Interiors — modular kitchens, wardrobes, turnkey interiors and custom furniture."
+        keywords="interior design gallery, modular kitchen designs, turnkey interiors, Sowron Interiors"
+      />
 
       <section
         className="
@@ -155,6 +149,7 @@ export default function Gallery() {
                     <img
                       src={item.images[0].url}
                       alt={item.title}
+                      loading="lazy"
                       className="
                         h-[260px] w-full object-cover
                         transition-transform duration-500

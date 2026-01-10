@@ -3,7 +3,7 @@ import { api } from "../lib/api";
 import { Link } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
 import { MapPin, ArrowUpRight } from "lucide-react";
-import { Helmet } from "react-helmet";
+import SEO from "../components/SEO";
 
 export default function Portfolio() {
   const [projects, setProjects] = useState([]);
@@ -29,13 +29,11 @@ export default function Portfolio() {
   return (
     <>
       {/* ================= SEO ================= */}
-      <Helmet>
-        <title>Portfolio | Sowron Interiors – Premium Projects</title>
-        <meta
-          name="description"
-          content="Explore premium turnkey interior projects by Sowron Interiors. Crafted spaces with luxury materials and expert execution."
-        />
-      </Helmet>
+      <SEO
+        title="Portfolio | Sowron Interiors – Premium Interior Projects"
+        description="Explore premium turnkey interior projects by Sowron Interiors. Crafted luxury spaces with expert execution."
+        keywords="interior portfolio, luxury interior projects, turnkey interiors, Sowron Interiors"
+      />
 
       <section
         className="
@@ -138,6 +136,7 @@ function PortfolioCard({ project, index }) {
           <motion.img
             src={imageUrl}
             alt={project.title}
+            loading="lazy"
             className="h-full w-full object-cover"
             whileHover={{ scale: 1.12 }}
             transition={{ duration: 0.8 }}

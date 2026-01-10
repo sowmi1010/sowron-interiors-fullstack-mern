@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Smartphone, KeyRound } from "lucide-react";
 import { api } from "../lib/api";
+import SEO from "../components/SEO";
 
 export default function Login() {
   const [phone, setPhone] = useState("");
@@ -10,6 +11,11 @@ export default function Login() {
   const [error, setError] = useState("");
   const [cooldown, setCooldown] = useState(0);
   const otpRef = useRef(null);
+
+  /* ================= SEO ================= */
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   /* ⏳ COOLDOWN TIMER */
   useEffect(() => {
@@ -56,177 +62,186 @@ export default function Login() {
   };
 
   return (
-    <div
-      className="
-        min-h-screen flex items-center justify-center px-6
-        bg-gray-50 dark:bg-[#0a0a0a]
-        text-gray-900 dark:text-gray-100
-        relative overflow-hidden
-      "
-    >
-      {/* BACKGROUND GLOWS */}
-      <div className="absolute -top-40 left-1/2 -translate-x-1/2
-                      w-[520px] h-[520px]
-                      bg-red-600/20 blur-[200px]" />
-      <div className="absolute bottom-0 right-0
-                      w-[420px] h-[420px]
-                      bg-yellow-400/20 blur-[180px]" />
+    <>
+      {/* ================= SEO ================= */}
+      <SEO
+        title="Login | Sowron Interiors – Secure OTP Login"
+        description="Login to your Sowron Interiors account securely using mobile OTP. Book consultations, get estimates and manage your projects."
+        keywords="Sowron Interiors login, OTP login, interior consultation login"
+      />
 
-      {/* LOGIN CARD */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
+      <div
         className="
-          relative z-10 w-full max-w-sm
-          rounded-3xl p-8 sm:p-10
-          bg-white/80 dark:bg-white/5
-          backdrop-blur-xl
-          border border-gray-200 dark:border-white/10
-          shadow-xl
+          min-h-screen flex items-center justify-center px-6
+          bg-gray-50 dark:bg-[#0a0a0a]
+          text-gray-900 dark:text-gray-100
+          relative overflow-hidden
         "
       >
-        {/* TITLE */}
-        <h2
+        {/* BACKGROUND GLOWS */}
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2
+                        w-[520px] h-[520px]
+                        bg-red-600/20 blur-[200px]" />
+        <div className="absolute bottom-0 right-0
+                        w-[420px] h-[420px]
+                        bg-yellow-400/20 blur-[180px]" />
+
+        {/* LOGIN CARD */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
           className="
-            text-4xl font-extrabold text-center mb-2
-            bg-gradient-to-r from-red-600 to-yellow-400
-            bg-clip-text text-transparent
+            relative z-10 w-full max-w-sm
+            rounded-3xl p-8 sm:p-10
+            bg-white/80 dark:bg-white/5
+            backdrop-blur-xl
+            border border-gray-200 dark:border-white/10
+            shadow-xl
           "
         >
-          Welcome Back
-        </h2>
+          {/* TITLE */}
+          <h1
+            className="
+              text-4xl font-extrabold text-center mb-2
+              bg-gradient-to-r from-red-600 to-yellow-400
+              bg-clip-text text-transparent
+            "
+          >
+            Welcome Back
+          </h1>
 
-        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-8">
-          Secure login using your mobile number
-        </p>
-
-        {error && (
-          <p className="text-red-600 text-sm mb-4 text-center">
-            {error}
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-8">
+            Secure login using your mobile number
           </p>
-        )}
 
-        <AnimatePresence mode="wait">
-          {/* STEP 1 */}
-          {step === 1 && (
-            <motion.div
-              key="phone"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="space-y-5"
-            >
-              <div className="relative">
-                <Smartphone
-                  size={18}
-                  className="absolute left-4 top-4 text-gray-400"
-                />
-                <input
-                  className="
-                    w-full pl-12 py-4 rounded-xl
-                    bg-white dark:bg-black/40
-                    border border-gray-300 dark:border-white/10
-                    focus:border-red-600 focus:ring-2
-                    focus:ring-red-600/30
-                    outline-none transition
-                  "
-                  placeholder="Enter mobile number"
-                  maxLength={10}
-                  value={phone}
-                  onChange={(e) =>
-                    setPhone(e.target.value.replace(/\D/g, ""))
-                  }
-                />
-              </div>
+          {error && (
+            <p className="text-red-600 text-sm mb-4 text-center">
+              {error}
+            </p>
+          )}
 
-              <button
-                disabled={cooldown > 0}
-                onClick={sendOtp}
-                className="
-                  w-full py-4 rounded-xl font-semibold
-                  bg-gradient-to-r from-red-600 to-yellow-400
-                  text-black
-                  hover:brightness-110
-                  disabled:opacity-50 transition
-                "
+          <AnimatePresence mode="wait">
+            {/* STEP 1 */}
+            {step === 1 && (
+              <motion.div
+                key="phone"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="space-y-5"
               >
-                {cooldown > 0
-                  ? `Resend in ${cooldown}s`
-                  : "Send OTP →"}
-              </button>
+                <div className="relative">
+                  <Smartphone
+                    size={18}
+                    className="absolute left-4 top-4 text-gray-400"
+                  />
+                  <input
+                    className="
+                      w-full pl-12 py-4 rounded-xl
+                      bg-white dark:bg-black/40
+                      border border-gray-300 dark:border-white/10
+                      focus:border-red-600 focus:ring-2
+                      focus:ring-red-600/30
+                      outline-none transition
+                    "
+                    placeholder="Enter mobile number"
+                    maxLength={10}
+                    value={phone}
+                    onChange={(e) =>
+                      setPhone(e.target.value.replace(/\D/g, ""))
+                    }
+                  />
+                </div>
 
-              <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-                New user?{" "}
-                <a
-                  href="/register"
-                  className="text-red-600 font-semibold hover:underline"
+                <button
+                  disabled={cooldown > 0}
+                  onClick={sendOtp}
+                  className="
+                    w-full py-4 rounded-xl font-semibold
+                    bg-gradient-to-r from-red-600 to-yellow-400
+                    text-black
+                    hover:brightness-110
+                    disabled:opacity-50 transition
+                  "
                 >
-                  Create account
-                </a>
-              </p>
-            </motion.div>
-          )}
+                  {cooldown > 0
+                    ? `Resend in ${cooldown}s`
+                    : "Send OTP →"}
+                </button>
 
-          {/* STEP 2 */}
-          {step === 2 && (
-            <motion.div
-              key="otp"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="space-y-5"
-            >
-              <div className="relative">
-                <KeyRound
-                  size={18}
-                  className="absolute left-4 top-4 text-gray-400"
-                />
-                <input
-                  ref={otpRef}
+                <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+                  New user?{" "}
+                  <a
+                    href="/register"
+                    className="text-red-600 font-semibold hover:underline"
+                  >
+                    Create account
+                  </a>
+                </p>
+              </motion.div>
+            )}
+
+            {/* STEP 2 */}
+            {step === 2 && (
+              <motion.div
+                key="otp"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="space-y-5"
+              >
+                <div className="relative">
+                  <KeyRound
+                    size={18}
+                    className="absolute left-4 top-4 text-gray-400"
+                  />
+                  <input
+                    ref={otpRef}
+                    className="
+                      w-full pl-12 py-4 rounded-xl
+                      bg-white dark:bg-black/40
+                      border border-gray-300 dark:border-white/10
+                      text-center tracking-[0.4em]
+                      focus:border-red-600 focus:ring-2
+                      focus:ring-red-600/30
+                      outline-none transition
+                    "
+                    placeholder="● ● ● ● ● ●"
+                    maxLength={6}
+                    value={otp}
+                    onChange={(e) =>
+                      setOtp(e.target.value.replace(/\D/g, ""))
+                    }
+                  />
+                </div>
+
+                <button
+                  onClick={verifyOtp}
                   className="
-                    w-full pl-12 py-4 rounded-xl
-                    bg-white dark:bg-black/40
-                    border border-gray-300 dark:border-white/10
-                    text-center tracking-[0.4em]
-                    focus:border-red-600 focus:ring-2
-                    focus:ring-red-600/30
-                    outline-none transition
+                    w-full py-4 rounded-xl font-semibold
+                    bg-gradient-to-r from-red-600 to-yellow-400
+                    text-black
+                    hover:brightness-110 transition
                   "
-                  placeholder="● ● ● ● ● ●"
-                  maxLength={6}
-                  value={otp}
-                  onChange={(e) =>
-                    setOtp(e.target.value.replace(/\D/g, ""))
-                  }
-                />
-              </div>
+                >
+                  Verify & Continue ✔
+                </button>
 
-              <button
-                onClick={verifyOtp}
-                className="
-                  w-full py-4 rounded-xl font-semibold
-                  bg-gradient-to-r from-red-600 to-yellow-400
-                  text-black
-                  hover:brightness-110 transition
-                "
-              >
-                Verify & Continue ✔
-              </button>
-
-              <button
-                onClick={() => {
-                  setStep(1);
-                  setOtp("");
-                  setError("");
-                }}
-                className="w-full text-sm text-gray-500 dark:text-gray-400"
-              >
-                ← Change number
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-    </div>
+                <button
+                  onClick={() => {
+                    setStep(1);
+                    setOtp("");
+                    setError("");
+                  }}
+                  className="w-full text-sm text-gray-500 dark:text-gray-400"
+                >
+                  ← Change number
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </div>
+    </>
   );
 }

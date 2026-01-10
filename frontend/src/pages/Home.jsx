@@ -2,23 +2,17 @@ import Hero from "../components/ui/Hero";
 import { Link } from "react-router-dom";
 import FeedbackSection from "../components/forms/FeedbackSection";
 import { motion } from "framer-motion";
-import { Helmet } from "react-helmet";
+import SEO from "../components/SEO";
 
 export default function Home() {
   return (
     <>
       {/* ================= SEO ================= */}
-      <Helmet>
-        <title>Sowron Interiors | Premium Interior Design & Turnkey Solutions</title>
-        <meta
-          name="description"
-          content="Sowron Interiors delivers premium turnkey interior design, modular furniture, factory-made execution and expert project management."
-        />
-        <meta
-          name="keywords"
-          content="interior design, turnkey interiors, modular furniture, Sowron Interiors"
-        />
-      </Helmet>
+      <SEO
+        title="Sowron Interiors | Premium Interior Design & Turnkey Solutions"
+        description="Sowron Interiors delivers premium turnkey interior design, modular furniture, factory-made execution and expert project management."
+        keywords="interior design, turnkey interiors, modular furniture, Sowron Interiors"
+      />
 
       <div
         className="
