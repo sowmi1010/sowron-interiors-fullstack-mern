@@ -18,13 +18,31 @@ import multer from "multer";
 const app = express();
 const server = http.createServer(app);
 
+// Trust proxy for production (important for OTP & cookies)
+app.set("trust proxy", 1);
+
+/* ===========================
+   DIRNAME FIX
+=========================== */
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+/* ===========================
+   ALLOWED ORIGINS
+=========================== */
+const allowedOrigins = [
+  "https://www.sowroninteriors.com",
+  "http://localhost:5173"
+];
+
 /* ===========================
    SOCKET SETUP
 =========================== */
 const io = new Server(server, {
   cors: {
-    origin: ["https://www.sowroninteriors.com", "http://localhost:5173"],
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
@@ -35,18 +53,18 @@ io.on("connection", (socket) => {
 });
 
 /* ===========================
-   DIRNAME FIX
-=========================== */
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-/* ===========================
    SECURITY MIDDLEWARE
 =========================== */
 app.use(helmet());
 
 app.use(cors({
-  origin: ["https://www.sowroninteriors.com", "http://localhost:5173"],
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS blocked"));
+    }
+  },
   credentials: true,
 }));
 
@@ -65,7 +83,7 @@ const apiLimiter = rateLimit({
 
 const otpLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
-  max: 5,
+  max: 10,
   message: "Too many OTP requests. Please try again later.",
 });
 
@@ -95,7 +113,7 @@ import categoryRoutes from "./routes/categoryRoutes.js";
 /* ===========================
    TEST ROUTE
 =========================== */
-app.get("/", (req, res) => {
+app.get("/api/test", (req, res) => {
   res.json({ message: "Backend Working 🚀" });
 });
 
@@ -108,12 +126,29 @@ app.use("/api/gallery", galleryRoutes);
 app.use("/api/portfolio", portfolioRoutes);
 app.use("/api/enquiry", enquiryRoutes);
 app.use("/api/booking", bookingRoutes);
-app.use("/api/otp", otpLimiter, otpRoutes);
+app.use("/api/otp", otpRoutes);
 app.use("/api/estimate", estimateRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/admin", dashboardRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/categories", categoryRoutes);
+
+/* ===========================
+   SERVE FRONTEND BUILD
+=========================== */
+
+app.use(express.static(path.join(__dirname, "dist")));
+
+// Catch-all for frontend routes (Express v5 safe)
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api")) {
+    return next();
+  }
+
+  res.sendFile(path.join(__dirname, "dist", "index.html"));
+});
+
+
 
 /* ===========================
    GLOBAL ERROR HANDLER

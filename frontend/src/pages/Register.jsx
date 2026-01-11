@@ -24,38 +24,46 @@ export default function Register() {
     window.scrollTo(0, 0);
   }, []);
 
-  /* ⏳ COOLDOWN */
+  /* ⏳ COOLDOWN TIMER */
   useEffect(() => {
     if (cooldown > 0) {
-      const t = setTimeout(() => setCooldown(c => c - 1), 1000);
-      return () => clearTimeout(t);
+      const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
+      return () => clearTimeout(timer);
     }
   }, [cooldown]);
 
-  /* SEND OTP */
+  /* ================= SEND OTP ================= */
   const sendOtp = async () => {
     if (!form.name || !form.city || form.phone.length !== 10) {
       return setError("Please fill all details correctly");
     }
+
     try {
       setLoading(true);
       setError("");
+
       await api.post("/otp/send", { phone: form.phone });
+
       setStep(2);
       setCooldown(30);
       setTimeout(() => otpRef.current?.focus(), 300);
     } catch (err) {
-      setError(err.response?.data?.message || "OTP send failed");
+      if (!err.response) {
+        setError("Server not responding. Please try again.");
+      } else {
+        setError(err.response.data.message || "OTP send failed");
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  /* VERIFY & REGISTER */
+  /* ================= VERIFY OTP ================= */
   const verify = async () => {
     if (otp.length !== 6) {
       return setError("Enter 6-digit OTP");
     }
+
     try {
       setLoading(true);
       setError("");
@@ -65,23 +73,23 @@ export default function Register() {
         otp,
       });
 
-      await api.put(
-        "/user/update",
-        { name: form.name, city: form.city },
-        {
-          headers: {
-            Authorization: `Bearer ${res.data.token}`,
-          },
-        }
-      );
+      await api.put("/user/update", {
+        name: form.name,
+        city: form.city,
+      });
 
       localStorage.setItem("userToken", res.data.token);
       localStorage.setItem("userPhone", form.phone);
       localStorage.setItem("userName", form.name);
+      localStorage.setItem("isLoggedIn", "true");
 
       window.location.href = "/";
     } catch (err) {
-      setError(err.response?.data?.message || "Verification failed");
+      if (!err.response) {
+        setError("Server not responding. Please try again.");
+      } else {
+        setError(err.response.data.message || "Verification failed");
+      }
     } finally {
       setLoading(false);
     }
@@ -89,49 +97,24 @@ export default function Register() {
 
   return (
     <>
-      {/* ================= SEO ================= */}
       <SEO
         title="Register | Sowron Interiors – Create Account"
         description="Create your Sowron Interiors account using mobile OTP. Register securely to book consultations and get interior estimates."
         keywords="register Sowron Interiors, interior consultation login, OTP registration"
       />
 
-      <div
-        className="
-          min-h-screen flex items-center justify-center px-6 py-16
-          bg-gray-50 dark:bg-[#0a0a0a]
-          text-gray-900 dark:text-gray-100
-          relative overflow-hidden
-        "
-      >
-        {/* BACKGROUND GLOWS */}
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2
-                        w-[520px] h-[520px]
-                        bg-red-600/20 blur-[200px]" />
-        <div className="absolute bottom-0 right-0
-                        w-[420px] h-[420px]
-                        bg-yellow-400/20 blur-[180px]" />
+      <div className="min-h-screen flex items-center justify-center px-6 py-16 bg-gray-50 dark:bg-[#0a0a0a] text-gray-900 dark:text-gray-100 relative overflow-hidden">
 
-        {/* CARD */}
+        {/* BACKGROUND GLOWS */}
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[520px] h-[520px] bg-red-600/20 blur-[200px]" />
+        <div className="absolute bottom-0 right-0 w-[420px] h-[420px] bg-yellow-400/20 blur-[180px]" />
+
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="
-            relative z-10 w-full max-w-md
-            rounded-3xl p-8 sm:p-10
-            bg-white/80 dark:bg-white/5
-            backdrop-blur-xl
-            border border-gray-200 dark:border-white/10
-            shadow-xl
-          "
+          className="relative z-10 w-full max-w-md rounded-3xl p-8 sm:p-10 bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 shadow-xl"
         >
-          <h1
-            className="
-              text-4xl font-extrabold text-center mb-3
-              bg-gradient-to-r from-red-600 to-yellow-400
-              bg-clip-text text-transparent
-            "
-          >
+          <h1 className="text-4xl font-extrabold text-center mb-3 bg-gradient-to-r from-red-600 to-yellow-400 bg-clip-text text-transparent">
             Create Account
           </h1>
 
@@ -198,15 +181,7 @@ export default function Register() {
 
                 <input
                   ref={otpRef}
-                  className="
-                    w-full text-center text-2xl tracking-widest
-                    rounded-xl p-4
-                    bg-white dark:bg-black/40
-                    border border-gray-300 dark:border-white/10
-                    focus:border-red-600 focus:ring-2
-                    focus:ring-red-600/30
-                    outline-none transition
-                  "
+                  className="w-full text-center text-2xl tracking-widest rounded-xl p-4 bg-white dark:bg-black/40 border border-gray-300 dark:border-white/10 focus:border-red-600 focus:ring-2 focus:ring-red-600/30 outline-none transition"
                   placeholder="● ● ● ● ● ●"
                   maxLength={6}
                   value={otp}
@@ -218,6 +193,14 @@ export default function Register() {
                 <PrimaryBtn onClick={verify} loading={loading}>
                   <Check size={18} /> Verify & Register
                 </PrimaryBtn>
+
+                <button
+                  onClick={sendOtp}
+                  disabled={cooldown > 0}
+                  className="text-sm text-red-600 hover:underline block mx-auto"
+                >
+                  {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend OTP"}
+                </button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -238,14 +221,7 @@ function Field({ icon, value, onChange, ...props }) {
         {...props}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="
-          w-full pl-12 py-4 rounded-xl
-          bg-white dark:bg-black/40
-          border border-gray-300 dark:border-white/10
-          focus:border-red-600 focus:ring-2
-          focus:ring-red-600/30
-          outline-none transition
-        "
+        className="w-full pl-12 py-4 rounded-xl bg-white dark:bg-black/40 border border-gray-300 dark:border-white/10 focus:border-red-600 focus:ring-2 focus:ring-red-600/30 outline-none transition"
       />
     </div>
   );
@@ -259,13 +235,7 @@ function PrimaryBtn({ children, onClick, loading }) {
       whileTap={{ scale: 0.96 }}
       onClick={onClick}
       disabled={loading}
-      className="
-        w-full py-4 rounded-xl font-semibold
-        bg-gradient-to-r from-red-600 to-yellow-400
-        text-black
-        hover:brightness-110
-        disabled:opacity-50 transition
-      "
+      className="w-full py-4 rounded-xl font-semibold bg-gradient-to-r from-red-600 to-yellow-400 text-black hover:brightness-110 disabled:opacity-50 transition"
     >
       {loading ? "Please wait..." : children}
     </motion.button>

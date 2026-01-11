@@ -9,6 +9,7 @@ export default function Login() {
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const otpRef = useRef(null);
 
@@ -20,93 +21,89 @@ export default function Login() {
   /* ⏳ COOLDOWN TIMER */
   useEffect(() => {
     if (cooldown > 0) {
-      const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
-      return () => clearTimeout(t);
+      const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
+      return () => clearTimeout(timer);
     }
   }, [cooldown]);
 
-  /* SEND OTP */
+  /* ================= SEND OTP ================= */
   const sendOtp = async () => {
     if (phone.length !== 10) {
       return setError("Enter valid 10-digit mobile number");
     }
+
     try {
+      setLoading(true);
       setError("");
+
       await api.post("/otp/send", { phone });
+
       setStep(2);
       setCooldown(30);
       setTimeout(() => otpRef.current?.focus(), 300);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to send OTP");
+      if (!err.response) {
+        setError("Server not responding. Please try again.");
+      } else {
+        setError(err.response.data.message || "Failed to send OTP");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
-  /* VERIFY OTP */
+  /* ================= VERIFY OTP ================= */
   const verifyOtp = async () => {
     if (otp.length !== 6) {
       return setError("Enter 6-digit OTP");
     }
+
     try {
+      setLoading(true);
+      setError("");
+
       const res = await api.post("/otp/verify", { phone, otp });
 
       localStorage.setItem("userToken", res.data.token);
       localStorage.setItem("userPhone", phone);
+      localStorage.setItem("isLoggedIn", "true");
+
       if (res.data.user?.name) {
         localStorage.setItem("userName", res.data.user.name);
       }
 
       window.location.href = "/";
     } catch (err) {
-      setError(err.response?.data?.message || "Invalid OTP");
+      if (!err.response) {
+        setError("Server not responding. Please try again.");
+      } else {
+        setError(err.response.data.message || "Invalid OTP");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <>
-      {/* ================= SEO ================= */}
       <SEO
         title="Login | Sowron Interiors – Secure OTP Login"
         description="Login to your Sowron Interiors account securely using mobile OTP. Book consultations, get estimates and manage your projects."
         keywords="Sowron Interiors login, OTP login, interior consultation login"
       />
 
-      <div
-        className="
-          min-h-screen flex items-center justify-center px-6
-          bg-gray-50 dark:bg-[#0a0a0a]
-          text-gray-900 dark:text-gray-100
-          relative overflow-hidden
-        "
-      >
-        {/* BACKGROUND GLOWS */}
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2
-                        w-[520px] h-[520px]
-                        bg-red-600/20 blur-[200px]" />
-        <div className="absolute bottom-0 right-0
-                        w-[420px] h-[420px]
-                        bg-yellow-400/20 blur-[180px]" />
+      <div className="min-h-screen flex items-center justify-center px-6 bg-gray-50 dark:bg-[#0a0a0a] text-gray-900 dark:text-gray-100 relative overflow-hidden">
 
-        {/* LOGIN CARD */}
+        {/* BACKGROUND GLOWS */}
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[520px] h-[520px] bg-red-600/20 blur-[200px]" />
+        <div className="absolute bottom-0 right-0 w-[420px] h-[420px] bg-yellow-400/20 blur-[180px]" />
+
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="
-            relative z-10 w-full max-w-sm
-            rounded-3xl p-8 sm:p-10
-            bg-white/80 dark:bg-white/5
-            backdrop-blur-xl
-            border border-gray-200 dark:border-white/10
-            shadow-xl
-          "
+          className="relative z-10 w-full max-w-sm rounded-3xl p-8 sm:p-10 bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 shadow-xl"
         >
-          {/* TITLE */}
-          <h1
-            className="
-              text-4xl font-extrabold text-center mb-2
-              bg-gradient-to-r from-red-600 to-yellow-400
-              bg-clip-text text-transparent
-            "
-          >
+          <h1 className="text-4xl font-extrabold text-center mb-2 bg-gradient-to-r from-red-600 to-yellow-400 bg-clip-text text-transparent">
             Welcome Back
           </h1>
 
@@ -136,14 +133,7 @@ export default function Login() {
                     className="absolute left-4 top-4 text-gray-400"
                   />
                   <input
-                    className="
-                      w-full pl-12 py-4 rounded-xl
-                      bg-white dark:bg-black/40
-                      border border-gray-300 dark:border-white/10
-                      focus:border-red-600 focus:ring-2
-                      focus:ring-red-600/30
-                      outline-none transition
-                    "
+                    className="w-full pl-12 py-4 rounded-xl bg-white dark:bg-black/40 border border-gray-300 dark:border-white/10 focus:border-red-600 focus:ring-2 focus:ring-red-600/30 outline-none transition"
                     placeholder="Enter mobile number"
                     maxLength={10}
                     value={phone}
@@ -154,19 +144,11 @@ export default function Login() {
                 </div>
 
                 <button
-                  disabled={cooldown > 0}
+                  disabled={loading || cooldown > 0}
                   onClick={sendOtp}
-                  className="
-                    w-full py-4 rounded-xl font-semibold
-                    bg-gradient-to-r from-red-600 to-yellow-400
-                    text-black
-                    hover:brightness-110
-                    disabled:opacity-50 transition
-                  "
+                  className="w-full py-4 rounded-xl font-semibold bg-gradient-to-r from-red-600 to-yellow-400 text-black hover:brightness-110 disabled:opacity-50 transition"
                 >
-                  {cooldown > 0
-                    ? `Resend in ${cooldown}s`
-                    : "Send OTP →"}
+                  {cooldown > 0 ? `Resend in ${cooldown}s` : "Send OTP →"}
                 </button>
 
                 <p className="text-center text-sm text-gray-500 dark:text-gray-400">
@@ -197,15 +179,7 @@ export default function Login() {
                   />
                   <input
                     ref={otpRef}
-                    className="
-                      w-full pl-12 py-4 rounded-xl
-                      bg-white dark:bg-black/40
-                      border border-gray-300 dark:border-white/10
-                      text-center tracking-[0.4em]
-                      focus:border-red-600 focus:ring-2
-                      focus:ring-red-600/30
-                      outline-none transition
-                    "
+                    className="w-full pl-12 py-4 rounded-xl bg-white dark:bg-black/40 border border-gray-300 dark:border-white/10 text-center tracking-[0.4em] focus:border-red-600 focus:ring-2 focus:ring-red-600/30 outline-none transition"
                     placeholder="● ● ● ● ● ●"
                     maxLength={6}
                     value={otp}
@@ -217,14 +191,10 @@ export default function Login() {
 
                 <button
                   onClick={verifyOtp}
-                  className="
-                    w-full py-4 rounded-xl font-semibold
-                    bg-gradient-to-r from-red-600 to-yellow-400
-                    text-black
-                    hover:brightness-110 transition
-                  "
+                  disabled={loading}
+                  className="w-full py-4 rounded-xl font-semibold bg-gradient-to-r from-red-600 to-yellow-400 text-black hover:brightness-110 disabled:opacity-50 transition"
                 >
-                  Verify & Continue ✔
+                  {loading ? "Verifying..." : "Verify & Continue ✔"}
                 </button>
 
                 <button
@@ -236,6 +206,14 @@ export default function Login() {
                   className="w-full text-sm text-gray-500 dark:text-gray-400"
                 >
                   ← Change number
+                </button>
+
+                <button
+                  onClick={sendOtp}
+                  disabled={cooldown > 0}
+                  className="text-sm text-red-600 hover:underline block mx-auto"
+                >
+                  {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend OTP"}
                 </button>
               </motion.div>
             )}

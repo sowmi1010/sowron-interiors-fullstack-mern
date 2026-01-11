@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Phone, ShieldCheck, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "../../lib/api";
@@ -10,12 +10,13 @@ export default function OtpLogin({ onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [cooldown, setCooldown] = useState(0);
+  const otpRef = useRef(null);
 
   /* ================= COOLDOWN ================= */
   useEffect(() => {
     if (cooldown > 0) {
-      const t = setTimeout(() => setCooldown(cooldown - 1), 1000);
-      return () => clearTimeout(t);
+      const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
+      return () => clearTimeout(timer);
     }
   }, [cooldown]);
 
@@ -28,11 +29,18 @@ export default function OtpLogin({ onSuccess }) {
     try {
       setLoading(true);
       setError("");
+
       await api.post("/otp/send", { phone });
+
       setStep(2);
       setCooldown(30);
+      setTimeout(() => otpRef.current?.focus(), 300);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to send OTP");
+      if (!err.response) {
+        setError("Server not responding. Please try again.");
+      } else {
+        setError(err.response.data.message || "Failed to send OTP");
+      }
     } finally {
       setLoading(false);
     }
@@ -52,6 +60,7 @@ export default function OtpLogin({ onSuccess }) {
 
       localStorage.setItem("userToken", res.data.token);
       localStorage.setItem("userPhone", phone);
+      localStorage.setItem("isLoggedIn", "true");
 
       if (res.data.user?.name) {
         localStorage.setItem("userName", res.data.user.name);
@@ -59,7 +68,11 @@ export default function OtpLogin({ onSuccess }) {
 
       onSuccess?.();
     } catch (err) {
-      setError(err.response?.data?.message || "Invalid OTP");
+      if (!err.response) {
+        setError("Server not responding. Please try again.");
+      } else {
+        setError(err.response.data.message || "Invalid OTP");
+      }
     } finally {
       setLoading(false);
     }
@@ -80,13 +93,7 @@ export default function OtpLogin({ onSuccess }) {
           We’ll send a one-time password to verify your number
         </p>
 
-        <span
-          className="
-            block mx-auto mt-4 w-14 h-[3px]
-            bg-gradient-to-r from-red-600 to-yellow-400
-            rounded-full
-          "
-        />
+        <span className="block mx-auto mt-4 w-14 h-[3px] bg-gradient-to-r from-red-600 to-yellow-400 rounded-full" />
       </div>
 
       {error && (
@@ -141,6 +148,7 @@ export default function OtpLogin({ onSuccess }) {
               value={otp}
               onChange={setOtp}
               maxLength={6}
+              inputRef={otpRef}
             />
 
             <PrimaryButton
@@ -149,6 +157,14 @@ export default function OtpLogin({ onSuccess }) {
               onClick={verifyOtp}
               disabled={loading}
             />
+
+            <button
+              onClick={sendOtp}
+              disabled={cooldown > 0}
+              className="text-sm text-red-600 hover:underline block mx-auto"
+            >
+              {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend OTP"}
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -157,15 +173,13 @@ export default function OtpLogin({ onSuccess }) {
 }
 
 /* ================= INPUT ================= */
-function Input({ icon: Icon, value, onChange, ...props }) {
+function Input({ icon: Icon, value, onChange, inputRef, ...props }) {
   return (
     <div className="relative">
-      <Icon
-        size={16}
-        className="absolute left-3 top-3.5 text-gray-400"
-      />
+      <Icon size={16} className="absolute left-3 top-3.5 text-gray-400" />
       <input
         {...props}
+        ref={inputRef}
         value={value}
         onChange={(e) =>
           onChange(e.target.value.replace(/\D/g, ""))

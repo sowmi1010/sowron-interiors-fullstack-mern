@@ -1,4 +1,3 @@
-// routes/otpRoutes.js
 import express from "express";
 import { sendOtp, verifyOtp } from "../controllers/otpController.js";
 import rateLimit from "express-rate-limit";
@@ -6,11 +5,11 @@ import rateLimit from "express-rate-limit";
 const router = express.Router();
 
 /* ===========================
-   OTP RATE LIMITER
+   SEND OTP LIMITER
 =========================== */
-const otpLimiter = rateLimit({
+const sendOtpLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
-  max: 5, // max 5 OTP requests per phone/IP
+  max: 10, // allow 10 OTP per IP
   message: {
     message: "Too many OTP requests. Please try again after 10 minutes.",
   },
@@ -19,11 +18,11 @@ const otpLimiter = rateLimit({
 });
 
 /* ===========================
-   OTP VERIFY LIMITER
+   VERIFY OTP LIMITER
 =========================== */
-const verifyLimiter = rateLimit({
+const verifyOtpLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
-  max: 10, // prevent brute-force
+  max: 20,
   message: {
     message: "Too many OTP attempts. Please try again later.",
   },
@@ -32,7 +31,7 @@ const verifyLimiter = rateLimit({
 /* ===========================
    ROUTES
 =========================== */
-router.post("/send", otpLimiter, sendOtp);
-router.post("/verify", verifyLimiter, verifyOtp);
+router.post("/send", sendOtpLimiter, sendOtp);
+router.post("/verify", verifyOtpLimiter, verifyOtp);
 
 export default router;
