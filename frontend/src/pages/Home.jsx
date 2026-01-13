@@ -14,27 +14,28 @@ export default function Home() {
         keywords="interior design, turnkey interiors, modular furniture, Sowron Interiors"
       />
 
+      {/* ================= PAGE WRAPPER ================= */}
       <div
         className="
           relative w-full overflow-hidden
-          bg-gradient-to-b from-white via-white to-orange-50/40
+          bg-gradient-to-b from-white via-white to-brand-yellowSoft/30
           dark:from-[#050505] dark:via-[#0b0b0b] dark:to-black
-          text-gray-900 dark:text-gray-100
+          text-brand-lightText dark:text-brand-darkText
         "
       >
-        {/* ================= GLOBAL BACKGROUND FX ================= */}
+        {/* ================= BACKGROUND FX ================= */}
         <div className="pointer-events-none fixed inset-0 z-0">
           <motion.div
-            animate={{ y: [-80, 80, -80], x: [-40, 40, -40] }}
-            transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute left-10 top-20 w-80 h-80 rounded-full bg-brand-red/15 blur-[160px]"
+            animate={{ y: [-60, 60, -60], x: [-30, 30, -30] }}
+            transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute left-10 top-32 w-72 h-72 rounded-full bg-brand-red/12 blur-[140px]"
           />
           <motion.div
-            animate={{ y: [60, -60, 60], x: [60, 120, 60] }}
-            transition={{ duration: 14, repeat: Infinity }}
-            className="absolute right-0 bottom-40 w-96 h-96 rounded-full bg-brand-yellow/10 blur-[180px]"
+            animate={{ y: [40, -40, 40], x: [80, 140, 80] }}
+            transition={{ duration: 16, repeat: Infinity }}
+            className="absolute right-0 bottom-40 w-96 h-96 rounded-full bg-brand-yellow/10 blur-[160px]"
           />
-          <div className="absolute inset-0 opacity-[0.04] bg-[url('/noise.png')] mix-blend-soft-light" />
+          <div className="absolute inset-0 opacity-[0.03] bg-[url('/noise.png')] mix-blend-soft-light" />
         </div>
 
         {/* ================= HERO ================= */}
@@ -46,7 +47,7 @@ export default function Home() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 1 }}
-          className="relative px-6 py-32 max-w-7xl mx-auto z-10"
+          className="relative px-6 py-20 md:py-32 max-w-7xl mx-auto z-10"
         >
           <h2 className="text-4xl md:text-5xl font-extrabold text-center mb-16">
             WHAT WE DO
@@ -54,7 +55,7 @@ export default function Home() {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-            <ul className="space-y-4 text-lg leading-8">
+            <ul className="space-y-4 text-lg leading-8 bg-white/70 dark:bg-white/5 backdrop-blur rounded-2xl p-8 shadow-glass">
               {[
                 "Modular Furniture & Fit-outs",
                 "Turnkey Interior Execution",
@@ -69,11 +70,7 @@ export default function Home() {
                   whileInView={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.08 }}
                   whileHover={{ x: 6 }}
-                  className="
-                    flex items-center gap-4 p-3 rounded-xl
-                    hover:bg-orange-100/70 dark:hover:bg-white/5
-                    transition-all
-                  "
+                  className="flex items-center gap-4 p-3 rounded-xl hover:bg-brand-yellowSoft/70 dark:hover:bg-white/10 transition-all"
                 >
                   <span className="w-2 h-2 rounded-full bg-brand-yellow shadow-glow" />
                   {item}
@@ -106,14 +103,8 @@ export default function Home() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 1 }}
-          className="relative px-6 py-32"
+          className="relative px-6 py-20 md:py-32"
         >
-          <motion.div
-            animate={{ y: [0, 60, 0], opacity: [0.3, 0.45, 0.3] }}
-            transition={{ duration: 10, repeat: Infinity }}
-            className="absolute top-10 right-16 w-96 h-96 bg-brand-red/20 blur-[180px] rounded-full"
-          />
-
           <h2 className="text-4xl md:text-5xl font-extrabold text-center mb-20">
             ABOUT SOWRON
             <span className="block mx-auto mt-4 w-24 h-[3px] rounded-full bg-gradient-to-r from-brand-red to-brand-yellow" />
@@ -144,8 +135,7 @@ export default function Home() {
                   <motion.div
                     key={i}
                     whileHover={{ scale: 1.05 }}
-                    className="rounded-xl bg-white/60 dark:bg-white/5 backdrop-blur
-                      border border-orange-200/40 dark:border-white/10 py-4"
+                    className="rounded-xl bg-white/70 dark:bg-white/5 backdrop-blur border border-brand-yellow/30 dark:border-white/10 py-5 shadow-card"
                   >
                     <h3 className="font-bold text-brand-red text-lg">{num}</h3>
                     <p className="text-xs opacity-70">{label}</p>
@@ -181,7 +171,7 @@ export default function Home() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 1 }}
-          className="relative py-36 text-center overflow-hidden"
+          className="relative py-20 md:py-36 text-center overflow-hidden"
         >
           <video
             autoPlay
@@ -196,7 +186,7 @@ export default function Home() {
           <div className="absolute inset-0 bg-black/70" />
 
           <div className="relative z-10 max-w-3xl mx-auto text-white px-6">
-            <h2 className="text-5xl font-extrabold mb-6">
+            <h2 className="text-4xl md:text-5xl font-extrabold mb-6">
               Make Your Dream Home a Reality ✨
             </h2>
 
@@ -207,9 +197,7 @@ export default function Home() {
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.96 }}>
               <Link
                 to="/book-demo"
-                className="magnetic inline-flex items-center gap-3 px-10 py-4
-                  rounded-2xl text-lg font-semibold bg-white text-brand-red
-                  shadow-xl hover:shadow-orange-500/40 transition"
+                className="magnetic inline-flex items-center gap-3 px-12 py-5 rounded-2xl text-lg font-semibold bg-brand-yellow text-black shadow-glow hover:scale-105 transition-all"
               >
                 Book Free Consultation →
               </Link>

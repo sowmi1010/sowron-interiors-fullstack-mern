@@ -74,9 +74,7 @@ export default function ProductsAdd() {
     }
   };
 
-  const selectedCategory = categories.find(
-    (c) => c._id === form.category
-  );
+  const selectedCategory = categories.find((c) => c._id === form.category);
 
   return (
     <div className="max-w-2xl mx-auto text-white">
@@ -105,11 +103,9 @@ export default function ProductsAdd() {
         <input
           placeholder="Product Name"
           value={form.title}
-          onChange={(e) =>
-            setForm({ ...form, title: e.target.value })
-          }
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
           className="w-full px-4 py-3 mb-3 rounded-lg
-                     bg-white/5 border border-white/10
+                     bg-black border border-white/10
                      outline-none focus:border-brand-yellow transition"
         />
 
@@ -117,11 +113,9 @@ export default function ProductsAdd() {
         <textarea
           placeholder="Description"
           value={form.description}
-          onChange={(e) =>
-            setForm({ ...form, description: e.target.value })
-          }
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
           className="w-full px-4 py-3 mb-3 rounded-lg
-                     bg-white/5 border border-white/10
+                     bg-black border border-white/10
                      outline-none focus:border-brand-yellow transition"
         />
 
@@ -133,8 +127,8 @@ export default function ProductsAdd() {
             setSubCategory("");
           }}
           className="w-full px-4 py-3 mb-3 rounded-lg
-                     bg-white/5 border border-white/10
-                     outline-none focus:border-brand-yellow transition"
+           bg-black text-white border border-white/20
+           outline-none focus:border-brand-yellow transition"
         >
           <option value="">Select Category</option>
           {categories.map((c) => (
@@ -150,8 +144,8 @@ export default function ProductsAdd() {
             value={subCategory}
             onChange={(e) => setSubCategory(e.target.value)}
             className="w-full px-4 py-3 mb-3 rounded-lg
-                       bg-white/5 border border-white/10
-                       outline-none focus:border-brand-yellow transition"
+           bg-black text-white border border-white/20
+           outline-none focus:border-brand-yellow transition"
           >
             <option value="">Select Sub Category</option>
             {selectedCategory.subCategories.map((s, i) => (
@@ -167,11 +161,9 @@ export default function ProductsAdd() {
           type="number"
           placeholder="Price"
           value={form.price}
-          onChange={(e) =>
-            setForm({ ...form, price: e.target.value })
-          }
+          onChange={(e) => setForm({ ...form, price: e.target.value })}
           className="w-full px-4 py-3 mb-4 rounded-lg
-                     bg-white/5 border border-white/10
+                     bg-black border border-white/10
                      outline-none focus:border-brand-yellow transition"
         />
 
@@ -180,9 +172,11 @@ export default function ProductsAdd() {
           Product Images
         </label>
 
-        <div className="border border-dashed border-white/20
+        <div
+          className="border border-dashed border-white/20
                         rounded-xl p-4 mb-4 text-center
-                        hover:border-brand-yellow transition">
+                        hover:border-brand-yellow transition"
+        >
           <ImagePlus className="mx-auto mb-2 text-gray-400" />
           <input
             type="file"

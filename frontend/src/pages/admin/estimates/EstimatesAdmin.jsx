@@ -287,7 +287,7 @@ export default function EstimatesAdmin() {
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="mt-4 w-full bg-white/5 p-2 rounded-lg"
+                className="mt-4 w-full bg-black p-2 rounded-lg"
               >
                 <option value="contacted">Contacted</option>
                 <option value="quoted">Quoted</option>

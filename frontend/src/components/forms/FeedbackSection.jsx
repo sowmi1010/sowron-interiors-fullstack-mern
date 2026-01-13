@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
-import { Star, User } from "lucide-react";
+import { Star, User, Quote } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function FeedbackSection() {
@@ -26,7 +26,7 @@ export default function FeedbackSection() {
   /* ================= STATES ================= */
   if (loading) {
     return (
-      <section className="py-28 text-center text-gray-400">
+      <section className="py-24 text-center text-gray-400">
         Loading customer stories…
       </section>
     );
@@ -34,7 +34,7 @@ export default function FeedbackSection() {
 
   if (!reviews.length) {
     return (
-      <section className="py-28 text-center text-gray-400">
+      <section className="py-24 text-center text-gray-400">
         No customer feedback available yet.
       </section>
     );
@@ -43,53 +43,51 @@ export default function FeedbackSection() {
   return (
     <section
       className="
-        relative py-32 overflow-hidden
-        bg-gradient-to-b from-white via-white to-yellow-50/30
+        relative py-24 md:py-32 overflow-hidden
+        bg-gradient-to-b from-white via-white to-brand-yellowSoft/30
         dark:from-[#050505] dark:via-[#0b0b0b] dark:to-black
-        text-gray-900 dark:text-gray-100
+        text-brand-lightText dark:text-brand-darkText
       "
     >
-      {/* ================= SOFT BACKGROUND ORBS ================= */}
+      {/* ================= BACKGROUND ORBS ================= */}
       <motion.div
-        animate={{ y: [0, -60, 0], opacity: [0.2, 0.35, 0.2] }}
-        transition={{ duration: 12, repeat: Infinity }}
-        className="absolute -top-20 left-1/3 w-[420px] h-[420px]
-                   bg-red-600/25 blur-[200px] rounded-full"
+        animate={{ y: [0, -60, 0], opacity: [0.15, 0.3, 0.15] }}
+        transition={{ duration: 14, repeat: Infinity }}
+        className="absolute -top-24 left-1/3 w-[420px] h-[420px]
+                   bg-brand-red/20 blur-[220px] rounded-full"
       />
 
       <motion.div
-        animate={{ y: [0, 60, 0], opacity: [0.15, 0.3, 0.15] }}
-        transition={{ duration: 14, repeat: Infinity }}
+        animate={{ y: [0, 60, 0], opacity: [0.12, 0.25, 0.12] }}
+        transition={{ duration: 16, repeat: Infinity }}
         className="absolute bottom-0 right-1/4 w-[520px] h-[520px]
-                   bg-yellow-400/25 blur-[240px] rounded-full"
+                   bg-brand-yellow/20 blur-[260px] rounded-full"
       />
 
       {/* ================= TITLE ================= */}
-      <motion.h2
-        initial={{ opacity: 0, y: 30 }}
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        transition={{ duration: 0.8 }}
-        className="text-4xl md:text-5xl font-extrabold text-center mb-6"
+        transition={{ duration: 0.9 }}
+        className="text-center mb-20"
       >
-        Customer Stories
-        <span
-          className="
-            block mx-auto mt-4 w-24 h-[3px] rounded-full
-            bg-gradient-to-r from-red-600 to-yellow-400
-          "
-        />
-      </motion.h2>
+        <h2 className="text-4xl md:text-5xl font-extrabold mb-4">
+          Customer Stories
+        </h2>
 
-      <p className="text-center opacity-70 text-sm mb-20">
-        Real homes. Real results. Real transformations.
-      </p>
+        <span className="block mx-auto mt-4 w-24 h-[3px] rounded-full bg-gradient-to-r from-brand-red to-brand-yellow" />
+
+        <p className="mt-6 opacity-70 text-sm">
+          Real homes. Real results. Real transformations.
+        </p>
+      </motion.div>
 
       {/* ================= GRID ================= */}
       <div
         className="
           relative z-10 max-w-6xl mx-auto px-6
-          grid gap-10 grid-cols-1 sm:grid-cols-2
+          grid gap-10 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3
         "
       >
         {reviews.map((r, i) => {
@@ -98,46 +96,52 @@ export default function FeedbackSection() {
           return (
             <motion.div
               key={r._id}
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.08, duration: 0.5 }}
-              whileHover={{ y: -6 }}
+              transition={{ delay: i * 0.08, duration: 0.6 }}
+              whileHover={{ y: -10 }}
               className="
-                relative rounded-2xl p-8
+                group relative rounded-2xl p-8
                 bg-white/80 dark:bg-white/5 backdrop-blur-xl
-                border border-red-200/40 dark:border-white/10
-                shadow-xl hover:shadow-red-600/20
+                border border-brand-yellow/30 dark:border-white/10
+                shadow-xl hover:shadow-brand-red/20
                 transition-all
               "
             >
+              {/* Quote Icon */}
+              <Quote
+                size={36}
+                className="absolute -top-5 -left-4 text-brand-yellow opacity-30"
+              />
+
               {/* ================= RATING ================= */}
-              <div className="flex mb-4 gap-1">
+              <div className="flex mb-5 gap-1">
                 {[...Array(rating)].map((_, i) => (
                   <Star
                     key={i}
                     size={18}
-                    className="text-yellow-400"
-                    fill="#FACC15"
+                    className="text-brand-yellow"
+                    fill="#FBC02D"
                   />
                 ))}
               </div>
 
               {/* ================= MESSAGE ================= */}
               {r.message && (
-                <p className="text-[15px] leading-relaxed opacity-85 mb-6">
+                <p className="text-[15px] leading-relaxed opacity-85 mb-8 italic">
                   “{r.message}”
                 </p>
               )}
 
               {/* ================= USER ================= */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 mt-auto">
                 {r.photo?.url ? (
                   <img
                     src={r.photo.url}
                     alt={r.name}
                     className="w-12 h-12 rounded-full object-cover border
-                               border-yellow-400/40"
+                               border-brand-yellow/40"
                     onError={(e) => {
                       e.currentTarget.onerror = null;
                       e.currentTarget.src = "/avatar.png";
@@ -147,10 +151,10 @@ export default function FeedbackSection() {
                   <div
                     className="
                       w-12 h-12 rounded-full flex items-center justify-center
-                      bg-red-100 dark:bg-red-500/20
+                      bg-brand-red/10
                     "
                   >
-                    <User size={18} className="text-red-600 dark:text-red-400" />
+                    <User size={18} className="text-brand-red" />
                   </div>
                 )}
 
@@ -164,12 +168,13 @@ export default function FeedbackSection() {
                 </div>
               </div>
 
-              {/* ================= CARD ACCENT ================= */}
+              {/* ================= CARD GLOW ================= */}
               <span
                 className="
-                  absolute top-0 right-0 w-16 h-16
-                  bg-gradient-to-bl from-yellow-400/20 to-transparent
-                  rounded-tr-2xl
+                  absolute inset-0 rounded-2xl
+                  bg-gradient-to-tr from-brand-yellow/10 via-transparent to-transparent
+                  opacity-0 group-hover:opacity-100
+                  transition
                 "
               />
             </motion.div>

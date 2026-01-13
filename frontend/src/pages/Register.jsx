@@ -8,7 +8,6 @@ import {
   Shield
 } from "lucide-react";
 import { api } from "../lib/api";
-import SEO from "../components/SEO";
 
 export default function Register() {
   const [form, setForm] = useState({ name: "", phone: "", city: "" });
@@ -19,51 +18,38 @@ export default function Register() {
   const [cooldown, setCooldown] = useState(0);
   const otpRef = useRef(null);
 
-  /* ================= SEO ================= */
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
-  /* ⏳ COOLDOWN TIMER */
+  /* ⏳ COOLDOWN */
   useEffect(() => {
     if (cooldown > 0) {
-      const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
-      return () => clearTimeout(timer);
+      const t = setTimeout(() => setCooldown(c => c - 1), 1000);
+      return () => clearTimeout(t);
     }
   }, [cooldown]);
 
-  /* ================= SEND OTP ================= */
+  /* SEND OTP */
   const sendOtp = async () => {
     if (!form.name || !form.city || form.phone.length !== 10) {
       return setError("Please fill all details correctly");
     }
-
     try {
       setLoading(true);
       setError("");
-
       await api.post("/otp/send", { phone: form.phone });
-
       setStep(2);
       setCooldown(30);
       setTimeout(() => otpRef.current?.focus(), 300);
     } catch (err) {
-      if (!err.response) {
-        setError("Server not responding. Please try again.");
-      } else {
-        setError(err.response.data.message || "OTP send failed");
-      }
+      setError(err.response?.data?.message || "OTP send failed");
     } finally {
       setLoading(false);
     }
   };
 
-  /* ================= VERIFY OTP ================= */
+  /* VERIFY & REGISTER */
   const verify = async () => {
     if (otp.length !== 6) {
       return setError("Enter 6-digit OTP");
     }
-
     try {
       setLoading(true);
       setError("");
@@ -73,140 +59,156 @@ export default function Register() {
         otp,
       });
 
-      await api.put("/user/update", {
-        name: form.name,
-        city: form.city,
-      });
+      await api.put(
+        "/user/update",
+        { name: form.name, city: form.city },
+        {
+          headers: {
+            Authorization: `Bearer ${res.data.token}`,
+          },
+        }
+      );
 
       localStorage.setItem("userToken", res.data.token);
       localStorage.setItem("userPhone", form.phone);
       localStorage.setItem("userName", form.name);
-      localStorage.setItem("isLoggedIn", "true");
 
       window.location.href = "/";
     } catch (err) {
-      if (!err.response) {
-        setError("Server not responding. Please try again.");
-      } else {
-        setError(err.response.data.message || "Verification failed");
-      }
+      setError(err.response?.data?.message || "Verification failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <>
-      <SEO
-        title="Register | Sowron Interiors – Create Account"
-        description="Create your Sowron Interiors account using mobile OTP. Register securely to book consultations and get interior estimates."
-        keywords="register Sowron Interiors, interior consultation login, OTP registration"
-      />
+    <div
+      className="
+        min-h-screen flex items-center justify-center px-6 py-16
+        bg-gray-50 dark:bg-[#0a0a0a]
+        text-gray-900 dark:text-gray-100
+        relative overflow-hidden
+      "
+    >
+      {/* SOFT BACKGROUND GLOWS */}
+      <div className="absolute -top-40 left-1/2 -translate-x-1/2
+                      w-[520px] h-[520px]
+                      bg-red-600/20 blur-[200px]" />
+      <div className="absolute bottom-0 right-0
+                      w-[420px] h-[420px]
+                      bg-yellow-400/20 blur-[180px]" />
 
-      <div className="min-h-screen flex items-center justify-center px-6 py-16 bg-gray-50 dark:bg-[#0a0a0a] text-gray-900 dark:text-gray-100 relative overflow-hidden">
-
-        {/* BACKGROUND GLOWS */}
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[520px] h-[520px] bg-red-600/20 blur-[200px]" />
-        <div className="absolute bottom-0 right-0 w-[420px] h-[420px] bg-yellow-400/20 blur-[180px]" />
-
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative z-10 w-full max-w-md rounded-3xl p-8 sm:p-10 bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 shadow-xl"
+      {/* CARD */}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="
+          relative z-10 w-full max-w-md
+          rounded-3xl p-8 sm:p-10
+          bg-white/80 dark:bg-white/5
+          backdrop-blur-xl
+          border border-gray-200 dark:border-white/10
+          shadow-xl
+        "
+      >
+        <h2
+          className="
+            text-4xl font-extrabold text-center mb-3
+            bg-gradient-to-r from-red-600 to-yellow-400
+            bg-clip-text text-transparent
+          "
         >
-          <h1 className="text-4xl font-extrabold text-center mb-3 bg-gradient-to-r from-red-600 to-yellow-400 bg-clip-text text-transparent">
-            Create Account
-          </h1>
+          Create Account
+        </h2>
 
-          <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-8">
-            Register securely using your mobile number
+        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-8">
+          Register securely using your mobile number
+        </p>
+
+        {error && (
+          <p className="text-red-600 text-sm mb-4 text-center">
+            {error}
           </p>
+        )}
 
-          {error && (
-            <p className="text-red-600 text-sm mb-4 text-center">
-              {error}
-            </p>
+        <AnimatePresence mode="wait">
+          {/* STEP 1 */}
+          {step === 1 && (
+            <motion.div
+              key="details"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="space-y-4"
+            >
+              <Field
+                icon={<User size={18} />}
+                placeholder="Full Name"
+                value={form.name}
+                onChange={(v) => setForm({ ...form, name: v })}
+              />
+              <Field
+                icon={<MapPin size={18} />}
+                placeholder="City"
+                value={form.city}
+                onChange={(v) => setForm({ ...form, city: v })}
+              />
+              <Field
+                icon={<Smartphone size={18} />}
+                placeholder="Phone Number"
+                maxLength={10}
+                value={form.phone}
+                onChange={(v) =>
+                  setForm({ ...form, phone: v.replace(/\D/g, "") })
+                }
+              />
+
+              <PrimaryBtn onClick={sendOtp} loading={loading || cooldown > 0}>
+                {cooldown > 0 ? `Resend in ${cooldown}s` : "Send OTP →"}
+              </PrimaryBtn>
+            </motion.div>
           )}
 
-          <AnimatePresence mode="wait">
-            {/* STEP 1 */}
-            {step === 1 && (
-              <motion.div
-                key="details"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="space-y-4"
-              >
-                <Field
-                  icon={<User size={18} />}
-                  placeholder="Full Name"
-                  value={form.name}
-                  onChange={(v) => setForm({ ...form, name: v })}
-                />
-                <Field
-                  icon={<MapPin size={18} />}
-                  placeholder="City"
-                  value={form.city}
-                  onChange={(v) => setForm({ ...form, city: v })}
-                />
-                <Field
-                  icon={<Smartphone size={18} />}
-                  placeholder="Phone Number"
-                  maxLength={10}
-                  value={form.phone}
-                  onChange={(v) =>
-                    setForm({ ...form, phone: v.replace(/\D/g, "") })
-                  }
-                />
+          {/* STEP 2 */}
+          {step === 2 && (
+            <motion.div
+              key="otp"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="space-y-5"
+            >
+              <p className="text-center text-xs text-gray-500 dark:text-gray-400">
+                <Shield size={14} className="inline" /> OTP sent to {form.phone}
+              </p>
 
-                <PrimaryBtn onClick={sendOtp} loading={loading || cooldown > 0}>
-                  {cooldown > 0 ? `Resend in ${cooldown}s` : "Send OTP →"}
-                </PrimaryBtn>
-              </motion.div>
-            )}
+              <input
+                ref={otpRef}
+                className="
+                  w-full text-center text-2xl tracking-widest
+                  rounded-xl p-4
+                  bg-white dark:bg-black/40
+                  border border-gray-300 dark:border-white/10
+                  focus:border-red-600 focus:ring-2
+                  focus:ring-red-600/30
+                  outline-none transition
+                "
+                placeholder="● ● ● ● ● ●"
+                maxLength={6}
+                value={otp}
+                onChange={(e) =>
+                  setOtp(e.target.value.replace(/\D/g, ""))
+                }
+              />
 
-            {/* STEP 2 */}
-            {step === 2 && (
-              <motion.div
-                key="otp"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="space-y-5"
-              >
-                <p className="text-center text-xs text-gray-500 dark:text-gray-400">
-                  <Shield size={14} className="inline" /> OTP sent to {form.phone}
-                </p>
-
-                <input
-                  ref={otpRef}
-                  className="w-full text-center text-2xl tracking-widest rounded-xl p-4 bg-white dark:bg-black/40 border border-gray-300 dark:border-white/10 focus:border-red-600 focus:ring-2 focus:ring-red-600/30 outline-none transition"
-                  placeholder="● ● ● ● ● ●"
-                  maxLength={6}
-                  value={otp}
-                  onChange={(e) =>
-                    setOtp(e.target.value.replace(/\D/g, ""))
-                  }
-                />
-
-                <PrimaryBtn onClick={verify} loading={loading}>
-                  <Check size={18} /> Verify & Register
-                </PrimaryBtn>
-
-                <button
-                  onClick={sendOtp}
-                  disabled={cooldown > 0}
-                  className="text-sm text-red-600 hover:underline block mx-auto"
-                >
-                  {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend OTP"}
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      </div>
-    </>
+              <PrimaryBtn onClick={verify} loading={loading}>
+                <Check size={18} /> Verify & Register
+              </PrimaryBtn>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </div>
   );
 }
 
@@ -221,7 +223,14 @@ function Field({ icon, value, onChange, ...props }) {
         {...props}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full pl-12 py-4 rounded-xl bg-white dark:bg-black/40 border border-gray-300 dark:border-white/10 focus:border-red-600 focus:ring-2 focus:ring-red-600/30 outline-none transition"
+        className="
+          w-full pl-12 py-4 rounded-xl
+          bg-white dark:bg-black/40
+          border border-gray-300 dark:border-white/10
+          focus:border-red-600 focus:ring-2
+          focus:ring-red-600/30
+          outline-none transition
+        "
       />
     </div>
   );
@@ -235,7 +244,13 @@ function PrimaryBtn({ children, onClick, loading }) {
       whileTap={{ scale: 0.96 }}
       onClick={onClick}
       disabled={loading}
-      className="w-full py-4 rounded-xl font-semibold bg-gradient-to-r from-red-600 to-yellow-400 text-black hover:brightness-110 disabled:opacity-50 transition"
+      className="
+        w-full py-4 rounded-xl font-semibold
+        bg-gradient-to-r from-red-600 to-yellow-400
+        text-black
+        hover:brightness-110
+        disabled:opacity-50 transition
+      "
     >
       {loading ? "Please wait..." : children}
     </motion.button>

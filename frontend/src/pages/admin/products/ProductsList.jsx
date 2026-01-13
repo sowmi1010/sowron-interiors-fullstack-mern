@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../../../lib/api";
 import { useSearch } from "../../../context/SearchContext";
 import { Edit3, Trash2, Package, Image, Plus } from "lucide-react";
@@ -15,16 +15,22 @@ export default function ProductsList() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
 
-  const { query = "" } = useSearch();
+  const { debouncedQuery } = useSearch();
   const navigate = useNavigate();
 
   /* ================= LOAD ================= */
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const res = await api.get("/products");
-      setProducts(res.data || []);
+
+      const res = await api.get(
+        `/products/admin?page=${page}&limit=${LIMIT}&q=${debouncedQuery}`
+      );
+
+      setProducts(res.data.items || []);
+      setTotal(res.data.total || 0);
     } catch {
       toast.error("Failed to load products");
     } finally {
@@ -34,7 +40,18 @@ export default function ProductsList() {
 
   useEffect(() => {
     loadProducts();
-  }, []);
+  }, [page, debouncedQuery]);
+
+  useEffect(() => {
+    setPage(1);
+    setSelected(null);
+  }, [debouncedQuery]);
+
+  useEffect(() => {
+    if (!selected && products.length > 0) {
+      setSelected(products[0]);
+    }
+  }, [products, selected]);
 
   /* ================= DELETE ================= */
   const removeProduct = async (id) => {
@@ -53,34 +70,6 @@ export default function ProductsList() {
       setDeleting(false);
     }
   };
-
-  /* ================= SEARCH ================= */
-  const filtered = useMemo(() => {
-    if (!query) return products;
-
-    const q = query.toLowerCase();
-    return products.filter(
-      (p) =>
-        p.title?.toLowerCase().includes(q) ||
-        p.category?.name?.toLowerCase().includes(q)
-    );
-  }, [products, query]);
-
-  /* ================= PAGINATION ================= */
-  const total = filtered.length;
-  const start = (page - 1) * LIMIT;
-  const paginated = filtered.slice(start, start + LIMIT);
-
-  useEffect(() => {
-    setPage(1);
-    setSelected(null);
-  }, [query]);
-
-  useEffect(() => {
-    if (!selected && paginated.length > 0) {
-      setSelected(paginated[0]);
-    }
-  }, [paginated, selected]);
 
   return (
     <div className="flex h-[88vh] overflow-hidden text-white">
@@ -108,22 +97,18 @@ export default function ProductsList() {
         <div className="flex-1 overflow-y-auto">
           {loading ? (
             <p className="text-gray-500 text-center mt-10">Loading...</p>
-          ) : paginated.length === 0 ? (
+          ) : products.length === 0 ? (
             <p className="text-gray-500 text-center mt-10">
               No products found
             </p>
           ) : (
-            paginated.map((p) => (
+            products.map((p) => (
               <motion.div
                 key={p._id}
                 onClick={() => setSelected(p)}
                 whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}
                 className={`cursor-pointer px-4 py-3 border-b border-white/5
-                ${
-                  selected?._id === p._id
-                    ? "bg-white/10"
-                    : ""
-                }`}
+                ${selected?._id === p._id ? "bg-white/10" : ""}`}
               >
                 <div className="flex gap-3 items-center">
                   <div className="w-12 h-12 bg-white/10 rounded-lg overflow-hidden

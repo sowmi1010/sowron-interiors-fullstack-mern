@@ -155,38 +155,24 @@ export const updateGallery = async (req, res) => {
 };
 
 /* ================= DELETE GALLERY ================= */
+/* ================= DELETE GALLERY ================= */
 export const deleteGallery = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
-    const gallery = await Gallery.findById(req.params.id).session(session);
+    const gallery = await Gallery.findById(req.params.id);
+
     if (!gallery) {
-      await session.abortTransaction();
       return res.status(404).json({ message: "Not found" });
     }
 
-    // 🔥 delete images FIRST
-    const failed = await deleteMultipleImages(gallery.images);
-    if (failed.length) {
-      await session.abortTransaction();
-      return res.status(500).json({
-        message: "Image delete failed",
-        failed,
-      });
-    }
+    // delete images from cloudinary
+    await deleteMultipleImages(gallery.images);
 
-    await gallery.deleteOne({ session });
-
-    await session.commitTransaction();
-    session.endSession();
+    // delete gallery record
+    await gallery.deleteOne();
 
     res.json({ success: true, message: "Gallery deleted" });
 
   } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
-
     console.error("DELETE GALLERY ERROR:", err);
     res.status(500).json({ message: "Delete failed" });
   }

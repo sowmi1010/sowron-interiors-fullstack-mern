@@ -105,7 +105,7 @@ export default function FeedbackAdd() {
         {/* NAME */}
         <input
           placeholder="Customer Name"
-          className="bg-white/5 border border-white/10
+          className="bg-black border border-white/10
                      px-4 py-3 rounded-lg w-full
                      outline-none focus:border-brand-yellow transition"
           value={form.name}
@@ -116,7 +116,7 @@ export default function FeedbackAdd() {
 
         {/* CITY */}
         <select
-          className="bg-white/5 border border-white/10
+          className="bg-black border border-white/10
                      px-4 py-3 rounded-lg w-full
                      text-gray-300 outline-none
                      focus:border-brand-yellow transition"
@@ -139,7 +139,7 @@ export default function FeedbackAdd() {
             Rating
           </label>
           <select
-            className="bg-white/5 border border-white/10
+            className="bg-black border border-white/10
                        px-4 py-3 rounded-lg w-full
                        outline-none focus:border-brand-yellow transition"
             value={form.rating}
@@ -159,7 +159,7 @@ export default function FeedbackAdd() {
         {/* MESSAGE */}
         <textarea
           placeholder="Customer message (optional)"
-          className="bg-white/5 border border-white/10
+          className="bg-black border border-white/10
                      px-4 py-3 rounded-lg w-full min-h-[100px]
                      outline-none resize-none
                      focus:border-brand-yellow transition"

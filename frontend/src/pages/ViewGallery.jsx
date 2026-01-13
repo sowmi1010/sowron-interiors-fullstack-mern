@@ -8,6 +8,7 @@ import {
   ChevronRight,
   ZoomIn,
   Image as ImgIcon,
+  X,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import SEO from "../components/SEO";
@@ -48,25 +49,17 @@ export default function ViewGallery() {
 
     intervalRef.current = setInterval(() => {
       setActiveIndex((p) => (p + 1) % item.images.length);
-    }, 5000);
+    }, 4500);
 
     return () => clearInterval(intervalRef.current);
   }, [item]);
 
   if (loading) {
-    return (
-      <p className="text-center py-24 text-gray-400">
-        Loading gallery…
-      </p>
-    );
+    return <p className="text-center py-32 text-brand-lightSubText">Loading project…</p>;
   }
 
   if (!item || !item.images?.length) {
-    return (
-      <p className="text-center py-24 text-gray-400">
-        Gallery not found
-      </p>
-    );
+    return <p className="text-center py-32 text-brand-lightSubText">Gallery not found</p>;
   }
 
   const images = item.images;
@@ -75,170 +68,118 @@ export default function ViewGallery() {
 
   return (
     <>
-      {/* ================= SEO ================= */}
       <SEO
         title={`${item.title} | Sowron Interiors Gallery`}
-        description={`Explore ${item.title} interior project by Sowron Interiors. Premium turnkey interior execution and modular furniture.`}
-        keywords="interior design project, modular kitchen, turnkey interiors, Sowron Interiors"
+        description={`Explore ${item.title} interior project by Sowron Interiors.`}
       />
 
-      <section
-        className="
-          min-h-screen pb-28
-          bg-gradient-to-b from-white via-white to-yellow-50/40
-          dark:from-[#050505] dark:via-[#0b0b0b] dark:to-black
-          text-gray-900 dark:text-gray-100
-        "
-      >
-        {/* ================= BACK ================= */}
+      <section className="min-h-screen pb-32 bg-brand-lightBg dark:bg-brand-darkBg text-brand-lightText dark:text-brand-darkText transition-colors">
+
+        {/* BACK */}
         <div className="max-w-7xl mx-auto px-6 pt-10">
           <button
             onClick={() => navigate(-1)}
-            className="
-              inline-flex items-center gap-2 px-5 py-2 rounded-full
-              bg-white dark:bg-[#1b1b1b]
-              border border-red-200/40 dark:border-white/10
-              shadow hover:shadow-red-600/20 transition
-            "
+            className="flex items-center gap-2 px-6 py-2 rounded-full
+              bg-brand-lightCard dark:bg-brand-darkCard backdrop-blur
+              border border-brand-yellow/40 dark:border-white/10
+              shadow-card hover:shadow-glow transition"
           >
             <ArrowLeft size={18} /> Back to Gallery
           </button>
         </div>
 
-        {/* ================= HEADER ================= */}
-        <div className="text-center mt-12 px-6">
+        {/* HEADER */}
+        <div className="text-center mt-16 px-6">
           <motion.h1
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-5xl font-extrabold"
+            className="text-4xl md:text-6xl font-extrabold tracking-wide"
           >
             {item.title}
-            <span className="block mx-auto mt-4 w-24 h-[3px]
-              bg-gradient-to-r from-red-600 to-yellow-400 rounded-full" />
+            <span className="block mx-auto mt-5 w-28 h-[3px]
+              bg-gradient-to-r from-brand-red to-brand-yellow rounded-full" />
           </motion.h1>
 
-          <p className="mt-3 text-xs md:text-sm uppercase tracking-widest opacity-70">
-            {item.category
-              ? item.category.replace(/-/g, " ")
-              : "Uncategorized"}
+          <p className="mt-4 text-xs md:text-sm uppercase tracking-widest text-brand-lightSubText dark:text-brand-darkSubText">
+            {item.category?.replace(/-/g, " ") || "Premium Interior Project"}
           </p>
         </div>
 
-        {/* ================= MAIN SLIDER ================= */}
-        <div className="relative max-w-6xl mx-auto px-4 md:px-8 mt-14">
+        {/* MAIN SLIDER */}
+        <div className="relative max-w-7xl mx-auto px-6 mt-20">
           <div
-            className="
-              relative h-[320px] md:h-[520px]
-              rounded-[2rem] overflow-hidden
-              shadow-2xl bg-black
-              cursor-zoom-in group
-            "
+            className="relative h-[300px] sm:h-[420px] md:h-[560px]
+              rounded-[2.5rem] overflow-hidden
+              shadow-2xl bg-black cursor-zoom-in"
             onClick={() => setZoomImage(images[activeIndex].url)}
           >
-            {/* PREV */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                prev();
-              }}
-              className="
-                absolute left-5 top-1/2 -translate-y-1/2 z-10
-                bg-black/40 hover:bg-black/70
-                p-3 rounded-full transition
-              "
-            >
-              <ChevronLeft />
+            {/* CONTROLS */}
+            <button onClick={(e) => { e.stopPropagation(); prev(); }}
+              className="absolute left-5 top-1/2 -translate-y-1/2 bg-black/50 p-3 rounded-full">
+              <ChevronLeft className="text-white" />
             </button>
 
-            {/* NEXT */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                next();
-              }}
-              className="
-                absolute right-5 top-1/2 -translate-y-1/2 z-10
-                bg-black/40 hover:bg-black/70
-                p-3 rounded-full transition
-              "
-            >
-              <ChevronRight />
+            <button onClick={(e) => { e.stopPropagation(); next(); }}
+              className="absolute right-5 top-1/2 -translate-y-1/2 bg-black/50 p-3 rounded-full">
+              <ChevronRight className="text-white" />
             </button>
 
             <AnimatePresence mode="wait">
-              {images[activeIndex]?.url ? (
-                <motion.img
-                  key={activeIndex}
-                  src={images[activeIndex].url}
-                  alt={item.title}
-                  loading="lazy"
-                  initial={{ opacity: 0, scale: 1.02 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.5 }}
-                  className="object-cover h-full w-full"
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <ImgIcon className="text-gray-400" size={40} />
-                </div>
-              )}
+              <motion.img
+                key={activeIndex}
+                src={images[activeIndex].url}
+                alt={item.title}
+                initial={{ opacity: 0, scale: 1.05 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.6 }}
+                className="object-cover h-full w-full"
+              />
             </AnimatePresence>
 
-            {/* ZOOM BADGE */}
-            <div className="
-              absolute bottom-5 right-5
-              bg-white/80 dark:bg-black/60
-              px-3 py-1 rounded-full text-xs
-              flex items-center gap-2
-            ">
-              <ZoomIn size={14} /> Click to zoom
+            <div className="absolute bottom-6 right-6 bg-white/90 dark:bg-black/70 backdrop-blur
+              px-4 py-2 rounded-full text-xs font-semibold flex items-center gap-2 shadow-xl">
+              <ZoomIn size={14} /> View Fullscreen
             </div>
           </div>
         </div>
 
-        {/* ================= THUMBNAILS ================= */}
-        <div className="max-w-6xl mx-auto px-4 md:px-8 mt-8 flex gap-4">
-          {images.map((img, idx) => (
-            <motion.img
-              key={img.public_id || idx}
-              src={img.url}
-              alt={`Interior project image ${idx + 1}`}
-              loading="lazy"
-              whileHover={{ scale: 1.05 }}
-              onClick={() => setActiveIndex(idx)}
-              className={`
-                h-20 w-32 rounded-xl cursor-pointer
-                transition-all
-                ${
-                  idx === activeIndex
-                    ? "ring-4 ring-yellow-400"
+        {/* THUMBNAILS */}
+        <div className="max-w-7xl mx-auto px-6 mt-12">
+          <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide">
+            {images.map((img, idx) => (
+              <motion.img
+                key={idx}
+                src={img.url}
+                whileHover={{ scale: 1.05 }}
+                onClick={() => setActiveIndex(idx)}
+                className={`h-24 w-36 rounded-2xl cursor-pointer transition-all
+                  ${idx === activeIndex
+                    ? "ring-4 ring-brand-yellow shadow-xl"
                     : "opacity-60 hover:opacity-100"
-                }
-              `}
-            />
-          ))}
+                  }`}
+              />
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* ================= LIGHTBOX ================= */}
+      {/* LIGHTBOX */}
       <AnimatePresence>
         {zoomImage && (
           <motion.div
-            className="fixed inset-0 bg-black/90 z-[999]
-                       flex items-center justify-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/95 z-[999] flex items-center justify-center p-6"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setZoomImage(null)}
           >
+            <button className="absolute top-6 right-6 bg-black/60 p-3 rounded-full text-white">
+              <X />
+            </button>
+
             <motion.img
               src={zoomImage}
-              alt="Zoomed interior project"
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              className="max-h-[90vh] max-w-[90vw] rounded-2xl shadow-2xl"
+              initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
+              className="max-h-[90vh] max-w-[90vw] rounded-3xl shadow-2xl"
             />
           </motion.div>
         )}

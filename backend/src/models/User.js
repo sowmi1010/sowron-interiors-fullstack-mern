@@ -4,15 +4,8 @@ import crypto from "crypto";
 
 const userSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      trim: true,
-    },
-
-    city: {
-      type: String,
-      trim: true,
-    },
+    name: String,
+    city: String,
 
     email: {
       type: String,
@@ -35,7 +28,7 @@ const userSchema = new mongoose.Schema(
 
     password: {
       type: String,
-      select: false, // never return password by default
+      select: false,
     },
 
     resetPasswordToken: String,
@@ -51,20 +44,17 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ["user", "admin"],
       default: "user",
-      index: true,
     },
   },
   { timestamps: true }
 );
 
 /* ===========================
-   PASSWORD HASHING
+   PASSWORD HASHING (Mongoose v7 Safe)
 =========================== */
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
-
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
   this.password = await bcrypt.hash(this.password, 12);
-  next();
 });
 
 /* ===========================
@@ -75,7 +65,7 @@ userSchema.methods.comparePassword = function (password) {
 };
 
 /* ===========================
-   RESET TOKEN GENERATOR
+   RESET TOKEN
 =========================== */
 userSchema.methods.createPasswordResetToken = function () {
   const rawToken = crypto.randomBytes(32).toString("hex");

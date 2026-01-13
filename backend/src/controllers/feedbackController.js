@@ -1,12 +1,8 @@
-import mongoose from "mongoose";
 import Feedback from "../models/Feedback.js";
 import { deleteImage } from "../services/cloudinary.service.js";
 
 /* ================= ADD FEEDBACK ================= */
 export const addFeedback = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   let uploadedPhoto = null;
 
   try {
@@ -32,29 +28,17 @@ export const addFeedback = async (req, res) => {
       };
     }
 
-    const [fb] = await Feedback.create(
-      [
-        {
-          name: name.trim(),
-          city: city.trim(),
-          rating: parsedRating,
-          message: message?.trim(),
-          photo: uploadedPhoto,
-        },
-      ],
-      { session }
-    );
-
-    await session.commitTransaction();
-    session.endSession();
+    const fb = await Feedback.create({
+      name: name.trim(),
+      city: city.trim(),
+      rating: parsedRating,
+      message: message?.trim(),
+      photo: uploadedPhoto,
+    });
 
     res.status(201).json({ success: true, fb });
 
   } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
-
-    // 🔥 rollback uploaded image
     if (uploadedPhoto?.public_id) {
       await deleteImage(uploadedPhoto.public_id);
     }
@@ -91,13 +75,9 @@ export const getSingleFeedbackById = async (req, res) => {
 
 /* ================= UPDATE ================= */
 export const updateFeedback = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
-    const fb = await Feedback.findById(req.params.id).session(session);
+    const fb = await Feedback.findById(req.params.id);
     if (!fb) {
-      await session.abortTransaction();
       return res.status(404).json({
         message: "Feedback not found",
       });
@@ -109,15 +89,9 @@ export const updateFeedback = async (req, res) => {
     if (req.body.message) fb.message = req.body.message.trim();
 
     if (req.file) {
-      // 🔥 delete old image FIRST
+      // delete old image first
       if (fb.photo?.public_id) {
-        const ok = await deleteImage(fb.photo.public_id);
-        if (!ok) {
-          await session.abortTransaction();
-          return res.status(500).json({
-            message: "Old image delete failed",
-          });
-        }
+        await deleteImage(fb.photo.public_id);
       }
 
       fb.photo = {
@@ -126,17 +100,11 @@ export const updateFeedback = async (req, res) => {
       };
     }
 
-    await fb.save({ session });
-
-    await session.commitTransaction();
-    session.endSession();
+    await fb.save();
 
     res.json({ success: true, fb });
 
   } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
-
     console.error("UPDATE FEEDBACK ERROR:", err);
     res.status(500).json({ message: "Update failed" });
   }
@@ -144,40 +112,25 @@ export const updateFeedback = async (req, res) => {
 
 /* ================= DELETE ================= */
 export const deleteFeedback = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
-    const fb = await Feedback.findById(req.params.id).session(session);
+    const fb = await Feedback.findById(req.params.id);
     if (!fb) {
-      await session.abortTransaction();
       return res.status(404).json({
         message: "Feedback not found",
       });
     }
 
-    // 🔥 delete image FIRST
+    // delete image from cloudinary
     if (fb.photo?.public_id) {
-      const ok = await deleteImage(fb.photo.public_id);
-      if (!ok) {
-        await session.abortTransaction();
-        return res.status(500).json({
-          message: "Image delete failed",
-        });
-      }
+      await deleteImage(fb.photo.public_id);
     }
 
-    await fb.deleteOne({ session });
-
-    await session.commitTransaction();
-    session.endSession();
+    // delete feedback record
+    await fb.deleteOne();
 
     res.json({ success: true });
 
   } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
-
     console.error("DELETE FEEDBACK ERROR:", err);
     res.status(500).json({ message: "Delete failed" });
   }

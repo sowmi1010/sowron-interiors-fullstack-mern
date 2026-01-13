@@ -116,41 +116,27 @@ export const updateProduct = async (req, res) => {
 
 /* ================= DELETE PRODUCT ================= */
 export const deleteProduct = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
-    const product = await Product.findById(req.params.id).session(session);
+    const product = await Product.findById(req.params.id);
+
     if (!product) {
-      await session.abortTransaction();
       return res.status(404).json({ message: "Not found" });
     }
 
-    // 🔥 delete images FIRST
-    const failed = await deleteMultipleImages(product.images);
-    if (failed.length) {
-      await session.abortTransaction();
-      return res.status(500).json({
-        message: "Image delete failed",
-        failed,
-      });
-    }
+    // delete cloudinary images
+    await deleteMultipleImages(product.images);
 
-    await product.deleteOne({ session });
-
-    await session.commitTransaction();
-    session.endSession();
+    // delete product
+    await product.deleteOne();
 
     res.json({ success: true, message: "Product deleted" });
 
   } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
-
     console.error("DELETE PRODUCT ERROR:", err);
     res.status(500).json({ message: "Delete failed" });
   }
 };
+
 
 
 /* ================= GET SINGLE PRODUCT ================= */

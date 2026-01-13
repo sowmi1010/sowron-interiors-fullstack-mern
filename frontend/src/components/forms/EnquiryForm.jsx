@@ -8,7 +8,7 @@ import {
   Send,
   CheckCircle,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 
 export default function EnquiryForm() {
@@ -41,11 +41,10 @@ export default function EnquiryForm() {
 
       setSuccess(true);
       setForm({ name: "", phone: "", city: "", message: "" });
+
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      toast.error(
-        err.response?.data?.message || "Failed to submit enquiry"
-      );
+      toast.error(err.response?.data?.message || "Failed to submit enquiry");
     } finally {
       setLoading(false);
     }
@@ -53,44 +52,54 @@ export default function EnquiryForm() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
+      initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.7, ease: "easeOut" }}
       className="max-w-md mx-auto"
     >
       {/* SUCCESS */}
-      {success && (
-        <div className="
-          mb-6 flex items-center gap-2
-          rounded-xl p-4 text-sm
-          bg-green-100 text-green-700
-          dark:bg-green-900/40 dark:text-green-200
-        ">
-          <CheckCircle size={18} />
-          Enquiry submitted. Our consultant will call you shortly.
-        </div>
-      )}
+      <AnimatePresence>
+        {success && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="
+              mb-6 flex items-center gap-3
+              rounded-2xl p-4 text-sm
+              bg-green-100 text-green-700
+              dark:bg-green-900/40 dark:text-green-200
+              shadow-md
+            "
+          >
+            <CheckCircle size={20} />
+            Enquiry submitted. Our consultant will call you shortly.
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <form
         onSubmit={submit}
         className="
-          rounded-3xl p-8
-          bg-white dark:bg-[#121212]
+          relative rounded-[2.5rem] p-8
+          bg-white/80 dark:bg-[#121212]/80
+          backdrop-blur-xl
           border border-gray-200 dark:border-white/10
-          shadow-xl
+          shadow-[0_20px_60px_rgba(0,0,0,0.15)]
         "
       >
         {/* HEADER */}
-        <div className="mb-8">
-          <h3 className="text-2xl font-extrabold text-center">
+        <div className="mb-10">
+          <h3 className="text-2xl font-extrabold tracking-wide">
             Request a Call Back
           </h3>
-          <p className="mt-2 text-sm text-center text-gray-600 dark:text-gray-400">
+
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
             Speak directly with our interior design consultant
           </p>
 
           <span className="
-            block mx-auto mt-4 w-16 h-[3px]
+            block mt-4 w-16 h-[3px]
             bg-gradient-to-r from-red-600 to-yellow-400
             rounded-full
           " />
@@ -119,15 +128,15 @@ export default function EnquiryForm() {
         />
 
         {/* MESSAGE */}
-        <div className="mb-6">
-          <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">
+        <div className="mb-7">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Message <span className="opacity-60">(Optional)</span>
           </label>
 
-          <div className="relative">
+          <div className="relative group">
             <MessageCircle
               size={16}
-              className="absolute left-3 top-3 text-gray-400"
+              className="absolute left-4 top-4 text-gray-400"
             />
             <textarea
               rows={3}
@@ -136,11 +145,12 @@ export default function EnquiryForm() {
                 setForm({ ...form, message: e.target.value })
               }
               className="
-                w-full rounded-xl pl-10 p-3
+                w-full rounded-2xl pl-11 pr-4 py-3.5
                 bg-gray-50 dark:bg-[#1a1a1a]
                 border border-gray-300 dark:border-white/10
-                outline-none text-sm
-                focus:border-red-500 transition
+                outline-none text-sm resize-none
+                focus:border-red-500 focus:ring-2 focus:ring-red-500/20
+                transition-all
               "
               placeholder="Tell us briefly about your requirement"
             />
@@ -149,15 +159,16 @@ export default function EnquiryForm() {
 
         {/* SUBMIT */}
         <motion.button
-          whileHover={{ scale: 1.02 }}
+          whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.96 }}
           disabled={loading}
           className="
-            w-full flex items-center justify-center gap-2
-            py-3 rounded-xl font-semibold
+            w-full flex items-center justify-center gap-3
+            py-4 rounded-2xl font-semibold tracking-wide
             bg-gradient-to-r from-red-600 to-red-700
-            text-white
-            hover:shadow-red-600/40
+            text-white text-sm
+            shadow-lg shadow-red-600/30
+            hover:shadow-red-600/50
             transition disabled:opacity-60
           "
         >
@@ -175,22 +186,23 @@ export default function EnquiryForm() {
 /* INPUT FIELD */
 function Field({ label, icon: Icon, value, onChange }) {
   return (
-    <div className="mb-5">
-      <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">
+    <div className="mb-6">
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
         {label}
       </label>
 
-      <div className="relative">
-        <Icon size={16} className="absolute left-3 top-3 text-gray-400" />
+      <div className="relative group">
+        <Icon size={16} className="absolute left-4 top-4 text-gray-400" />
         <input
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="
-            w-full rounded-xl pl-10 p-3
+            w-full rounded-2xl pl-11 pr-4 py-3.5
             bg-gray-50 dark:bg-[#1a1a1a]
             border border-gray-300 dark:border-white/10
             outline-none text-sm
-            focus:border-red-500 transition
+            focus:border-red-500 focus:ring-2 focus:ring-red-500/20
+            transition-all
           "
           placeholder={label}
         />

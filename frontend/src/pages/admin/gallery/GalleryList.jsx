@@ -16,7 +16,7 @@ import Pagination from "../../../components/ui/Pagination";
 
 export default function GalleryList() {
   const navigate = useNavigate();
-  const { query } = useSearch();
+  const { debouncedQuery } = useSearch(); // ✅ global debounced search
 
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
@@ -34,7 +34,7 @@ export default function GalleryList() {
       setLoading(true);
 
       const res = await api.get(
-        `/gallery/admin?page=${page}&limit=${limit}&q=${query}`
+        `/gallery/admin?page=${page}&limit=${limit}&q=${debouncedQuery}`
       );
 
       setItems(res.data.items || []);
@@ -49,12 +49,12 @@ export default function GalleryList() {
   /* 🔄 LOAD ON PAGE / SEARCH */
   useEffect(() => {
     loadGallery();
-  }, [page, query]);
+  }, [page, debouncedQuery]);
 
   /* 🔄 RESET PAGE WHEN SEARCH CHANGES */
   useEffect(() => {
     setPage(1);
-  }, [query]);
+  }, [debouncedQuery]);
 
   /* ================= DELETE ================= */
   const deleteItem = async () => {

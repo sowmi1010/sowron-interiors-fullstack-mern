@@ -100,7 +100,7 @@ export default function GalleryAdd() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="w-full px-4 py-3 rounded-lg
-                       bg-white/5 border border-white/10
+                       bg-black border border-white/10
                        outline-none focus:border-brand-yellow transition"
           />
 
@@ -109,7 +109,7 @@ export default function GalleryAdd() {
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             className="w-full px-4 py-3 rounded-lg
-                       bg-white/5 border border-white/10
+                       bg-black border border-white/10
                        outline-none focus:border-brand-yellow transition"
           >
             <option value="">Select Category</option>
@@ -123,7 +123,7 @@ export default function GalleryAdd() {
           {/* IMAGE PICKER */}
           <label className="flex items-center justify-center gap-2
                             border border-dashed border-white/20
-                            rounded-xl bg-white/5 py-6
+                            rounded-xl bg-black py-6
                             cursor-pointer hover:border-brand-yellow
                             transition">
             <Upload size={20} />

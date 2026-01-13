@@ -1,8 +1,8 @@
 import axios from "axios";
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
-  withCredentials: true, // important for cookies / OTP sessions
+  baseURL: import.meta.env.VITE_API_URL,
+  withCredentials: true,
 });
 
 /* ===========================
@@ -37,7 +37,6 @@ api.interceptors.response.use(
       localStorage.removeItem("userName");
       localStorage.removeItem("isLoggedIn");
 
-      // redirect based on role
       if (window.location.pathname.startsWith("/admin")) {
         window.location.replace("/admin/login");
       } else {
