@@ -18,7 +18,7 @@ import multer from "multer";
 const app = express();
 const server = http.createServer(app);
 
-// Trust proxy for production (important for OTP & cookies)
+// Trust proxy for Render
 app.set("trust proxy", 1);
 
 /* ===========================
@@ -28,10 +28,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /* ===========================
-   ALLOWED ORIGINS
+   ALLOWED ORIGINS (FIXED)
 =========================== */
 const allowedOrigins = [
-  "https://www.sowroninteriors.com",
+  "https://sowron-interiors.netlify.app",
+  "https://sowron.com",
+  "https://www.sowron.com",
   "http://localhost:5173"
 ];
 
@@ -41,7 +43,6 @@ const allowedOrigins = [
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
-    methods: ["GET", "POST"],
     credentials: true,
   },
 });
@@ -58,13 +59,7 @@ io.on("connection", (socket) => {
 app.use(helmet());
 
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("CORS blocked"));
-    }
-  },
+  origin: allowedOrigins,
   credentials: true,
 }));
 
@@ -132,23 +127,6 @@ app.use("/api/feedback", feedbackRoutes);
 app.use("/api/admin", dashboardRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/categories", categoryRoutes);
-
-/* ===========================
-   SERVE FRONTEND BUILD
-=========================== */
-
-app.use(express.static(path.join(__dirname, "dist")));
-
-// Catch-all for frontend routes (Express v5 safe)
-app.use((req, res, next) => {
-  if (req.path.startsWith("/api")) {
-    return next();
-  }
-
-  res.sendFile(path.join(__dirname, "dist", "index.html"));
-});
-
-
 
 /* ===========================
    GLOBAL ERROR HANDLER
