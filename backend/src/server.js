@@ -6,20 +6,19 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { connectDB } from "./config/db.js";
-import { Server } from "socket.io";
 import http from "http";
+import { Server } from "socket.io";
 
-/* ===========================
-   APP SETUP
-=========================== */
 const app = express();
 const server = http.createServer(app);
 
-// Render proxy support
+/* ===========================
+   TRUST PROXY (Render)
+=========================== */
 app.set("trust proxy", 1);
 
 /* ===========================
-   ALLOWED ORIGINS (IMPORTANT)
+   ALLOWED ORIGINS
 =========================== */
 const allowedOrigins = [
   "https://sowron-interiors.netlify.app",
@@ -34,15 +33,8 @@ const allowedOrigins = [
 app.use(helmet());
 
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // allow server-to-server
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    } else {
-      return callback(new Error("CORS blocked"));
-    }
-  },
-  credentials: true,
+  origin: allowedOrigins,
+  credentials: true
 }));
 
 app.use(express.json());
@@ -53,7 +45,7 @@ app.use(express.urlencoded({ extended: true }));
 =========================== */
 app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 500,
+  max: 500
 }));
 
 /* ===========================
@@ -67,9 +59,10 @@ connectDB();
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
-    credentials: true,
-  },
+    credentials: true
+  }
 });
+
 global._io = io;
 
 /* ===========================
@@ -89,7 +82,7 @@ import userRoutes from "./routes/userRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 
 /* ===========================
-   TEST
+   TEST ROUTE
 =========================== */
 app.get("/api/test", (req, res) => {
   res.json({ message: "Backend Working 🚀" });
@@ -112,17 +105,9 @@ app.use("/api/user", userRoutes);
 app.use("/api/categories", categoryRoutes);
 
 /* ===========================
-   ERROR HANDLER
-=========================== */
-app.use((err, req, res, next) => {
-  console.error("🔥 ERROR:", err.message);
-  res.status(500).json({ message: err.message });
-});
-
-/* ===========================
    START SERVER
 =========================== */
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log("🚀 Server running on port", PORT);
 });
