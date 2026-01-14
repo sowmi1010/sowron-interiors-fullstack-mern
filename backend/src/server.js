@@ -8,8 +8,8 @@ import rateLimit from "express-rate-limit";
 import { connectDB } from "./config/db.js";
 import path from "path";
 import { fileURLToPath } from "url";
-import { Server } from "socket.io";
 import http from "http";
+import { Server } from "socket.io";
 import multer from "multer";
 
 /* ===========================
@@ -28,17 +28,17 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /* ===========================
-   ALLOWED ORIGINS (FIXED)
+   ALLOWED ORIGINS
 =========================== */
 const allowedOrigins = [
   "https://sowron-interiors.netlify.app",
   "https://sowron.com",
   "https://www.sowron.com",
-  "http://localhost:5173"
+  "http://localhost:5173",
 ];
 
 /* ===========================
-   SOCKET SETUP
+   SOCKET.IO SETUP
 =========================== */
 const io = new Server(server, {
   cors: {
@@ -59,9 +59,24 @@ io.on("connection", (socket) => {
 app.use(helmet());
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: function (origin, callback) {
+    // Allow server-to-server & Postman
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log("❌ CORS BLOCKED:", origin);
+      callback(new Error("CORS not allowed"));
+    }
+  },
   credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 }));
+
+// Preflight
+app.options("*", cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -74,12 +89,6 @@ const apiLimiter = rateLimit({
   max: 300,
   standardHeaders: true,
   legacyHeaders: false,
-});
-
-const otpLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
-  max: 10,
-  message: "Too many OTP requests. Please try again later.",
 });
 
 app.use(apiLimiter);
@@ -148,5 +157,5 @@ app.use((err, req, res, next) => {
 =========================== */
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`🚀 Secure Server running on ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
