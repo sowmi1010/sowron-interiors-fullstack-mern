@@ -6,11 +6,8 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { connectDB } from "./config/db.js";
-import path from "path";
-import { fileURLToPath } from "url";
-import http from "http";
 import { Server } from "socket.io";
-import multer from "multer";
+import http from "http";
 
 /* ===========================
    APP SETUP
@@ -18,27 +15,54 @@ import multer from "multer";
 const app = express();
 const server = http.createServer(app);
 
-// Trust proxy for Render
+// Render proxy support
 app.set("trust proxy", 1);
 
 /* ===========================
-   DIRNAME FIX
-=========================== */
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-/* ===========================
-   ALLOWED ORIGINS
+   ALLOWED ORIGINS (IMPORTANT)
 =========================== */
 const allowedOrigins = [
   "https://sowron-interiors.netlify.app",
   "https://sowron.com",
   "https://www.sowron.com",
-  "http://localhost:5173",
+  "http://localhost:5173"
 ];
 
 /* ===========================
-   SOCKET.IO SETUP
+   SECURITY
+=========================== */
+app.use(helmet());
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true); // allow server-to-server
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error("CORS blocked"));
+    }
+  },
+  credentials: true,
+}));
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+/* ===========================
+   RATE LIMIT
+=========================== */
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 500,
+}));
+
+/* ===========================
+   DATABASE
+=========================== */
+connectDB();
+
+/* ===========================
+   SOCKET.IO
 =========================== */
 const io = new Server(server, {
   cors: {
@@ -46,57 +70,7 @@ const io = new Server(server, {
     credentials: true,
   },
 });
-
 global._io = io;
-
-io.on("connection", (socket) => {
-  console.log("🔥 WebSocket Connected:", socket.id);
-});
-
-/* ===========================
-   SECURITY MIDDLEWARE
-=========================== */
-app.use(helmet());
-
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow server-to-server & Postman
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.log("❌ CORS BLOCKED:", origin);
-      callback(new Error("CORS not allowed"));
-    }
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-}));
-
-// Preflight
-app.options("*", cors());
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-/* ===========================
-   RATE LIMITING
-=========================== */
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 300,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-app.use(apiLimiter);
-
-/* ===========================
-   CONNECT DATABASE
-=========================== */
-connectDB();
 
 /* ===========================
    ROUTES
@@ -115,14 +89,14 @@ import userRoutes from "./routes/userRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 
 /* ===========================
-   TEST ROUTE
+   TEST
 =========================== */
 app.get("/api/test", (req, res) => {
   res.json({ message: "Backend Working 🚀" });
 });
 
 /* ===========================
-   USE ROUTES
+   API ROUTES
 =========================== */
 app.use("/api/admin", adminRoutes);
 app.use("/api/products", productRoutes);
@@ -138,18 +112,11 @@ app.use("/api/user", userRoutes);
 app.use("/api/categories", categoryRoutes);
 
 /* ===========================
-   GLOBAL ERROR HANDLER
+   ERROR HANDLER
 =========================== */
 app.use((err, req, res, next) => {
-  console.error("🔥 GLOBAL ERROR:", err);
-
-  if (err instanceof multer.MulterError) {
-    return res.status(400).json({ message: err.message });
-  }
-
-  res.status(500).json({
-    message: err.message || "Internal Server Error",
-  });
+  console.error("🔥 ERROR:", err.message);
+  res.status(500).json({ message: err.message });
 });
 
 /* ===========================
