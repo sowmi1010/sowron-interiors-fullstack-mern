@@ -55,16 +55,25 @@ export default function ViewGallery() {
   }, [item]);
 
   if (loading) {
-    return <p className="text-center py-32 text-brand-lightSubText">Loading project…</p>;
+    return (
+      <p className="text-center py-32 text-brand-lightSubText">
+        Loading project…
+      </p>
+    );
   }
 
   if (!item || !item.images?.length) {
-    return <p className="text-center py-32 text-brand-lightSubText">Gallery not found</p>;
+    return (
+      <p className="text-center py-32 text-brand-lightSubText">
+        Gallery not found
+      </p>
+    );
   }
 
   const images = item.images;
   const next = () => setActiveIndex((p) => (p + 1) % images.length);
-  const prev = () => setActiveIndex((p) => (p - 1 + images.length) % images.length);
+  const prev = () =>
+    setActiveIndex((p) => (p - 1 + images.length) % images.length);
 
   return (
     <>
@@ -74,7 +83,6 @@ export default function ViewGallery() {
       />
 
       <section className="min-h-screen pb-32 bg-brand-lightBg dark:bg-brand-darkBg text-brand-lightText dark:text-brand-darkText transition-colors">
-
         {/* BACK */}
         <div className="max-w-7xl mx-auto px-6 pt-10">
           <button
@@ -82,7 +90,7 @@ export default function ViewGallery() {
             className="flex items-center gap-2 px-6 py-2 rounded-full
               bg-brand-lightCard dark:bg-brand-darkCard backdrop-blur
               border border-brand-yellow/40 dark:border-white/10
-              shadow-card hover:shadow-glow transition"
+              shadow-card hover:shadow-glow transition mt-16"
           >
             <ArrowLeft size={18} /> Back to Gallery
           </button>
@@ -96,8 +104,10 @@ export default function ViewGallery() {
             className="text-4xl md:text-6xl font-extrabold tracking-wide"
           >
             {item.title}
-            <span className="block mx-auto mt-5 w-28 h-[3px]
-              bg-gradient-to-r from-brand-red to-brand-yellow rounded-full" />
+            <span
+              className="block mx-auto mt-5 w-28 h-[3px]
+              bg-gradient-to-r from-brand-red to-brand-yellow rounded-full"
+            />
           </motion.h1>
 
           <p className="mt-4 text-xs md:text-sm uppercase tracking-widest text-brand-lightSubText dark:text-brand-darkSubText">
@@ -114,13 +124,23 @@ export default function ViewGallery() {
             onClick={() => setZoomImage(images[activeIndex].url)}
           >
             {/* CONTROLS */}
-            <button onClick={(e) => { e.stopPropagation(); prev(); }}
-              className="absolute left-5 top-1/2 -translate-y-1/2 bg-black/50 p-3 rounded-full">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                prev();
+              }}
+              className="absolute left-5 top-1/2 -translate-y-1/2 bg-black/50 p-3 rounded-full"
+            >
               <ChevronLeft className="text-white" />
             </button>
 
-            <button onClick={(e) => { e.stopPropagation(); next(); }}
-              className="absolute right-5 top-1/2 -translate-y-1/2 bg-black/50 p-3 rounded-full">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                next();
+              }}
+              className="absolute right-5 top-1/2 -translate-y-1/2 bg-black/50 p-3 rounded-full"
+            >
               <ChevronRight className="text-white" />
             </button>
 
@@ -137,8 +157,10 @@ export default function ViewGallery() {
               />
             </AnimatePresence>
 
-            <div className="absolute bottom-6 right-6 bg-white/90 dark:bg-black/70 backdrop-blur
-              px-4 py-2 rounded-full text-xs font-semibold flex items-center gap-2 shadow-xl">
+            <div
+              className="absolute bottom-6 right-6 bg-white/90 dark:bg-black/70 backdrop-blur
+              px-4 py-2 rounded-full text-xs font-semibold flex items-center gap-2 shadow-xl"
+            >
               <ZoomIn size={14} /> View Fullscreen
             </div>
           </div>
@@ -154,9 +176,10 @@ export default function ViewGallery() {
                 whileHover={{ scale: 1.05 }}
                 onClick={() => setActiveIndex(idx)}
                 className={`h-24 w-36 rounded-2xl cursor-pointer transition-all
-                  ${idx === activeIndex
-                    ? "ring-4 ring-brand-yellow shadow-xl"
-                    : "opacity-60 hover:opacity-100"
+                  ${
+                    idx === activeIndex
+                      ? "ring-4 ring-brand-yellow shadow-xl"
+                      : "opacity-60 hover:opacity-100"
                   }`}
               />
             ))}
@@ -169,7 +192,9 @@ export default function ViewGallery() {
         {zoomImage && (
           <motion.div
             className="fixed inset-0 bg-black/95 z-[999] flex items-center justify-center p-6"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             onClick={() => setZoomImage(null)}
           >
             <button className="absolute top-6 right-6 bg-black/60 p-3 rounded-full text-white">
@@ -178,7 +203,9 @@ export default function ViewGallery() {
 
             <motion.img
               src={zoomImage}
-              initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
               className="max-h-[90vh] max-w-[90vw] rounded-3xl shadow-2xl"
             />
           </motion.div>

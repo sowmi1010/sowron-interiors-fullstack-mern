@@ -99,7 +99,7 @@ export default function Hero() {
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="inline-block md:mt-0 mt-16 mb-6 px-6 py-2 rounded-full bg-white/10 backdrop-blur text-sm tracking-wide"
+          className="inline-block md:mt-0 mt-24  mb-6 px-6 py-2 rounded-full bg-white/10 backdrop-blur text-sm tracking-wide"
         >
           Premium Interior Design & Turnkey Solutions
         </motion.div>
@@ -132,7 +132,7 @@ export default function Hero() {
         </p>
 
         {/* CTA */}
-        <div className="mt-12 flex flex-col sm:flex-row justify-center gap-5">
+        <div className="mt-12 mb-10 md:mb-0 flex flex-col sm:flex-row justify-center gap-5">
           <Link
             to="/book-demo"
             className="px-10 py-4 rounded-2xl bg-brand-red text-white font-semibold text-lg shadow-xl hover:scale-105 transition-all"

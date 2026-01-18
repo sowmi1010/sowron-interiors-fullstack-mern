@@ -1,14 +1,11 @@
 import mongoose from "mongoose";
 import Gallery from "../models/Gallery.js";
+import Category from "../models/Category.js";
 import { deleteMultipleImages } from "../services/cloudinary.service.js";
 
 /* 🔑 SLUG GENERATOR */
 const createSlug = (text) =>
-  text
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)+/g, "");
+  text.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-");
 
 /* ================= ADD GALLERY ================= */
 export const addGallery = async (req, res) => {
@@ -18,18 +15,19 @@ export const addGallery = async (req, res) => {
   let uploadedImages = [];
 
   try {
-    const { title, category, description } = req.body;
+    const { title, categoryId, description } = req.body;
 
-    if (!title || !category) {
-      return res.status(400).json({
-        message: "Title & Category required",
-      });
+    if (!title || !categoryId) {
+      return res.status(400).json({ message: "Title & Category required" });
     }
 
     if (!req.files?.length) {
-      return res.status(400).json({
-        message: "Images required",
-      });
+      return res.status(400).json({ message: "Images required" });
+    }
+
+    const category = await Category.findById(categoryId);
+    if (!category) {
+      return res.status(400).json({ message: "Invalid category" });
     }
 
     let slug = createSlug(title);
@@ -45,7 +43,7 @@ export const addGallery = async (req, res) => {
       [
         {
           title,
-          category,
+          category: category._id,
           description,
           slug,
           images: uploadedImages,
@@ -58,12 +56,10 @@ export const addGallery = async (req, res) => {
     session.endSession();
 
     res.status(201).json({ success: true, item });
-
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
 
-    // 🔥 rollback uploaded images
     await deleteMultipleImages(uploadedImages);
 
     console.error("ADD GALLERY ERROR:", err);
@@ -74,12 +70,11 @@ export const addGallery = async (req, res) => {
 /* ================= LIST (PUBLIC) ================= */
 export const getGallery = async (req, res) => {
   try {
-    const { category } = req.query;
-    const filter = category ? { category } : {};
+    const items = await Gallery.find()
+      .populate("category", "name slug")
+      .sort({ createdAt: -1 });
 
-    const items = await Gallery.find(filter).sort({ createdAt: -1 });
     res.json(items);
-
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -88,18 +83,20 @@ export const getGallery = async (req, res) => {
 /* ================= SINGLE ================= */
 export const getSingleGallery = async (req, res) => {
   try {
-    const item = await Gallery.findById(req.params.id);
-    if (!item) {
-      return res.status(404).json({ message: "Not found" });
-    }
-    res.json(item);
+    const item = await Gallery.findById(req.params.id).populate(
+      "category",
+      "name slug"
+    );
 
+    if (!item) return res.status(404).json({ message: "Not found" });
+
+    res.json(item);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-/* ================= UPDATE GALLERY ================= */
+/* ================= UPDATE ================= */
 export const updateGallery = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -111,32 +108,29 @@ export const updateGallery = async (req, res) => {
       return res.status(404).json({ message: "Not found" });
     }
 
-    const { title, category, description } = req.body;
+    const { title, categoryId, description } = req.body;
 
-    let newImages = null;
+    if (categoryId) {
+      const category = await Category.findById(categoryId);
+      if (!category) {
+        await session.abortTransaction();
+        return res.status(400).json({ message: "Invalid category" });
+      }
+      gallery.category = category._id;
+    }
+
+    if (title) gallery.title = title;
+    if (description) gallery.description = description;
 
     if (req.files?.length) {
-      newImages = req.files.map((file) => ({
+      const newImages = req.files.map((file) => ({
         url: file.path,
         public_id: file.filename,
       }));
 
-      // 🔥 delete old images FIRST
-      const failed = await deleteMultipleImages(gallery.images);
-      if (failed.length) {
-        await session.abortTransaction();
-        return res.status(500).json({
-          message: "Old image delete failed",
-          failed,
-        });
-      }
-
+      await deleteMultipleImages(gallery.images);
       gallery.images = newImages;
     }
-
-    gallery.title = title ?? gallery.title;
-    gallery.category = category ?? gallery.category;
-    gallery.description = description ?? gallery.description;
 
     await gallery.save({ session });
 
@@ -144,7 +138,6 @@ export const updateGallery = async (req, res) => {
     session.endSession();
 
     res.json({ success: true, gallery });
-
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
@@ -154,24 +147,16 @@ export const updateGallery = async (req, res) => {
   }
 };
 
-/* ================= DELETE GALLERY ================= */
-/* ================= DELETE GALLERY ================= */
+/* ================= DELETE ================= */
 export const deleteGallery = async (req, res) => {
   try {
     const gallery = await Gallery.findById(req.params.id);
+    if (!gallery) return res.status(404).json({ message: "Not found" });
 
-    if (!gallery) {
-      return res.status(404).json({ message: "Not found" });
-    }
-
-    // delete images from cloudinary
     await deleteMultipleImages(gallery.images);
-
-    // delete gallery record
     await gallery.deleteOne();
 
     res.json({ success: true, message: "Gallery deleted" });
-
   } catch (err) {
     console.error("DELETE GALLERY ERROR:", err);
     res.status(500).json({ message: "Delete failed" });

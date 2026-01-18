@@ -55,7 +55,7 @@ export default function Home() {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-            <ul className="space-y-4 text-lg leading-8 bg-white/70 dark:bg-white/5 backdrop-blur rounded-2xl p-8 shadow-glass">
+            <ul className="space-y-4 text-lg leading-8 bg-white/70 dark:bg-white/5  p-8">
               {[
                 "Modular Furniture & Fit-outs",
                 "Turnkey Interior Execution",

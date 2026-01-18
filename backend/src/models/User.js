@@ -4,8 +4,17 @@ import crypto from "crypto";
 
 const userSchema = new mongoose.Schema(
   {
-    name: String,
-    city: String,
+    name: {
+      type: String,
+      trim: true,
+      maxlength: 50,
+    },
+
+    city: {
+      type: String,
+      trim: true,
+      maxlength: 50,
+    },
 
     email: {
       type: String,
@@ -13,6 +22,7 @@ const userSchema = new mongoose.Schema(
       sparse: true,
       lowercase: true,
       trim: true,
+      match: [/^\S+@\S+\.\S+$/, "Invalid email format"],
     },
 
     phone: {
@@ -20,6 +30,7 @@ const userSchema = new mongoose.Schema(
       unique: true,
       sparse: true,
       index: true,
+      required: true,
       validate: {
         validator: (v) => /^\d{10}$/.test(v),
         message: "Invalid phone number",
@@ -29,6 +40,7 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       select: false,
+      minlength: 6,
     },
 
     resetPasswordToken: String,
@@ -39,22 +51,45 @@ const userSchema = new mongoose.Schema(
     otpAttempts: { type: Number, default: 0 },
     otpLockedUntil: Date,
     otpVerified: { type: Boolean, default: false },
+    wishlist: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product",
+      },
+    ],
 
     role: {
       type: String,
       enum: ["user", "admin"],
       default: "user",
     },
+
+
+
+
+    lastLogin: Date,
+
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: true }
 );
 
 /* ===========================
-   PASSWORD HASHING (Mongoose v7 Safe)
+   INDEXES
 =========================== */
-userSchema.pre("save", async function () {
-  if (!this.isModified("password")) return;
+userSchema.index({ phone: 1 });
+userSchema.index({ email: 1 });
+
+/* ===========================
+   PASSWORD HASH
+=========================== */
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 12);
+  next();
 });
 
 /* ===========================

@@ -15,9 +15,17 @@ export const adminLogin = async (req, res) => {
 
     const admin = await User.findOne({ email, role: "admin" }).select("+password");
 
-    // Always use same error message (prevents user enumeration)
+    // Prevent user enumeration
     if (!admin || !(await admin.comparePassword(password))) {
       return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    if (!admin.isActive) {
+      return res.status(403).json({ message: "Account disabled" });
+    }
+
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET not configured");
     }
 
     const token = jwt.sign(
@@ -29,6 +37,10 @@ export const adminLogin = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
+
+    // Audit log
+    admin.lastLogin = new Date();
+    await admin.save({ validateBeforeSave: false });
 
     res.json({
       success: true,
@@ -53,7 +65,7 @@ export const adminForgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
-    // Do not reveal if admin exists
+    // Always return success to prevent enumeration
     const admin = await User.findOne({ email, role: "admin" });
 
     if (!admin) {
@@ -112,6 +124,14 @@ export const adminResetPassword = async (req, res) => {
 
     if (!admin) {
       return res.status(400).json({ message: "Token invalid or expired" });
+    }
+
+    // Prevent reuse of same password
+    const isSame = await admin.comparePassword(password);
+    if (isSame) {
+      return res.status(400).json({
+        message: "New password must be different from old password",
+      });
     }
 
     admin.password = password;

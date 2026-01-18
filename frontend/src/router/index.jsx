@@ -22,6 +22,8 @@ const ProductView = lazy(() => import("../pages/ProductView.jsx"));
 const BookDemo = lazy(() => import("../pages/BookDemo.jsx"));
 const Estimate = lazy(() => import("../pages/Estimate.jsx"));
 
+const Wishlist = lazy(() => import("../pages/Wishlist.jsx"));
+
 /* ---------------------- ADMIN (DO NOT TOUCH) ---------------------- */
 const AdminLogin = lazy(() => import("../pages/admin/AdminLogin.jsx"));
 const AdminForgot = lazy(() => import("../pages/admin/AdminForgot.jsx"));
@@ -96,6 +98,7 @@ export const router = createBrowserRouter([
       { path: "/portfolio/:id", element: <PortfolioSingle /> },
 
       { path: "/products", element: <Products /> },
+      { path: "/wishlist", element: <Wishlist /> },
       { path: "/products/:id", element: <ProductView /> },
 
       { path: "/book-demo", element: <BookDemo /> },

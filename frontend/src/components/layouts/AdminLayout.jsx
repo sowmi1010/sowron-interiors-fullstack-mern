@@ -39,10 +39,7 @@ export default function AdminLayout() {
       >
         {/* LOGO */}
         <div className="flex items-center gap-3 mb-10">
-          <img src="/logo.png" alt="logo" className="w-9 h-9 rounded-lg" />
-          <h2 className="text-lg font-semibold text-brand-red tracking-wide">
-            Interiors
-          </h2>
+          <img src="/logo.png" alt="logo" className=" rounded-lg" />
         </div>
 
         {/* NAVIGATION */}

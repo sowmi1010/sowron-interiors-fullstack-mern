@@ -1,5 +1,7 @@
 import express from "express";
 import rateLimit from "express-rate-limit";
+import { body } from "express-validator";
+
 import {
   adminLogin,
   adminForgotPassword,
@@ -7,6 +9,7 @@ import {
 } from "../controllers/adminAuthController.js";
 
 import { protect, adminOnly } from "../middleware/authMiddleware.js";
+import { validateRequest } from "../middleware/validateRequest.js";
 
 const router = express.Router();
 
@@ -31,11 +34,48 @@ const forgotLimiter = rateLimit({
 });
 
 /* ===========================
+   VALIDATIONS
+=========================== */
+
+const loginValidation = [
+  body("email").isEmail().withMessage("Valid email required"),
+  body("password").isLength({ min: 6 }).withMessage("Password required"),
+];
+
+const forgotValidation = [
+  body("email").isEmail().withMessage("Valid email required"),
+];
+
+const resetValidation = [
+  body("token").notEmpty().withMessage("Reset token required"),
+  body("password").isLength({ min: 6 }).withMessage("New password required"),
+];
+
+/* ===========================
    AUTH ROUTES
 =========================== */
-router.post("/login", adminLoginLimiter, adminLogin);
-router.post("/forgot-password", forgotLimiter, adminForgotPassword);
-router.post("/reset-password", adminResetPassword);
+router.post(
+  "/login",
+  adminLoginLimiter,
+  loginValidation,
+  validateRequest,
+  adminLogin
+);
+
+router.post(
+  "/forgot-password",
+  forgotLimiter,
+  forgotValidation,
+  validateRequest,
+  adminForgotPassword
+);
+
+router.post(
+  "/reset-password",
+  resetValidation,
+  validateRequest,
+  adminResetPassword
+);
 
 /* ===========================
    PROTECTED ADMIN ROUTE

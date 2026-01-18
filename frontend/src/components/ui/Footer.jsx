@@ -38,7 +38,7 @@ export default function Footer() {
           <div>
             <img
               src="/logo.png"
-              className="w-44 mb-6 drop-shadow-xl"
+              className="mb-6 drop-shadow-xl"
               alt="Sowron Infrastructure and Solutions Pvt Ltd Logo"
               loading="lazy"
             />

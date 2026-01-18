@@ -41,20 +41,20 @@ export default function Gallery() {
     };
 
     load();
-    window.scrollTo(0, 0);
   }, []);
 
   /* ================= FILTER ================= */
-  const changeFilter = (slug) => {
+  const applyFilter = (slug) => {
     setFilter(slug);
     setPage(1);
 
-    let filtered =
+    const filtered =
       slug === "all"
         ? allItems
         : allItems.filter(
             (item) =>
-              item.category?.toLowerCase() === slug.toLowerCase()
+              item.category &&
+              item.category.toLowerCase() === slug.toLowerCase()
           );
 
     setVisibleItems(filtered.slice(0, PAGE_SIZE));
@@ -70,16 +70,15 @@ export default function Gallery() {
           ? allItems
           : allItems.filter(
               (item) =>
-                item.category?.toLowerCase() === filter.toLowerCase()
+                item.category &&
+                item.category.toLowerCase() === filter.toLowerCase()
             );
 
       const nextPage = page + 1;
-      const nextItems = filtered.slice(0, nextPage * PAGE_SIZE);
-
-      setVisibleItems(nextItems);
+      setVisibleItems(filtered.slice(0, nextPage * PAGE_SIZE));
       setPage(nextPage);
       setLoadingMore(false);
-    }, 800); // spinner delay for UX
+    }, 400);
   };
 
   const filteredCount =
@@ -87,23 +86,22 @@ export default function Gallery() {
       ? allItems.length
       : allItems.filter(
           (item) =>
-            item.category?.toLowerCase() === filter.toLowerCase()
+            item.category &&
+            item.category.toLowerCase() === filter.toLowerCase()
         ).length;
 
   return (
     <>
-      {/* ================= SEO ================= */}
       <SEO
         title="Interior Design Gallery | Sowron Interiors Chennai"
         description="Explore premium interior design projects by Sowron Interiors — modular kitchens, wardrobes, turnkey interiors and custom furniture."
         keywords="interior design gallery, modular kitchen designs, turnkey interiors, Sowron Interiors"
       />
 
-      <section className="min-h-screen mt-20 bg-white dark:bg-black text-brand-lightText dark:text-brand-darkText">
-        {/* ================= HEADER ================= */}
-        <div className="max-w-7xl mx-auto px-6 py-20 text-center relative">
-          <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[520px] h-[520px] bg-brand-red/10 blur-[220px]" />
+      <section className="min-h-screen mt-20 bg-white dark:bg-black text-brand-lightText dark:text-brand-darkText relative">
 
+        {/* ================= HEADER ================= */}
+        <div className="relative z-10 max-w-7xl mx-auto px-6 py-20 text-center">
           <motion.h1
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
@@ -120,31 +118,31 @@ export default function Gallery() {
           </p>
         </div>
 
-        {/* ================= FILTER BAR ================= */}
-        <div className="flex flex-wrap gap-3 justify-center px-6 pb-16">
-          <FilterButton
-            active={filter === "all"}
-            onClick={() => changeFilter("all")}
+        {/* ================= DROPDOWN FILTER (ALL SCREENS) ================= */}
+        <div className="px-6 pb-12 max-w-md mx-auto relative z-20">
+          <select
+            value={filter}
+            onChange={(e) => applyFilter(e.target.value)}
+            className="
+              w-full p-3 rounded-xl
+              bg-white dark:bg-[#1b1b1b]
+              border border-brand-yellow/40
+              text-black dark:text-white
+              outline-none
+            "
           >
-            All Projects
-          </FilterButton>
-
-          {categories.map((cat) => (
-            <FilterButton
-              key={cat._id}
-              active={filter === cat.slug}
-              onClick={() => changeFilter(cat.slug)}
-            >
-              {cat.name}
-            </FilterButton>
-          ))}
+            <option value="all">All Projects</option>
+            {categories.map((cat) => (
+              <option key={cat._id} value={cat.slug}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* ================= GRID ================= */}
         {loading ? (
-          <p className="text-center text-gray-400 py-24">
-            Loading gallery…
-          </p>
+          <p className="text-center text-gray-400 py-24">Loading gallery…</p>
         ) : visibleItems.length === 0 ? (
           <p className="text-center text-gray-400 py-24">
             No gallery items found
@@ -153,6 +151,7 @@ export default function Gallery() {
           <>
             <div
               className="
+                relative z-10
                 max-w-[1600px] mx-auto px-6 pb-20
                 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4
                 gap-10
@@ -174,22 +173,14 @@ export default function Gallery() {
                     transition-all
                   "
                 >
-                  {/* IMAGE */}
                   <Link to={`/view-gallery/${item._id}`}>
                     {item.images?.[0]?.url ? (
-                      <div className="relative overflow-hidden">
-                        <img
-                          src={item.images[0].url}
-                          alt={item.title}
-                          loading="lazy"
-                          className="
-                            h-[260px] w-full object-cover
-                            transition-transform duration-700
-                            group-hover:scale-110
-                          "
-                        />
-                        <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition" />
-                      </div>
+                      <img
+                        src={item.images[0].url}
+                        alt={item.title}
+                        loading="lazy"
+                        className="h-[260px] w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      />
                     ) : (
                       <div className="h-[260px] flex items-center justify-center bg-gray-200 dark:bg-[#0f0f0f]">
                         <ImgIcon className="text-gray-400" />
@@ -197,16 +188,11 @@ export default function Gallery() {
                     )}
                   </Link>
 
-                  {/* CONTENT */}
                   <div className="p-6">
-                    <h3 className="font-bold text-lg truncate">
-                      {item.title}
-                    </h3>
+                    <h3 className="font-bold text-lg truncate">{item.title}</h3>
 
                     <p className="text-xs uppercase tracking-widest opacity-60 mt-1">
-                      {item.category
-                        ? item.category.replace(/-/g, " ")
-                        : "Uncategorized"}
+                      {item.category || "Uncategorized"}
                     </p>
 
                     <Link to={`/view-gallery/${item._id}`}>
@@ -228,7 +214,7 @@ export default function Gallery() {
 
             {/* ================= LOAD MORE ================= */}
             {visibleItems.length < filteredCount && (
-              <div className="flex justify-center pb-28">
+              <div className="relative z-10 flex justify-center pb-28">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -256,26 +242,5 @@ export default function Gallery() {
         )}
       </section>
     </>
-  );
-}
-
-/* ================= FILTER BUTTON ================= */
-function FilterButton({ active, children, onClick }) {
-  return (
-    <motion.button
-      whileTap={{ scale: 0.94 }}
-      onClick={onClick}
-      className={`
-        px-6 py-2.5 rounded-full font-semibold text-sm
-        transition-all
-        ${
-          active
-            ? "bg-brand-red text-white shadow-lg"
-            : "bg-white dark:bg-[#1b1b1b] hover:bg-brand-yellowSoft"
-        }
-      `}
-    >
-      {children}
-    </motion.button>
   );
 }

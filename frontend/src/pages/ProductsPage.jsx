@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Heart, Image } from "lucide-react";
+import { Heart, Image, Search } from "lucide-react";
 import toast from "react-hot-toast";
 import SEO from "../components/SEO";
 
@@ -16,7 +16,12 @@ const PHRASES = [
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
-  const [filter, setFilter] = useState("all");
+  const [categories, setCategories] = useState([]);
+
+  const [category, setCategory] = useState("all");
+  const [subCategory, setSubCategory] = useState("all");
+  const [search, setSearch] = useState("");
+
   const [liked, setLiked] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -40,45 +45,81 @@ export default function ProductsPage() {
     return () => clearInterval(interval);
   }, [index]);
 
-  /* ================= LOAD ================= */
+  /* ================= LOAD PRODUCTS & CATEGORIES ================= */
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
-        const res = await api.get("/products");
-        setProducts(res.data || []);
+
+        const [prodRes, catRes] = await Promise.all([
+          api.get("/products"),
+          api.get("/categories"),
+        ]);
+
+        setProducts(prodRes.data || []);
+        setCategories(catRes.data || []);
       } catch {
         toast.error("Failed to load products");
       } finally {
         setLoading(false);
       }
     };
+
     load();
     window.scrollTo(0, 0);
   }, []);
 
-  const categories = [
-    "all",
-    ...new Set(products.map((p) => p.category?.name).filter(Boolean)),
-  ];
+  /* ================= LOAD WISHLIST ================= */
+  useEffect(() => {
+    const loadWishlist = async () => {
+      try {
+        const res = await api.get("/wishlist");
+        setLiked(res.data.map((p) => p._id));
+      } catch {}
+    };
 
-  const visible =
-    filter === "all"
-      ? products
-      : products.filter(
-          (p) =>
-            p.category?.name?.toLowerCase() === filter.toLowerCase()
-        );
+    loadWishlist();
+  }, []);
 
-  const toggleLike = (id) => {
-    setLiked((p) =>
-      p.includes(id) ? p.filter((x) => x !== id) : [...p, id]
-    );
+  /* ================= FILTER ================= */
+  const filteredProducts = products.filter((p) => {
+    if (category !== "all" && p.category?.name !== category) return false;
+    if (subCategory !== "all" && p.subCategory !== subCategory) return false;
+
+    if (search) {
+      const q = search.toLowerCase();
+      return (
+        p.title?.toLowerCase().includes(q) ||
+        p.category?.name?.toLowerCase().includes(q) ||
+        p.subCategory?.toLowerCase().includes(q)
+      );
+    }
+
+    return true;
+  });
+
+  const activeCategory = categories.find((c) => c.name === category);
+  const subCategories = activeCategory?.subCategories || [];
+
+  /* ================= WISHLIST ================= */
+  const toggleLike = async (id) => {
+    try {
+      if (liked.includes(id)) {
+        await api.delete(`/wishlist/remove/${id}`);
+        setLiked((prev) => prev.filter((x) => x !== id));
+        toast.success("Removed from wishlist");
+      } else {
+        await api.post(`/wishlist/add/${id}`);
+        setLiked((prev) => [...prev, id]);
+        toast.success("Added to wishlist");
+      }
+    } catch {
+      toast.error("Please login to use wishlist");
+    }
   };
 
   return (
     <>
-      {/* ================= SEO ================= */}
       <SEO
         title="Premium Furniture Collection | Sowron Interiors"
         description="Explore premium modular furniture, wardrobes, kitchens and custom interior products by Sowron Interiors."
@@ -87,7 +128,7 @@ export default function ProductsPage() {
 
       <section className="min-h-screen bg-[#fafafa] dark:bg-[#0b0b0b] text-gray-900 dark:text-gray-100">
 
-        {/* ================= CINEMATIC HERO ================= */}
+        {/* ================= HERO ================= */}
         <section className="relative h-[70vh] min-h-[520px] overflow-hidden">
           <video
             autoPlay
@@ -97,19 +138,13 @@ export default function ProductsPage() {
             className="absolute inset-0 w-full h-full object-cover"
             src="/v3.mp4"
           />
-
           <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-black/80" />
-
-          <div className="absolute -top-32 left-1/2 -translate-x-1/2
-                          w-[600px] h-[600px]
-                          bg-red-500/20 blur-[160px]" />
 
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1 }}
-            className="relative z-10 h-full flex flex-col
-                       justify-center items-center text-center px-6"
+            className="relative z-10 h-full flex flex-col justify-center items-center text-center px-6"
           >
             <span className="text-yellow-400 tracking-[0.3em] text-xs mb-5">
               SOWRON COLLECTION
@@ -120,51 +155,70 @@ export default function ProductsPage() {
               <span className="border-r-2 border-yellow-400 ml-1 animate-pulse" />
             </h1>
 
-            <div className="mt-6 w-24 h-[3px]
-                            bg-gradient-to-r from-red-600 to-yellow-400
-                            rounded-full" />
-
-            <p className="mt-6 max-w-xl text-gray-300 text-sm md:text-base">
-              Discover furniture that blends aesthetics, durability,
-              and intelligent craftsmanship — curated exclusively
-              for refined interiors.
+            <p className="mt-6 max-w-xl text-gray-300">
+              Discover furniture that blends aesthetics and craftsmanship.
             </p>
           </motion.div>
         </section>
 
-        {/* ================= CATEGORY BAR ================= */}
+        {/* ================= FILTER BAR ================= */}
         <section className="sticky top-20 z-20 bg-[#fafafa]/90 dark:bg-[#0b0b0b]/90 backdrop-blur border-b border-gray-200 dark:border-white/10">
-          <div className="max-w-7xl mx-auto px-6 py-4 flex gap-3 overflow-x-auto">
-            {categories.map((c) => (
-              <button
-                key={c}
-                onClick={() => setFilter(c)}
-                className={`px-5 py-2 rounded-full text-sm font-semibold transition
-                  ${
-                    filter === c
-                      ? "bg-red-600 text-white"
-                      : "bg-white dark:bg-[#161616] text-gray-600 dark:text-gray-300"
-                  }`}
-              >
-                {c.toUpperCase()}
-              </button>
-            ))}
+          <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row gap-4">
+
+            {/* SEARCH */}
+            <div className="relative w-full md:w-1/3">
+              <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search products..."
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-[#161616] border outline-none"
+              />
+            </div>
+
+            {/* CATEGORY */}
+            <select
+              value={category}
+              onChange={(e) => {
+                setCategory(e.target.value);
+                setSubCategory("all");
+              }}
+              className="p-3 rounded-xl bg-white dark:bg-[#161616] border outline-none"
+            >
+              <option value="all">All Categories</option>
+              {categories.map((c) => (
+                <option key={c._id} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+
+            {/* SUB CATEGORY */}
+            <select
+              value={subCategory}
+              onChange={(e) => setSubCategory(e.target.value)}
+              disabled={category === "all"}
+              className="p-3 rounded-xl bg-white dark:bg-[#161616] border outline-none disabled:opacity-40"
+            >
+              <option value="all">All Sub Categories</option>
+              {subCategories.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
           </div>
         </section>
 
         {/* ================= PRODUCTS ================= */}
         <section className="max-w-7xl mx-auto px-6 py-24">
           {loading ? (
-            <p className="text-center text-gray-400 py-20">
-              Loading collection…
-            </p>
-          ) : visible.length === 0 ? (
-            <p className="text-center text-gray-400 py-20">
-              No products found
-            </p>
+            <p className="text-center text-gray-400 py-20">Loading collection…</p>
+          ) : filteredProducts.length === 0 ? (
+            <p className="text-center text-gray-400 py-20">No products found</p>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-16">
-              {visible.map((p, i) => (
+              {filteredProducts.map((p, i) => (
                 <motion.article
                   key={p._id}
                   initial={{ opacity: 0, y: 40 }}
@@ -206,11 +260,9 @@ export default function ProductsPage() {
                   </div>
 
                   <div className="mt-6 px-2">
-                    <h3 className="text-xl font-semibold">
-                      {p.title}
-                    </h3>
+                    <h3 className="text-xl font-semibold">{p.title}</h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {p.category?.name}
+                      {p.category?.name} • {p.subCategory}
                     </p>
 
                     <div className="mt-4 flex justify-between items-center">
