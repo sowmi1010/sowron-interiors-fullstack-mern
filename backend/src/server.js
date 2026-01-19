@@ -29,11 +29,11 @@ const allowedOrigins = [
   "https://sowron-interiors.netlify.app",
   "https://sowron.com",
   "https://www.sowron.com",
-  "http://localhost:5173"
+  "http://localhost:5173",
 ];
 
 /* ===========================
-   MIDDLEWARE
+   CORE MIDDLEWARE
 =========================== */
 app.use(helmet());
 app.use(compression());
@@ -42,34 +42,37 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 /* ===========================
-   SECURITY PROTECTION
+   SECURITY
 =========================== */
 app.use(mongoSanitize());
 app.use(xss());
 
 /* ===========================
-   CORS CONFIG
+   CORS (FIXED)
 =========================== */
-app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("CORS not allowed"));
-    }
-  },
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+// Allow preflight for all routes
+app.options("*", cors());
 
 /* ===========================
    RATE LIMIT
 =========================== */
-app.use(rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 500,
-  standardHeaders: true,
-  legacyHeaders: false,
-}));
+app.use(
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 500,
+    standardHeaders: true,
+    legacyHeaders: false,
+  })
+);
 
 /* ===========================
    DATABASE
@@ -82,11 +85,10 @@ connectDB();
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
-    credentials: true
-  }
+    credentials: true,
+  },
 });
 
-// Socket service
 app.set("io", io);
 
 /* ===========================
@@ -113,7 +115,7 @@ app.get("/health", (req, res) => {
   res.json({
     status: "OK",
     uptime: process.uptime(),
-    timestamp: new Date()
+    timestamp: new Date(),
   });
 });
 
@@ -128,7 +130,7 @@ app.get("/api/test", (req, res) => {
    API ROUTES
 =========================== */
 app.use("/api/admin", adminRoutes);
-app.use("/api/dashboard", dashboardRoutes); // fixed duplicate
+app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/gallery", galleryRoutes);
 app.use("/api/portfolio", portfolioRoutes);
@@ -140,7 +142,6 @@ app.use("/api/feedback", feedbackRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/wishlist", wishlistRoutes);
-
 
 /* ===========================
    404 HANDLER
@@ -156,12 +157,9 @@ app.use((err, req, res, next) => {
   console.error("🔥 Server Error:", err);
   res.status(500).json({
     message: "Internal Server Error",
-    error: process.env.NODE_ENV === "development" ? err.message : undefined
+    error: process.env.NODE_ENV === "development" ? err.message : undefined,
   });
 });
-
-process.on("SIGTERM", () => server.close());
-
 
 /* ===========================
    START SERVER

@@ -73,7 +73,7 @@ export default function Navbar() {
         </div>
 
         {/* DESKTOP MENU */}
-        <ul className="hidden lg:flex gap-10 text-sm font-medium">
+        <ul className="hidden lg:flex gap-10 text-sm font-medium text-black dark:text-white">
           {links.map((l) => (
             <li key={l.path}>
               <NavLink
@@ -114,7 +114,7 @@ export default function Navbar() {
           {/* THEME */}
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="p-2 rounded-xl bg-white/40 dark:bg-white/10"
+            className="p-2 rounded-xl bg-white/40 dark:bg-white/10 text-black dark:text-white"
           >
             {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           </button>
@@ -137,7 +137,7 @@ export default function Navbar() {
           )}
 
           {/* MOBILE BUTTON */}
-          <button onClick={() => setOpen(!open)} className="lg:hidden">
+          <button onClick={() => setOpen(!open)} className="lg:hidden dark:text-white text-black">
             {open ? <X size={26} /> : <Menu size={26} />}
           </button>
         </div>
@@ -150,7 +150,7 @@ export default function Navbar() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="lg:hidden mt-6 rounded-2xl bg-white dark:bg-black p-6 shadow-2xl flex flex-col gap-5"
+            className="lg:hidden mt-6 rounded-2xl bg-white text-black dark:text-white dark:bg-black p-6 shadow-2xl flex flex-col gap-5"
           >
             {links.map((l) => (
               <NavLink key={l.path} to={l.path} onClick={() => setOpen(false)}>
