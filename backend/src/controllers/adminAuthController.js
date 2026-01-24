@@ -10,10 +10,14 @@ export const adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password)
+    if (!email || !password) {
       return res.status(400).json({ message: "Email & password required" });
+    }
 
-    const admin = await User.findOne({ email, role: "admin" }).select("+password");
+    const admin = await User.findOne({
+      email: email.toLowerCase(),
+      role: "admin",
+    }).select("+password");
 
     // Prevent user enumeration
     if (!admin || !(await admin.comparePassword(password))) {
@@ -24,21 +28,12 @@ export const adminLogin = async (req, res) => {
       return res.status(403).json({ message: "Account disabled" });
     }
 
-    if (!process.env.JWT_SECRET) {
-      throw new Error("JWT_SECRET not configured");
-    }
-
     const token = jwt.sign(
-      {
-        id: admin._id,
-        role: admin.role,
-        email: admin.email,
-      },
+      { id: admin._id, role: admin.role, email: admin.email },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    // Audit log
     admin.lastLogin = new Date();
     await admin.save({ validateBeforeSave: false });
 
@@ -52,8 +47,8 @@ export const adminLogin = async (req, res) => {
         role: admin.role,
       },
     });
-  } catch (err) {
-    console.error("ADMIN LOGIN ERROR:", err);
+  } catch (error) {
+    console.error("ADMIN LOGIN ERROR:", error);
     res.status(500).json({ message: "Login failed" });
   }
 };
@@ -65,9 +60,12 @@ export const adminForgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
-    // Always return success to prevent enumeration
-    const admin = await User.findOne({ email, role: "admin" });
+    const admin = await User.findOne({
+      email: email.toLowerCase(),
+      role: "admin",
+    });
 
+    // Always respond success (anti-enumeration)
     if (!admin) {
       return res.json({
         success: true,
@@ -86,7 +84,7 @@ export const adminForgotPassword = async (req, res) => {
       html: `
         <h3>Password Reset Request</h3>
         <p>This link is valid for 15 minutes.</p>
-        <p>If you did not request this, please ignore this email.</p>
+        <p>If you did not request this, ignore this email.</p>
         <a href="${resetUrl}">${resetUrl}</a>
       `,
     });
@@ -108,13 +106,16 @@ export const adminResetPassword = async (req, res) => {
   try {
     const { token, password } = req.body;
 
-    if (!password || password.length < 8) {
+    if (!token || !password || password.length < 8) {
       return res.status(400).json({
-        message: "Password must be at least 8 characters",
+        message: "Token and strong password required",
       });
     }
 
-    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
 
     const admin = await User.findOne({
       resetPasswordToken: hashedToken,
@@ -126,7 +127,6 @@ export const adminResetPassword = async (req, res) => {
       return res.status(400).json({ message: "Token invalid or expired" });
     }
 
-    // Prevent reuse of same password
     const isSame = await admin.comparePassword(password);
     if (isSame) {
       return res.status(400).json({
@@ -135,8 +135,8 @@ export const adminResetPassword = async (req, res) => {
     }
 
     admin.password = password;
-    admin.resetPasswordToken = null;
-    admin.resetPasswordExpires = null;
+    admin.resetPasswordToken = undefined;
+    admin.resetPasswordExpires = undefined;
 
     await admin.save();
 

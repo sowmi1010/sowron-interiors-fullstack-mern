@@ -2,7 +2,11 @@ import mongoose from "mongoose";
 
 /* 🔑 SLUG GENERATOR */
 const createSlug = (text) =>
-  text.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-");
+  text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
 const categorySchema = new mongoose.Schema(
   {
@@ -11,6 +15,7 @@ const categorySchema = new mongoose.Schema(
       required: true,
       unique: true,
       trim: true,
+      index: true,
     },
 
     slug: {
@@ -19,22 +24,35 @@ const categorySchema = new mongoose.Schema(
       index: true,
     },
 
-    // 🔥 REQUIRED FOR PRODUCT FORM
     subCategories: {
       type: [String],
       default: [],
     },
 
-    icon: String, // optional
+    icon: {
+      type: String,
+      trim: true,
+    },
   },
   { timestamps: true }
 );
 
-/* AUTO SLUG */
-categorySchema.pre("save", function (next) {
-  if (!this.isModified("name")) return next();
-  this.slug = createSlug(this.name);
-  next();
+/* ================= AUTO SLUG (FIXED) ================= */
+categorySchema.pre("save", async function () {
+  if (!this.isModified("name")) return;
+
+  let slug = createSlug(this.name);
+
+  const exists = await mongoose.models.Category.findOne({
+    slug,
+    _id: { $ne: this._id },
+  });
+
+  if (exists) {
+    slug = `${slug}-${Date.now()}`;
+  }
+
+  this.slug = slug;
 });
 
 export default mongoose.model("Category", categorySchema);

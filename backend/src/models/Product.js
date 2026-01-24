@@ -2,17 +2,35 @@ import mongoose from "mongoose";
 
 const productSchema = new mongoose.Schema(
   {
-    title: { type: String, required: true },
-    description: String,
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    description: {
+      type: String,
+      trim: true,
+    },
 
     category: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
       required: true,
+      index: true, // 🔥 important for filter
     },
 
-    subCategory: String,
-    price: { type: Number, required: true },
+    subCategory: {
+      type: String,
+      trim: true,
+      index: true,
+    },
+
+    price: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
 
     images: [
       {

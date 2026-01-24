@@ -2,32 +2,73 @@ import mongoose from "mongoose";
 
 const estimateSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },
-    phone: { type: String, required: true },
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true,
+    },
 
-    city: String,
-    homeType: String,
-    budget: String,
-    requirements: String,
+    phone: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true,
+    },
 
-    file: String,
+    city: {
+      type: String,
+      trim: true,
+    },
+
+    homeType: {
+      type: String,
+      trim: true,
+    },
+
+    budget: {
+      type: String,
+      trim: true,
+    },
+
+    requirements: {
+      type: String,
+      trim: true,
+    },
+
+    file: {
+      type: String, // filename
+    },
 
     status: {
       type: String,
       enum: ["pending", "contacted", "quoted", "followup", "closed"],
       default: "pending",
+      index: true,
     },
 
     notes: [
       {
-        message: String,
-        status: String,
-        by: String,
-        createdAt: { type: Date, default: Date.now },
+        message: {
+          type: String,
+          trim: true,
+        },
+        status: {
+          type: String,
+        },
+        by: {
+          type: String,
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
       },
     ],
 
-    lastContactedAt: Date,
+    lastContactedAt: {
+      type: Date,
+    },
   },
   { timestamps: true }
 );

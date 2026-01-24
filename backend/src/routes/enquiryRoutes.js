@@ -5,15 +5,16 @@ import {
   updateEnquiry,
   deleteEnquiry,
 } from "../controllers/enquiryController.js";
+
 import { protect, adminOnly } from "../middleware/authMiddleware.js";
 import { publicFormLimiter } from "../middleware/rateLimit.js";
 
 const router = express.Router();
 
-/* 🟢 PUBLIC */
+/* ================= PUBLIC ================= */
 router.post("/add", publicFormLimiter, addEnquiry);
 
-/* 🔐 ADMIN */
+/* ================= ADMIN ================= */
 router.use(protect, adminOnly);
 
 router.get("/", getEnquiries);

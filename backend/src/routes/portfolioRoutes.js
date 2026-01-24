@@ -12,11 +12,11 @@ import { getUploader } from "../utils/uploadCloudinary.js";
 
 const router = express.Router();
 
-/* 🌍 PUBLIC */
+/* ================= PUBLIC ================= */
 router.get("/", getPortfolio);
 router.get("/:id", getSinglePortfolio);
 
-/* 🔐 ADMIN */
+/* ================= ADMIN ================= */
 router.post(
   "/add",
   protect,

@@ -2,23 +2,44 @@ import mongoose from "mongoose";
 
 const bookingSchema = new mongoose.Schema(
   {
-    phone: { type: String, required: true },
-    date: { type: String, required: true }, // YYYY-MM-DD
-    time: { type: String, required: true }, // HH:mm
-    city: { type: String, required: true },
+    phone: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true,
+    },
+
+    date: {
+      type: String, // YYYY-MM-DD
+      required: true,
+      index: true,
+    },
+
+    time: {
+      type: String, // HH:mm
+      required: true,
+      index: true,
+    },
+
+    city: {
+      type: String,
+      required: true,
+      trim: true,
+    },
 
     status: {
       type: String,
       enum: ["pending", "confirmed", "completed", "cancelled"],
       default: "pending",
+      index: true,
     },
   },
   { timestamps: true }
 );
 
 /**
- * 🔒 Prevent double booking for active slots
- * MongoDB Atlas compatible
+ * 🔒 Prevent double booking (Atlas compatible)
+ * Only active slots are locked
  */
 bookingSchema.index(
   { date: 1, time: 1 },

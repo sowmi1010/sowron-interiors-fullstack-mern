@@ -1,12 +1,11 @@
 import axios from "axios";
 
-const API_URL = "https://sowron-backend.onrender.com/api";
+const API_URL = "http://localhost:5000/api"; // 🔥 LOCAL backend
 
 export const api = axios.create({
   baseURL: API_URL,
-  withCredentials: true,
+  withCredentials: false, // ✅ IMPORTANT
 });
-
 
 /* ===========================
    ATTACH TOKEN AUTOMATICALLY
@@ -34,11 +33,7 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      localStorage.removeItem("adminToken");
-      localStorage.removeItem("adminName");
-      localStorage.removeItem("userToken");
-      localStorage.removeItem("userName");
-      localStorage.removeItem("isLoggedIn");
+      localStorage.clear();
 
       if (window.location.pathname.startsWith("/admin")) {
         window.location.replace("/admin/login");
@@ -46,7 +41,6 @@ api.interceptors.response.use(
         window.location.replace("/login");
       }
     }
-
     return Promise.reject(err);
   }
 );

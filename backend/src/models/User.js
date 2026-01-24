@@ -4,59 +4,27 @@ import crypto from "crypto";
 
 const userSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      trim: true,
-      maxlength: 50,
-    },
-
-    city: {
-      type: String,
-      trim: true,
-      maxlength: 50,
-    },
+    name: String,
 
     email: {
       type: String,
-      unique: true,
-      sparse: true,
       lowercase: true,
       trim: true,
-      match: [/^\S+@\S+\.\S+$/, "Invalid email format"],
+      unique: true,
+      sparse: true,
     },
 
     phone: {
       type: String,
-      unique: true,
-      sparse: true,
-      index: true,
       required: true,
-      validate: {
-        validator: (v) => /^\d{10}$/.test(v),
-        message: "Invalid phone number",
-      },
+      unique: true,
     },
 
     password: {
       type: String,
-      select: false,
       minlength: 6,
+      select: false,
     },
-
-    resetPasswordToken: String,
-    resetPasswordExpires: Date,
-
-    otpHash: String,
-    otpExpires: Date,
-    otpAttempts: { type: Number, default: 0 },
-    otpLockedUntil: Date,
-    otpVerified: { type: Boolean, default: false },
-    wishlist: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
-      },
-    ],
 
     role: {
       type: String,
@@ -64,55 +32,54 @@ const userSchema = new mongoose.Schema(
       default: "user",
     },
 
-
-
-
-    lastLogin: Date,
-
     isActive: {
       type: Boolean,
       default: true,
     },
+
+    /* ================= OTP ================= */
+    otpHash: String,
+    otpExpires: Date,
+    otpAttempts: { type: Number, default: 0 },
+    otpLockedUntil: Date,
+    otpVerified: { type: Boolean, default: false },
+
+    /* ================= WISHLIST ================= */
+    wishlist: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product",
+      },
+    ],
+
+    /* ================= RESET ================= */
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
   },
   { timestamps: true }
 );
 
-/* ===========================
-   INDEXES
-=========================== */
-userSchema.index({ phone: 1 });
-userSchema.index({ email: 1 });
-
-/* ===========================
-   PASSWORD HASH
-=========================== */
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+/* ================= PASSWORD ================= */
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
   this.password = await bcrypt.hash(this.password, 12);
-  next();
 });
 
-/* ===========================
-   PASSWORD COMPARE
-=========================== */
 userSchema.methods.comparePassword = function (password) {
   return bcrypt.compare(password, this.password);
 };
 
-/* ===========================
-   RESET TOKEN
-=========================== */
+/* ================= RESET TOKEN ================= */
 userSchema.methods.createPasswordResetToken = function () {
-  const rawToken = crypto.randomBytes(32).toString("hex");
+  const raw = crypto.randomBytes(32).toString("hex");
 
   this.resetPasswordToken = crypto
     .createHash("sha256")
-    .update(rawToken)
+    .update(raw)
     .digest("hex");
 
   this.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
-
-  return rawToken;
+  return raw;
 };
 
 export default mongoose.model("User", userSchema);

@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Estimate from "../models/Estimate.js";
 
 /* ================= USER SUBMIT ================= */
@@ -10,61 +11,91 @@ export const addEstimate = async (req, res) => {
     const estimate = await Estimate.create({
       name: req.user.name,
       phone: req.user.phone,
-      city: req.body.city,
-      homeType: req.body.homeType,
-      budget: req.body.budget,
-      requirements: req.body.requirements,
+      city: req.body.city?.trim(),
+      homeType: req.body.homeType?.trim(),
+      budget: req.body.budget?.trim(),
+      requirements: req.body.requirements?.trim(),
       file: req.file?.filename || null,
     });
 
-    res.status(201).json({ success: true, estimate });
+    res.status(201).json({
+      success: true,
+      estimate,
+    });
   } catch (err) {
     console.error("ADD ESTIMATE ERROR:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Failed to submit estimate" });
   }
 };
 
-/* ================= ADMIN GET ALL ================= */
+/* ================= ADMIN LIST ================= */
 export const getEstimates = async (req, res) => {
   try {
-    const list = await Estimate.find().sort({ createdAt: -1 });
+    const list = await Estimate.find()
+      .sort({ createdAt: -1 });
+
     res.json(list);
-  } catch {
-    res.status(500).json({ message: "Server error" });
+  } catch (err) {
+    console.error("GET ESTIMATES ERROR:", err);
+    res.status(500).json({ message: "Failed to load estimates" });
   }
 };
 
-/* ================= ADMIN UPDATE STATUS ================= */
+/* ================= ADMIN UPDATE ================= */
 export const updateEstimate = async (req, res) => {
   try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid estimate ID" });
+    }
+
     const updated = await Estimate.findByIdAndUpdate(
-      req.params.id,
+      id,
       req.body,
-      { new: true }
+      {
+        new: true,
+        runValidators: true,
+      }
     );
 
     if (!updated) {
       return res.status(404).json({ message: "Estimate not found" });
     }
 
-    res.json({ success: true, updated });
-  } catch {
-    res.status(500).json({ message: "Server error" });
+    res.json({
+      success: true,
+      estimate: updated,
+    });
+  } catch (err) {
+    console.error("UPDATE ESTIMATE ERROR:", err);
+    res.status(500).json({ message: "Update failed" });
   }
 };
 
-/* ================= ADMIN ADD NOTE (CRM STYLE) ================= */
+/* ================= ADMIN ADD NOTE ================= */
 export const addEstimateNote = async (req, res) => {
   try {
+    const { id } = req.params;
     const { message, status } = req.body;
 
-    const estimate = await Estimate.findById(req.params.id);
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid estimate ID" });
+    }
+
+    if (!message || !status) {
+      return res.status(400).json({
+        message: "Message and status are required",
+      });
+    }
+
+    const estimate = await Estimate.findById(id);
     if (!estimate) {
       return res.status(404).json({ message: "Estimate not found" });
     }
 
     estimate.notes.push({
-      message,
+      message: message.trim(),
       status,
       by: req.user.name || "Admin",
     });
@@ -74,23 +105,37 @@ export const addEstimateNote = async (req, res) => {
 
     await estimate.save();
 
-    res.json({ success: true, estimate });
+    res.json({
+      success: true,
+      estimate,
+    });
   } catch (err) {
     console.error("ADD NOTE ERROR:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Failed to add note" });
   }
 };
 
 /* ================= ADMIN DELETE ================= */
 export const deleteEstimate = async (req, res) => {
   try {
-    const deleted = await Estimate.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid estimate ID" });
+    }
+
+    const deleted = await Estimate.findByIdAndDelete(id);
+
     if (!deleted) {
       return res.status(404).json({ message: "Estimate not found" });
     }
 
-    res.json({ success: true });
-  } catch {
-    res.status(500).json({ message: "Server error" });
+    res.json({
+      success: true,
+      message: "Estimate deleted",
+    });
+  } catch (err) {
+    console.error("DELETE ESTIMATE ERROR:", err);
+    res.status(500).json({ message: "Delete failed" });
   }
 };

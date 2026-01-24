@@ -1,241 +1,254 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../lib/api";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Image as ImgIcon, Loader2 } from "lucide-react";
+import {
+  Image as ImgIcon,
+  Search,
+  Loader2,
+  ArrowUpRight,
+} from "lucide-react";
 import SEO from "../components/SEO";
 
 const PAGE_SIZE = 8;
 
 export default function Gallery() {
-  const [allItems, setAllItems] = useState([]);
-  const [visibleItems, setVisibleItems] = useState([]);
+  const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [page, setPage] = useState(1);
 
-  /* ================= LOAD DATA ================= */
+  /* ================= LOAD ================= */
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
-
-        const [catRes, galleryRes] = await Promise.all([
+        const [catRes, galRes] = await Promise.all([
           api.get("/categories"),
           api.get("/gallery"),
         ]);
-
-        const galleryData = galleryRes.data || [];
-
         setCategories(catRes.data || []);
-        setAllItems(galleryData);
-        setVisibleItems(galleryData.slice(0, PAGE_SIZE));
+        setItems(galRes.data || []);
       } catch {
         toast.error("Failed to load gallery");
       } finally {
         setLoading(false);
       }
     };
-
     load();
   }, []);
 
-  /* ================= FILTER ================= */
-  const applyFilter = (slug) => {
-    setFilter(slug);
-    setPage(1);
+  /* ================= FILTER + SEARCH ================= */
+  const filtered = useMemo(() => {
+    return items.filter((item) => {
+      const matchCategory =
+        filter === "all" || item.category?.slug === filter;
 
-    const filtered =
-      slug === "all"
-        ? allItems
-        : allItems.filter(
-            (item) =>
-              item.category &&
-              item.category.toLowerCase() === slug.toLowerCase()
-          );
+      const matchSearch =
+        item.title.toLowerCase().includes(search.toLowerCase()) ||
+        item.category?.name
+          ?.toLowerCase()
+          .includes(search.toLowerCase());
 
-    setVisibleItems(filtered.slice(0, PAGE_SIZE));
-  };
+      return matchCategory && matchSearch;
+    });
+  }, [items, filter, search]);
 
-  /* ================= LOAD MORE ================= */
+  const visible = filtered.slice(0, page * PAGE_SIZE);
+  const hasMore = visible.length < filtered.length;
+
   const loadMore = () => {
     setLoadingMore(true);
-
     setTimeout(() => {
-      const filtered =
-        filter === "all"
-          ? allItems
-          : allItems.filter(
-              (item) =>
-                item.category &&
-                item.category.toLowerCase() === filter.toLowerCase()
-            );
-
-      const nextPage = page + 1;
-      setVisibleItems(filtered.slice(0, nextPage * PAGE_SIZE));
-      setPage(nextPage);
+      setPage((p) => p + 1);
       setLoadingMore(false);
-    }, 400);
+    }, 500);
   };
-
-  const filteredCount =
-    filter === "all"
-      ? allItems.length
-      : allItems.filter(
-          (item) =>
-            item.category &&
-            item.category.toLowerCase() === filter.toLowerCase()
-        ).length;
 
   return (
     <>
-      <SEO
-        title="Interior Design Gallery | Sowron Interiors Chennai"
-        description="Explore premium interior design projects by Sowron Interiors — modular kitchens, wardrobes, turnkey interiors and custom furniture."
-        keywords="interior design gallery, modular kitchen designs, turnkey interiors, Sowron Interiors"
-      />
+      <SEO title="Gallery | Sowron Interiors" />
 
-      <section className="min-h-screen mt-20 bg-white dark:bg-black text-brand-lightText dark:text-brand-darkText relative">
+      <section className="relative min-h-screen mt-20 text-black dark:text-white">
 
-        {/* ================= HEADER ================= */}
-        <div className="relative z-10 max-w-7xl mx-auto px-6 py-20 text-center">
+        {/* ===== PREMIUM BACKGROUND ===== */}
+        <div className="absolute inset-0 -z-10 bg-gradient-to-br 
+          from-[#fff5f5] via-[#ffffff] to-[#fff0f0]
+          dark:from-[#0b0b0b] dark:via-[#111111] dark:to-[#0b0b0b]" />
+
+        <div className="absolute inset-0 -z-10 opacity-[0.03]
+          bg-[radial-gradient(circle_at_1px_1px,#000_1px,transparent_0)]
+          [background-size:28px_28px]" />
+
+        {/* ===== HEADER ===== */}
+        <div className="max-w-6xl mx-auto px-6 pt-24 pb-16 text-center">
           <motion.h1
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9 }}
-            className="text-4xl md:text-5xl font-extrabold"
+            className="text-4xl md:text-5xl font-extrabold
+              bg-gradient-to-r from-red-600 via-red-700 to-red-900
+              bg-clip-text text-transparent"
           >
-            Our Works
+            Our Signature Works
           </motion.h1>
 
-          <span className="block mx-auto mt-6 w-24 h-[3px] rounded-full bg-gradient-to-r from-brand-red to-brand-yellow" />
-
-          <p className="mt-6 text-sm md:text-base opacity-70 max-w-xl mx-auto">
-            A curated collection of our premium interior execution projects
+          <p className="mt-4 text-sm md:text-base text-gray-600 dark:text-gray-400">
+            Premium interiors crafted with timeless elegance
           </p>
         </div>
 
-        {/* ================= DROPDOWN FILTER (ALL SCREENS) ================= */}
-        <div className="px-6 pb-12 max-w-md mx-auto relative z-20">
+        {/* ===== SEARCH & FILTER ===== */}
+        <div className="max-w-4xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-4 mb-16">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 opacity-40" />
+            <input
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Search projects"
+              className="w-full pl-12 p-4 rounded-xl
+                bg-white dark:bg-[#121212]
+                border border-red-500/30
+                focus:border-red-600 focus:ring-2 focus:ring-red-600/20
+                outline-none transition"
+            />
+          </div>
+
           <select
             value={filter}
-            onChange={(e) => applyFilter(e.target.value)}
-            className="
-              w-full p-3 rounded-xl
-              bg-white dark:bg-[#1b1b1b]
-              border border-brand-yellow/40
-              text-black dark:text-white
-              outline-none
-            "
+            onChange={(e) => {
+              setFilter(e.target.value);
+              setPage(1);
+            }}
+            className="w-full p-4 rounded-xl
+              bg-white dark:bg-[#121212]
+              border border-red-500/30
+              focus:border-red-600 focus:ring-2 focus:ring-red-600/20
+              outline-none transition"
           >
-            <option value="all">All Projects</option>
-            {categories.map((cat) => (
-              <option key={cat._id} value={cat.slug}>
-                {cat.name}
+            <option value="all">All Categories</option>
+            {categories.map((c) => (
+              <option key={c._id} value={c.slug}>
+                {c.name}
               </option>
             ))}
           </select>
         </div>
 
-        {/* ================= GRID ================= */}
+        {/* ===== CONTENT ===== */}
         {loading ? (
-          <p className="text-center text-gray-400 py-24">Loading gallery…</p>
-        ) : visibleItems.length === 0 ? (
-          <p className="text-center text-gray-400 py-24">
-            No gallery items found
-          </p>
+          <div className="flex justify-center py-32">
+            <Loader2 className="animate-spin text-red-600" size={34} />
+          </div>
+        ) : visible.length === 0 ? (
+          /* EMPTY STATE */
+          <div className="flex flex-col items-center justify-center py-32 text-center">
+            <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4">
+              <ImgIcon className="text-red-600" />
+            </div>
+
+            <h3 className="text-lg font-semibold">
+              No gallery items found
+            </h3>
+
+            <p className="mt-2 text-sm text-gray-500 max-w-sm">
+              We don’t have projects under this category yet.
+              Please explore other categories.
+            </p>
+
+            <button
+              onClick={() => {
+                setFilter("all");
+                setSearch("");
+                setPage(1);
+              }}
+              className="mt-6 text-sm font-semibold text-red-600 hover:underline"
+            >
+              View all projects →
+            </button>
+          </div>
         ) : (
           <>
-            <div
-              className="
-                relative z-10
-                max-w-[1600px] mx-auto px-6 pb-20
-                grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4
-                gap-10
-              "
-            >
-              {visibleItems.map((item, i) => (
+            {/* ===== GRID ===== */}
+            <div className="max-w-[1400px] mx-auto px-6 pb-20
+              grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {visible.map((item, i) => (
                 <motion.div
                   key={item._id}
-                  initial={{ opacity: 0, y: 50 }}
+                  initial={{ opacity: 0, y: 30 }}
                   whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.04 }}
                   viewport={{ once: true }}
-                  transition={{ delay: i * 0.05, duration: 0.6 }}
-                  whileHover={{ y: -10 }}
-                  className="
-                    group rounded-3xl overflow-hidden
+                  whileHover={{ y: -8 }}
+                  className="relative rounded-3xl overflow-hidden
                     bg-white dark:bg-[#121212]
-                    border border-brand-yellow/30 dark:border-white/10
-                    shadow-xl hover:shadow-brand-red/20
-                    transition-all
-                  "
+                    shadow-xl hover:shadow-red-900/30 transition"
                 >
-                  <Link to={`/view-gallery/${item._id}`}>
+                  <Link
+                    to={`/view-gallery/${item._id}`}
+                    className="block relative"
+                  >
+                    {/* IMAGE */}
                     {item.images?.[0]?.url ? (
                       <img
                         src={item.images[0].url}
                         alt={item.title}
-                        loading="lazy"
-                        className="h-[260px] w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        className="h-[260px] w-full object-cover
+                          hover:scale-110 transition-transform duration-700"
                       />
                     ) : (
-                      <div className="h-[260px] flex items-center justify-center bg-gray-200 dark:bg-[#0f0f0f]">
-                        <ImgIcon className="text-gray-400" />
+                      <div className="h-[260px] flex items-center justify-center">
+                        <ImgIcon className="opacity-30" />
                       </div>
                     )}
+
+                    {/* OVERLAY */}
+                    <div className="absolute inset-0 pointer-events-none
+                      bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+                    {/* BOTTOM CONTENT */}
+                    <div className="absolute bottom-0 left-0 right-0 p-5
+                      pointer-events-none">
+                      <h3 className="text-white font-semibold text-base truncate">
+                        {item.title}
+                      </h3>
+
+                      <p className="text-xs uppercase tracking-widest text-white/70 mt-1">
+                        {item.category?.name}
+                      </p>
+
+                      <div className="flex items-center justify-between mt-3">
+                        <span className="h-[2px] w-10 bg-red-600" />
+                        <span className="inline-flex items-center gap-1
+                          text-xs font-semibold text-white
+                          bg-red-600 px-3 py-1.5 rounded-full">
+                          View <ArrowUpRight size={14} />
+                        </span>
+                      </div>
+                    </div>
                   </Link>
-
-                  <div className="p-6">
-                    <h3 className="font-bold text-lg truncate">{item.title}</h3>
-
-                    <p className="text-xs uppercase tracking-widest opacity-60 mt-1">
-                      {item.category || "Uncategorized"}
-                    </p>
-
-                    <Link to={`/view-gallery/${item._id}`}>
-                      <button
-                        className="
-                          mt-5 w-full py-3 rounded-xl
-                          bg-brand-red text-white font-semibold
-                          shadow-lg hover:shadow-brand-red/40
-                          hover:scale-105 transition
-                        "
-                      >
-                        View Project →
-                      </button>
-                    </Link>
-                  </div>
                 </motion.div>
               ))}
             </div>
 
-            {/* ================= LOAD MORE ================= */}
-            {visibleItems.length < filteredCount && (
-              <div className="relative z-10 flex justify-center pb-28">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+            {/* LOAD MORE */}
+            {hasMore && (
+              <div className="flex justify-center pb-28">
+                <button
                   onClick={loadMore}
                   disabled={loadingMore}
-                  className="
-                    flex items-center gap-3 px-10 py-4 rounded-2xl
-                    bg-brand-yellow text-black font-semibold
-                    shadow-xl hover:shadow-brand-yellow/40
-                    transition
-                  "
+                  className="px-14 py-4 rounded-full font-semibold
+                    bg-gradient-to-r from-red-600 to-red-900
+                    text-white shadow-xl hover:shadow-red-900/50 transition"
                 >
-                  {loadingMore ? (
-                    <>
-                      <Loader2 className="animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    "Load More Projects"
-                  )}
-                </motion.button>
+                  {loadingMore ? "Loading…" : "Explore More"}
+                </button>
               </div>
             )}
           </>

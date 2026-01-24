@@ -8,6 +8,7 @@ import { api } from "../../lib/api";
 export default function Navbar() {
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
+
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [wishlistCount, setWishlistCount] = useState(0);
@@ -30,15 +31,20 @@ export default function Navbar() {
     { path: "/estimate", label: "Estimate" },
   ];
 
-  /* ================= LOAD WISHLIST COUNT ================= */
+  /* ================= WISHLIST COUNT ================= */
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      setWishlistCount(0);
+      return;
+    }
 
     const loadWishlist = async () => {
       try {
         const res = await api.get("/wishlist");
         setWishlistCount(res.data.length || 0);
-      } catch {}
+      } catch {
+        setWishlistCount(0);
+      }
     };
 
     loadWishlist();
@@ -46,42 +52,49 @@ export default function Navbar() {
 
   /* ================= SCROLL EFFECT ================= */
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 30);
+    const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   return (
     <nav
-      role="navigation"
       className={`
         fixed top-4 left-1/2 -translate-x-1/2 z-50
-        w-[92%] max-w-7xl rounded-2xl px-6 py-3
-        backdrop-blur-xl transition-all duration-300
-        ${scrolled ? "bg-white/95 dark:bg-black/90 shadow-xl" : "bg-white/70 dark:bg-black/70"}
-        border border-brand-yellow/30 dark:border-white/10
+        w-[94%] max-w-7xl
+        rounded-2xl px-6 py-3
+        backdrop-blur-xl
+        transition-all duration-300
+        ${
+          scrolled
+            ? "bg-white/90 dark:bg-black/85 shadow-2xl"
+            : "bg-white/70 dark:bg-black/60"
+        }
+        border border-red-500/20
       `}
     >
       <div className="flex items-center justify-between">
 
-        {/* LOGO */}
+        {/* ================= LOGO ================= */}
         <div
           onClick={() => navigate("/")}
-          className="cursor-pointer text-2xl font-extrabold bg-gradient-to-r from-brand-red to-brand-yellow bg-clip-text text-transparent"
+          className="cursor-pointer text-2xl font-extrabold tracking-tight
+            bg-gradient-to-r from-red-600 to-yellow-400
+            bg-clip-text text-transparent"
         >
-          Sowron<span className="opacity-80">Interiors</span>
+          Sowron<span className="opacity-70">Interiors</span>
         </div>
 
-        {/* DESKTOP MENU */}
-        <ul className="hidden lg:flex gap-10 text-sm font-medium text-black dark:text-white">
+        {/* ================= DESKTOP MENU ================= */}
+        <ul className="hidden lg:flex items-center gap-10 text-sm font-medium">
           {links.map((l) => (
             <li key={l.path}>
               <NavLink
                 to={l.path}
                 className={({ isActive }) =>
                   isActive
-                    ? "text-brand-red border-b-2 border-brand-red"
-                    : "text-gray-800 dark:text-gray-200 hover:text-brand-yellow"
+                    ? "text-red-600 border-b-2 border-red-600 pb-1"
+                    : "text-gray-800 dark:text-gray-200 hover:text-red-500 transition"
                 }
               >
                 {l.label}
@@ -91,30 +104,51 @@ export default function Navbar() {
 
           {token && (
             <>
-              <NavLink to="/products" className="hover:text-brand-yellow text-black dark:text-white">
+              <NavLink
+                to="/products"
+                className="text-gray-800 dark:text-gray-200 hover:text-red-500 transition"
+              >
                 Products
               </NavLink>
 
               {/* ❤️ Wishlist */}
-              <NavLink to="/wishlist" className="relative">
-                <Heart className="text-brand-red hover:scale-110 transition" />
-                {wishlistCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                    {wishlistCount}
-                  </span>
-                )}
+              <NavLink to="/wishlist" className="relative group">
+                <Heart
+                  size={20}
+                  className="text-red-600 group-hover:scale-110 transition"
+                />
+
+                {/* 🔥 ALWAYS SHOW BADGE */}
+                <span
+                  className={`
+                    absolute -top-2 -right-3
+                    min-w-[18px] h-[18px]
+                    px-1
+                    text-[10px] font-bold
+                    flex items-center justify-center
+                    rounded-full
+                    ${
+                      wishlistCount > 0
+                        ? "bg-red-600 text-white"
+                        : "bg-gray-300 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                    }
+                  `}
+                >
+                  {wishlistCount}
+                </span>
               </NavLink>
             </>
           )}
         </ul>
 
-        {/* RIGHT */}
+        {/* ================= RIGHT ================= */}
         <div className="flex items-center gap-4">
 
           {/* THEME */}
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="p-2 rounded-xl bg-white/40 dark:bg-white/10 text-black dark:text-white"
+            className="p-2 rounded-xl text-black dark:text-white bg-white/40 dark:bg-white/10
+              hover:scale-110 transition"
           >
             {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           </button>
@@ -123,49 +157,85 @@ export default function Navbar() {
           {!token ? (
             <NavLink
               to="/login"
-              className="hidden lg:block px-6 py-2 rounded-xl bg-brand-red text-white font-semibold"
+              className="hidden lg:block px-6 py-2 rounded-xl
+                bg-gradient-to-r from-red-600 to-red-800
+                text-white font-semibold shadow-lg"
             >
               Login
             </NavLink>
           ) : (
-            <div className="hidden lg:flex items-center gap-3">
-              <span className="text-sm">👋 {name || phone}</span>
-              <button onClick={logout} className="text-brand-yellow font-semibold">
+            <div className="hidden text-black dark:text-white lg:flex items-center gap-3 text-sm">
+              <span className="opacity-80">👋 {name || phone}</span>
+              <button
+                onClick={logout}
+                className="text-red-500 font-semibold hover:underline"
+              >
                 Logout
               </button>
             </div>
           )}
 
-          {/* MOBILE BUTTON */}
-          <button onClick={() => setOpen(!open)} className="lg:hidden dark:text-white text-black">
+          {/* MOBILE MENU BUTTON */}
+          <button
+            onClick={() => setOpen(!open)}
+            className="lg:hidden p-2 text-black dark:text-white rounded-xl hover:bg-black/10 dark:hover:bg-white/10 transition"
+          >
             {open ? <X size={26} /> : <Menu size={26} />}
           </button>
         </div>
       </div>
 
-      {/* MOBILE MENU */}
+      {/* ================= MOBILE MENU ================= */}
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: -15 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="lg:hidden mt-6 rounded-2xl bg-white text-black dark:text-white dark:bg-black p-6 shadow-2xl flex flex-col gap-5"
+            exit={{ opacity: 0, y: -15 }}
+            className="
+              lg:hidden mt-6 rounded-2xl
+              bg-white text-black dark:text-white dark:bg-black
+              p-6 shadow-2xl
+              flex flex-col gap-5
+            "
           >
             {links.map((l) => (
-              <NavLink key={l.path} to={l.path} onClick={() => setOpen(false)}>
+              <NavLink
+                key={l.path}
+                to={l.path}
+                onClick={() => setOpen(false)}
+                className="text-md font-medium"
+              >
                 {l.label}
               </NavLink>
             ))}
 
             {token && (
               <>
-                <NavLink to="/products" onClick={() => setOpen(false)}>
+                <NavLink  className="text-md font-medium" to="/products" onClick={() => setOpen(false)}>
                   Products
                 </NavLink>
 
-                <NavLink to="/wishlist" onClick={() => setOpen(false)}>
-                  ❤️ Wishlist ({wishlistCount})
+                {/* ❤️ Mobile Wishlist (WITH COUNT) */}
+                <NavLink
+                  to="/wishlist"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 text-md font-medium"
+                >
+                  <Heart className="text-red-600" />
+                  Wishlist
+                  <span
+                    className={`
+                      ml-auto px-2 py-0.5 text-xs rounded-full
+                      ${
+                        wishlistCount > 0
+                          ? "bg-red-600 text-white"
+                          : "bg-gray-300 dark:bg-gray-700"
+                      }
+                    `}
+                  >
+                    {wishlistCount}
+                  </span>
                 </NavLink>
               </>
             )}
@@ -175,7 +245,7 @@ export default function Navbar() {
                 Login
               </NavLink>
             ) : (
-              <button onClick={logout} className="text-brand-yellow">
+              <button onClick={logout} className="text-red-500 font-semibold">
                 Logout
               </button>
             )}

@@ -15,12 +15,11 @@ const gallerySchema = new mongoose.Schema(
       index: true,
     },
 
-    // 🔥 Category reference (for filter tabs)
     category: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
       required: true,
-      index: true,
+      index: true, // 🔥 required for filter
     },
 
     description: {

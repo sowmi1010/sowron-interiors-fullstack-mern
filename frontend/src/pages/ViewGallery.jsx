@@ -7,7 +7,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ZoomIn,
-  Image as ImgIcon,
   X,
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -56,7 +55,7 @@ export default function ViewGallery() {
 
   if (loading) {
     return (
-      <p className="text-center py-32 text-brand-lightSubText">
+      <p className="text-center py-32 text-gray-400">
         Loading project…
       </p>
     );
@@ -64,7 +63,7 @@ export default function ViewGallery() {
 
   if (!item || !item.images?.length) {
     return (
-      <p className="text-center py-32 text-brand-lightSubText">
+      <p className="text-center py-32 text-gray-400">
         Gallery not found
       </p>
     );
@@ -78,49 +77,51 @@ export default function ViewGallery() {
   return (
     <>
       <SEO
-        title={`${item.title} | Sowron Interiors Gallery`}
+        title={`${item.title} | Sowron Interiors`}
         description={`Explore ${item.title} interior project by Sowron Interiors.`}
       />
 
-      <section className="min-h-screen pb-32 bg-brand-lightBg dark:bg-brand-darkBg text-brand-lightText dark:text-brand-darkText transition-colors">
-        {/* BACK */}
-        <div className="max-w-7xl mx-auto px-6 pt-10">
+      <section className="min-h-screen pb-32 bg-white dark:bg-black text-black dark:text-white">
+
+        {/* BACK BUTTON */}
+        <div className="max-w-7xl mx-auto px-6 pt-24">
           <button
             onClick={() => navigate(-1)}
             className="flex items-center gap-2 px-6 py-2 rounded-full
-              bg-brand-lightCard dark:bg-brand-darkCard backdrop-blur
-              border border-brand-yellow/40 dark:border-white/10
-              shadow-card hover:shadow-glow transition mt-16"
+              bg-white/80 dark:bg-black/60 backdrop-blur
+              border border-brand-yellow/40 shadow hover:shadow-lg transition"
           >
             <ArrowLeft size={18} /> Back to Gallery
           </button>
         </div>
 
         {/* HEADER */}
-        <div className="text-center mt-16 px-6">
+        <div className="text-center mt-20 px-6">
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-4xl md:text-6xl font-extrabold tracking-wide"
           >
             {item.title}
-            <span
-              className="block mx-auto mt-5 w-28 h-[3px]
-              bg-gradient-to-r from-brand-red to-brand-yellow rounded-full"
-            />
           </motion.h1>
 
-          <p className="mt-4 text-xs md:text-sm uppercase tracking-widest text-brand-lightSubText dark:text-brand-darkSubText">
-            {item.category?.replace(/-/g, " ") || "Premium Interior Project"}
-          </p>
+          {/* CATEGORY BADGE (FIXED + BEAUTIFUL) */}
+          <div className="flex justify-center mt-6">
+            <span
+              className="px-6 py-2 rounded-full text-xs uppercase tracking-widest
+              bg-gradient-to-r from-brand-red to-brand-yellow
+              text-white font-semibold shadow-lg"
+            >
+              {item.category?.name || "Interior Project"}
+            </span>
+          </div>
         </div>
 
         {/* MAIN SLIDER */}
-        <div className="relative max-w-7xl mx-auto px-6 mt-20">
+        <div className="relative max-w-7xl mx-auto px-6 mt-24">
           <div
             className="relative h-[300px] sm:h-[420px] md:h-[560px]
-              rounded-[2.5rem] overflow-hidden
-              shadow-2xl bg-black cursor-zoom-in"
+              rounded-[2.5rem] overflow-hidden shadow-2xl bg-black cursor-zoom-in"
             onClick={() => setZoomImage(images[activeIndex].url)}
           >
             {/* CONTROLS */}
@@ -129,9 +130,10 @@ export default function ViewGallery() {
                 e.stopPropagation();
                 prev();
               }}
-              className="absolute left-5 top-1/2 -translate-y-1/2 bg-black/50 p-3 rounded-full"
+              className="absolute left-5 top-1/2 -translate-y-1/2
+                bg-black/50 p-3 rounded-full text-white"
             >
-              <ChevronLeft className="text-white" />
+              <ChevronLeft />
             </button>
 
             <button
@@ -139,9 +141,10 @@ export default function ViewGallery() {
                 e.stopPropagation();
                 next();
               }}
-              className="absolute right-5 top-1/2 -translate-y-1/2 bg-black/50 p-3 rounded-full"
+              className="absolute right-5 top-1/2 -translate-y-1/2
+                bg-black/50 p-3 rounded-full text-white"
             >
-              <ChevronRight className="text-white" />
+              <ChevronRight />
             </button>
 
             <AnimatePresence mode="wait">
@@ -158,7 +161,8 @@ export default function ViewGallery() {
             </AnimatePresence>
 
             <div
-              className="absolute bottom-6 right-6 bg-white/90 dark:bg-black/70 backdrop-blur
+              className="absolute bottom-6 right-6
+              bg-white/90 dark:bg-black/70 backdrop-blur
               px-4 py-2 rounded-full text-xs font-semibold flex items-center gap-2 shadow-xl"
             >
               <ZoomIn size={14} /> View Fullscreen
@@ -173,7 +177,7 @@ export default function ViewGallery() {
               <motion.img
                 key={idx}
                 src={img.url}
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ scale: 1.08 }}
                 onClick={() => setActiveIndex(idx)}
                 className={`h-24 w-36 rounded-2xl cursor-pointer transition-all
                   ${
@@ -191,13 +195,17 @@ export default function ViewGallery() {
       <AnimatePresence>
         {zoomImage && (
           <motion.div
-            className="fixed inset-0 bg-black/95 z-[999] flex items-center justify-center p-6"
+            className="fixed inset-0 bg-black/95 z-[999]
+              flex items-center justify-center p-6"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setZoomImage(null)}
           >
-            <button className="absolute top-6 right-6 bg-black/60 p-3 rounded-full text-white">
+            <button
+              className="absolute top-6 right-6 bg-black/60
+              p-3 rounded-full text-white"
+            >
               <X />
             </button>
 
@@ -206,7 +214,8 @@ export default function ViewGallery() {
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
-              className="max-h-[90vh] max-w-[90vw] rounded-3xl shadow-2xl"
+              className="max-h-[90vh] max-w-[90vw]
+                rounded-3xl shadow-2xl"
             />
           </motion.div>
         )}

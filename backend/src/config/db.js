@@ -2,22 +2,26 @@ import mongoose from "mongoose";
 
 export const connectDB = async () => {
   try {
+    if (!process.env.MONGO_URI) {
+      throw new Error("MONGO_URI not configured");
+    }
+
     const conn = await mongoose.connect(process.env.MONGO_URI, {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
+      autoIndex: false, // ✅ better for production
     });
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
     console.error("❌ MongoDB connection failed:", error.message);
-    process.exit(1); // Stop server if DB fails
+    process.exit(1);
   }
 };
 
 /* ===========================
    CONNECTION EVENTS
 =========================== */
-
 mongoose.connection.on("connected", () => {
   console.log("🟢 MongoDB connection established");
 });
@@ -33,9 +37,11 @@ mongoose.connection.on("disconnected", () => {
 /* ===========================
    GRACEFUL SHUTDOWN
 =========================== */
-
-process.on("SIGINT", async () => {
+const shutdown = async (signal) => {
+  console.log(`🛑 ${signal} received. Closing MongoDB...`);
   await mongoose.connection.close();
-  console.log("🛑 MongoDB disconnected on app termination");
   process.exit(0);
-});
+};
+
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);

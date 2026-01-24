@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Portfolio from "../models/Portfolio.js";
 import { deleteMultipleImages } from "../services/cloudinary.service.js";
 
@@ -8,8 +9,14 @@ export const addPortfolio = async (req, res) => {
   try {
     const { title, location, description, video } = req.body;
 
-    if (!title?.trim()) {
+    if (!title || !title.trim()) {
       return res.status(400).json({ message: "Title is required" });
+    }
+
+    if (!req.files?.length && !video) {
+      return res.status(400).json({
+        message: "At least one image or video is required",
+      });
     }
 
     uploadedImages =
@@ -26,42 +33,66 @@ export const addPortfolio = async (req, res) => {
       images: uploadedImages,
     });
 
-    res.status(201).json({ success: true, portfolio });
-
+    res.status(201).json({
+      success: true,
+      portfolio,
+    });
   } catch (err) {
-    await deleteMultipleImages(uploadedImages);
+    if (uploadedImages.length) {
+      await deleteMultipleImages(uploadedImages);
+    }
+
     console.error("ADD PORTFOLIO ERROR:", err);
     res.status(500).json({ message: "Portfolio creation failed" });
   }
 };
 
-/* ================= LIST ================= */
+/* ================= LIST (PUBLIC) ================= */
 export const getPortfolio = async (req, res) => {
   try {
-    const list = await Portfolio.find().sort({ createdAt: -1 });
+    const list = await Portfolio.find()
+      .sort({ createdAt: -1 });
+
     res.json(list);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("GET PORTFOLIO ERROR:", err);
+    res.status(500).json({ message: "Failed to load portfolio" });
   }
 };
 
 /* ================= SINGLE ================= */
 export const getSinglePortfolio = async (req, res) => {
   try {
-    const item = await Portfolio.findById(req.params.id);
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid portfolio ID" });
+    }
+
+    const item = await Portfolio.findById(id);
+
     if (!item) {
       return res.status(404).json({ message: "Portfolio not found" });
     }
+
     res.json(item);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("GET SINGLE PORTFOLIO ERROR:", err);
+    res.status(500).json({ message: "Failed to fetch portfolio" });
   }
 };
 
-/* ================= UPDATE PORTFOLIO ================= */
+/* ================= UPDATE ================= */
 export const updatePortfolio = async (req, res) => {
   try {
-    const portfolio = await Portfolio.findById(req.params.id);
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid portfolio ID" });
+    }
+
+    const portfolio = await Portfolio.findById(id);
+
     if (!portfolio) {
       return res.status(404).json({ message: "Portfolio not found" });
     }
@@ -85,34 +116,38 @@ export const updatePortfolio = async (req, res) => {
 
     await portfolio.save();
 
-    res.json({ success: true, portfolio });
-
+    res.json({
+      success: true,
+      portfolio,
+    });
   } catch (err) {
     console.error("UPDATE PORTFOLIO ERROR:", err);
     res.status(500).json({ message: "Update failed" });
   }
 };
 
-/* ================= DELETE PORTFOLIO ================= */
+/* ================= DELETE ================= */
 export const deletePortfolio = async (req, res) => {
   try {
-    const portfolio = await Portfolio.findById(req.params.id);
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid portfolio ID" });
+    }
+
+    const portfolio = await Portfolio.findById(id);
 
     if (!portfolio) {
       return res.status(404).json({ message: "Portfolio not found" });
     }
 
-    // delete images from cloudinary
     await deleteMultipleImages(portfolio.images);
-
-    // delete record
     await portfolio.deleteOne();
 
     res.json({
       success: true,
       message: "Portfolio deleted successfully",
     });
-
   } catch (err) {
     console.error("DELETE PORTFOLIO ERROR:", err);
     res.status(500).json({ message: "Delete failed" });

@@ -4,91 +4,114 @@ import { deleteMultipleImages } from "../services/cloudinary.service.js";
 
 /* ================= ADD PRODUCT ================= */
 export const addProduct = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   let uploadedImages = [];
 
   try {
     const { title, description, category, subCategory, price } = req.body;
 
+    if (!title || !category || !price) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
     if (!req.files?.length) {
       return res.status(400).json({ message: "Images required" });
     }
 
-    uploadedImages = req.files.map(file => ({
+    uploadedImages = req.files.map((file) => ({
       url: file.path,
       public_id: file.filename,
     }));
 
-    const [product] = await Product.create(
-      [{
-        title,
-        description,
-        category,
-        subCategory,
-        price,
-        images: uploadedImages,
-      }],
-      { session }
-    );
-
-    await session.commitTransaction();
-    session.endSession();
+    const product = await Product.create({
+      title,
+      description,
+      category,
+      subCategory,
+      price,
+      images: uploadedImages,
+    });
 
     res.status(201).json({ success: true, product });
-
   } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
-
-    // 🔥 rollback cloudinary images
-    await deleteMultipleImages(uploadedImages);
+    if (uploadedImages.length) {
+      await deleteMultipleImages(uploadedImages);
+    }
 
     console.error("ADD PRODUCT ERROR:", err);
     res.status(500).json({ message: "Product creation failed" });
   }
 };
 
-/* ================= GET PRODUCTS ================= */
+/* ================= GET PRODUCTS (PUBLIC + FILTER) ================= */
 export const getProducts = async (req, res) => {
-  const products = await Product.find()
-    .populate("category")
-    .sort({ createdAt: -1 });
+  try {
+    const { category, subCategory, minPrice, maxPrice } = req.query;
 
-  res.json(products);
+    const filter = {};
+
+    if (category && mongoose.Types.ObjectId.isValid(category)) {
+      filter.category = category;
+    }
+
+    if (subCategory) {
+      filter.subCategory = subCategory;
+    }
+
+    if (minPrice || maxPrice) {
+      filter.price = {};
+      if (minPrice) filter.price.$gte = Number(minPrice);
+      if (maxPrice) filter.price.$lte = Number(maxPrice);
+    }
+
+    const products = await Product.find(filter)
+      .populate("category")
+      .sort({ createdAt: -1 });
+
+    res.json(products);
+  } catch (err) {
+    console.error("GET PRODUCTS ERROR:", err);
+    res.status(500).json({ message: "Failed to load products" });
+  }
+};
+
+/* ================= GET SINGLE PRODUCT ================= */
+export const getProductById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid product ID" });
+    }
+
+    const product = await Product.findById(id).populate("category");
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    res.json(product);
+  } catch (err) {
+    console.error("GET PRODUCT ERROR:", err);
+    res.status(500).json({ message: "Failed to fetch product" });
+  }
 };
 
 /* ================= UPDATE PRODUCT ================= */
 export const updateProduct = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
-    const product = await Product.findById(req.params.id).session(session);
+    const product = await Product.findById(req.params.id);
+
     if (!product) {
-      await session.abortTransaction();
-      return res.status(404).json({ message: "Not found" });
+      return res.status(404).json({ message: "Product not found" });
     }
 
-    let newImages = null;
-
     if (req.files?.length) {
-      newImages = req.files.map(file => ({
+      const newImages = req.files.map((file) => ({
         url: file.path,
         public_id: file.filename,
       }));
 
-      // 🔥 delete old images first
-      const failed = await deleteMultipleImages(product.images);
-      if (failed.length) {
-        await session.abortTransaction();
-        return res.status(500).json({
-          message: "Old image delete failed",
-          failed,
-        });
-      }
-
+      await deleteMultipleImages(product.images);
       product.images = newImages;
     }
 
@@ -98,17 +121,10 @@ export const updateProduct = async (req, res) => {
     product.subCategory = req.body.subCategory ?? product.subCategory;
     product.price = req.body.price ?? product.price;
 
-    await product.save({ session });
-
-    await session.commitTransaction();
-    session.endSession();
+    await product.save();
 
     res.json({ success: true, product });
-
   } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
-
     console.error("UPDATE PRODUCT ERROR:", err);
     res.status(500).json({ message: "Update failed" });
   }
@@ -120,46 +136,15 @@ export const deleteProduct = async (req, res) => {
     const product = await Product.findById(req.params.id);
 
     if (!product) {
-      return res.status(404).json({ message: "Not found" });
+      return res.status(404).json({ message: "Product not found" });
     }
 
-    // delete cloudinary images
     await deleteMultipleImages(product.images);
-
-    // delete product
     await product.deleteOne();
 
     res.json({ success: true, message: "Product deleted" });
-
   } catch (err) {
     console.error("DELETE PRODUCT ERROR:", err);
     res.status(500).json({ message: "Delete failed" });
   }
 };
-
-
-
-/* ================= GET SINGLE PRODUCT ================= */
-export const getProductById = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid product ID" });
-    }
-
-    const product = await Product.findById(id)
-      .populate("category");
-
-    if (!product) {
-      return res.status(404).json({ message: "Product not found" });
-    }
-
-    res.json(product);
-
-  } catch (err) {
-    console.error("GET PRODUCT BY ID ERROR:", err);
-    res.status(500).json({ message: "Failed to fetch product" });
-  }
-};
-

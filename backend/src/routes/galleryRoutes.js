@@ -13,38 +13,51 @@ import Gallery from "../models/Gallery.js";
 
 const router = express.Router();
 
-/* 🌍 PUBLIC */
+/* ===========================
+   🌍 PUBLIC
+=========================== */
 router.get("/", getGallery);
 
-/* 🔐 ADMIN – LIST WITH SEARCH + PAGINATION */
+/* ===========================
+   🔐 ADMIN – LIST + SEARCH + PAGINATION (FIXED)
+=========================== */
 router.get("/admin", protect, adminOnly, async (req, res) => {
   try {
-    const { page = 1, limit = 9, q = "" } = req.query;
+    let { page = 1, limit = 9, q } = req.query;
 
-    const filter = q
-      ? {
-          title: { $regex: q, $options: "i" }, // case-insensitive search
-        }
+    page = Number(page);
+    limit = Number(limit);
+
+    // 🔥 FIX: sanitize search query
+    const search = q && q.trim().length > 0 ? q.trim() : null;
+
+    const filter = search
+      ? { title: { $regex: search, $options: "i" } }
       : {};
 
     const items = await Gallery.find(filter)
+      .populate("category", "name slug")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
-      .limit(Number(limit));
+      .limit(limit);
 
     const total = await Gallery.countDocuments(filter);
 
     res.json({ items, total });
   } catch (err) {
     console.error("ADMIN GALLERY LIST ERROR:", err);
-    res.status(500).json({ message: "Failed to load gallery" });
+    res.status(400).json({ message: "Invalid query parameters" });
   }
 });
 
-/* 🌍 PUBLIC SINGLE */
+/* ===========================
+   🌍 PUBLIC SINGLE
+=========================== */
 router.get("/:id", getSingleGallery);
 
-/* 🔐 ADMIN CRUD */
+/* ===========================
+   🔐 ADMIN CRUD
+=========================== */
 router.post(
   "/add",
   protect,

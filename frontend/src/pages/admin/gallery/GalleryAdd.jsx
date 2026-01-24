@@ -9,7 +9,7 @@ export default function GalleryAdd() {
   const navigate = useNavigate();
 
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("");
+  const [categoryId, setCategoryId] = useState(""); // ✅ FIX
   const [categories, setCategories] = useState([]);
   const [files, setFiles] = useState([]);
   const [preview, setPreview] = useState([]);
@@ -27,7 +27,7 @@ export default function GalleryAdd() {
     };
   }, []);
 
-  /* 📸 IMAGE PICK (MEMORY SAFE) */
+  /* 📸 IMAGE PICK */
   const handleFiles = (e) => {
     const selected = Array.from(e.target.files);
     preview.forEach((url) => URL.revokeObjectURL(url));
@@ -47,7 +47,7 @@ export default function GalleryAdd() {
   const submitHandler = async (e) => {
     e.preventDefault();
 
-    if (!title.trim() || !category || files.length === 0) {
+    if (!title.trim() || !categoryId || files.length === 0) {
       return toast.error("Title, category & images are required");
     }
 
@@ -56,7 +56,7 @@ export default function GalleryAdd() {
 
       const fd = new FormData();
       fd.append("title", title.trim());
-      fd.append("category", category);
+      fd.append("categoryId", categoryId); // ✅ FIX
       files.forEach((file) => fd.append("images", file));
 
       await api.post("/gallery/add", fd);
@@ -76,7 +76,6 @@ export default function GalleryAdd() {
         <title>Add Gallery</title>
       </Helmet>
 
-      {/* HEADER */}
       <div className="mb-8 text-center">
         <h2 className="text-3xl font-semibold text-brand-red flex items-center justify-center gap-2">
           <ImagePlus /> Add Gallery Item
@@ -86,46 +85,33 @@ export default function GalleryAdd() {
         </p>
       </div>
 
-      {/* CARD */}
-      <div className="bg-black/60 backdrop-blur-xl
-                      border border-white/10
-                      rounded-2xl p-6 shadow-glass">
-
+      <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-glass">
         <form onSubmit={submitHandler} className="space-y-4">
 
-          {/* TITLE */}
           <input
             type="text"
             placeholder="Gallery title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg
-                       bg-black border border-white/10
-                       outline-none focus:border-brand-yellow transition"
+            className="w-full px-4 py-3 rounded-lg bg-black border border-white/10 outline-none"
           />
 
-          {/* CATEGORY */}
+          {/* ✅ CATEGORY FIX */}
           <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg
-                       bg-black border border-white/10
-                       outline-none focus:border-brand-yellow transition"
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            className="w-full px-4 py-3 rounded-lg bg-black border border-white/10 outline-none"
           >
             <option value="">Select Category</option>
             {categories.map((c) => (
-              <option key={c._id} value={c.slug}>
+              <option key={c._id} value={c._id}>
                 {c.name}
               </option>
             ))}
           </select>
 
           {/* IMAGE PICKER */}
-          <label className="flex items-center justify-center gap-2
-                            border border-dashed border-white/20
-                            rounded-xl bg-black py-6
-                            cursor-pointer hover:border-brand-yellow
-                            transition">
+          <label className="flex items-center justify-center gap-2 border border-dashed border-white/20 rounded-xl bg-black py-6 cursor-pointer">
             <Upload size={20} />
             <span className="text-sm text-gray-300">
               Click to select images
@@ -143,24 +129,12 @@ export default function GalleryAdd() {
           {preview.length > 0 && (
             <div className="grid grid-cols-3 gap-3 mt-4">
               {preview.map((src, i) => (
-                <div
-                  key={i}
-                  className="relative group rounded-xl overflow-hidden
-                             border border-white/10"
-                >
-                  <img
-                    src={src}
-                    alt="Preview"
-                    className="h-24 w-full object-cover"
-                  />
-
+                <div key={i} className="relative rounded-xl overflow-hidden">
+                  <img src={src} className="h-24 w-full object-cover" />
                   <button
                     type="button"
                     onClick={() => removeImage(i)}
-                    className="absolute top-2 right-2
-                               bg-black/70 p-1.5 rounded-full
-                               opacity-0 group-hover:opacity-100
-                               transition"
+                    className="absolute top-2 right-2 bg-black/70 p-1 rounded-full"
                   >
                     <X size={14} />
                   </button>
@@ -169,18 +143,13 @@ export default function GalleryAdd() {
             </div>
           )}
 
-          {/* SUBMIT */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-lg font-semibold
-                       bg-brand-red text-white
-                       hover:bg-brand-redDark transition
-                       disabled:opacity-60"
+            className="w-full py-3 rounded-lg font-semibold bg-brand-red text-white"
           >
             {loading ? "Uploading..." : "Save Gallery"}
           </button>
-
         </form>
       </div>
     </div>

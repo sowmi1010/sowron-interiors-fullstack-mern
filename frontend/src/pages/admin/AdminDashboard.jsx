@@ -37,7 +37,7 @@ export default function AdminDashboard() {
   /* ================= LOAD DATA ================= */
   const load = async () => {
     try {
-      const countsRes = await api.get("/admin/counts");
+      const countsRes = await api.get("/dashboard/counts");
       setData(countsRes.data);
 
       const bookingRes = await api.get("/booking");

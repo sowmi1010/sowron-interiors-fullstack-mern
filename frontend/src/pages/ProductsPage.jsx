@@ -102,21 +102,28 @@ export default function ProductsPage() {
   const subCategories = activeCategory?.subCategories || [];
 
   /* ================= WISHLIST ================= */
-  const toggleLike = async (id) => {
-    try {
-      if (liked.includes(id)) {
-        await api.delete(`/wishlist/remove/${id}`);
-        setLiked((prev) => prev.filter((x) => x !== id));
-        toast.success("Removed from wishlist");
-      } else {
-        await api.post(`/wishlist/add/${id}`);
-        setLiked((prev) => [...prev, id]);
-        toast.success("Added to wishlist");
-      }
-    } catch {
-      toast.error("Please login to use wishlist");
+const toggleLike = async (id) => {
+  try {
+    if (liked.includes(id)) {
+      await api.delete(`/wishlist/remove/${id}`);
+      setLiked((prev) => prev.filter((x) => x !== id));
+      toast.success("Removed from wishlist");
+    } else {
+      await api.post(`/wishlist/add/${id}`);
+      setLiked((prev) => [...prev, id]);
+      toast.success("Added to wishlist");
     }
-  };
+  } catch (err) {
+    if (err.response?.status === 401) {
+      toast.error("Please login to use wishlist");
+    } else if (err.response?.status === 409) {
+      toast("Already in wishlist ❤️");
+    } else {
+      toast.error("Something went wrong");
+    }
+  }
+};
+
 
   return (
     <>

@@ -24,7 +24,7 @@ export const sendOtp = async (req, res, next) => {
 
     let user = await User.findOne({ phone });
 
-    // 🔒 LOCK CHECK
+    // 🔒 Lock check (per phone)
     if (user?.otpLockedUntil && user.otpLockedUntil > Date.now()) {
       return res.status(429).json({
         message: "Too many attempts. Try again later.",
@@ -34,30 +34,29 @@ export const sendOtp = async (req, res, next) => {
     const otp = generateOtp();
     const otpHash = hashOtp(otp);
 
-    user = await User.findOneAndUpdate(
-      { phone },
-      {
-        phone,
-        otpHash,
-        otpExpires: Date.now() + 5 * 60 * 1000,
-        otpAttempts: 0,
-        otpLockedUntil: null,
-        otpVerified: false,
-      },
-      { upsert: true, new: true }
-    );
+    if (!user) {
+      user = new User({ phone });
+    }
+
+    user.otpHash = otpHash;
+    user.otpExpires = Date.now() + 5 * 60 * 1000; // 5 mins
+    user.otpAttempts = 0;
+    user.otpLockedUntil = null;
+    user.otpVerified = false;
+
+    await user.save();
 
     /* ===========================
-       SEND OTP VIA PROVIDER HERE
-       (Twilio / Interakt / MSG91)
+       SEND OTP (PROVIDER)
+       👉 Twilio / MSG91 / Interakt
     =========================== */
 
-    // ❌ Never log OTP in production
+    // ⚠️ DEV ONLY
     if (process.env.NODE_ENV === "development") {
       console.log("📲 DEV OTP:", otp);
     }
 
-    return res.json({
+    res.json({
       success: true,
       message: "OTP sent successfully",
     });
@@ -80,21 +79,27 @@ export const verifyOtp = async (req, res, next) => {
 
     const user = await User.findOne({ phone });
 
-    if (!user) {
+    if (!user || !user.otpHash) {
       return res.status(400).json({ message: "Invalid OTP" });
     }
 
-    // ❌ EXPIRED
-    if (!user.otpExpires || Date.now() > user.otpExpires) {
+    if (!user.isActive) {
+      return res.status(403).json({ message: "Account disabled" });
+    }
+
+    // ⏰ Expired
+    if (Date.now() > user.otpExpires) {
       return res.status(400).json({ message: "OTP expired" });
     }
 
-    // 🔒 LOCKED
+    // 🔒 Locked
     if (user.otpLockedUntil && user.otpLockedUntil > Date.now()) {
-      return res.status(429).json({ message: "OTP locked. Try later." });
+      return res.status(429).json({
+        message: "OTP locked. Try again later.",
+      });
     }
 
-    // ❌ WRONG OTP
+    // ❌ Wrong OTP
     if (hashOtp(otp) !== user.otpHash) {
       user.otpAttempts += 1;
 
@@ -103,21 +108,17 @@ export const verifyOtp = async (req, res, next) => {
       }
 
       await user.save();
-
       return res.status(400).json({ message: "Invalid OTP" });
     }
 
     // ✅ SUCCESS
-    user.otpHash = null;
-    user.otpExpires = null;
+    user.otpHash = undefined;
+    user.otpExpires = undefined;
     user.otpAttempts = 0;
     user.otpLockedUntil = null;
     user.otpVerified = true;
-    await user.save();
 
-    if (!process.env.JWT_SECRET) {
-      throw new Error("JWT_SECRET not configured");
-    }
+    await user.save();
 
     const token = jwt.sign(
       { id: user._id, role: user.role },
@@ -125,7 +126,7 @@ export const verifyOtp = async (req, res, next) => {
       { expiresIn: "7d" }
     );
 
-    return res.json({
+    res.json({
       success: true,
       token,
       user: {

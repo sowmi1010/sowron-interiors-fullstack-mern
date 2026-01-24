@@ -125,7 +125,7 @@ export default function GalleryEdit() {
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             className="w-full px-4 py-3 rounded-lg
-                       bg-white/5 border border-white/10
+                       bg-black border border-white/10
                        outline-none focus:border-brand-yellow transition"
           >
             <option value="">Select Category</option>

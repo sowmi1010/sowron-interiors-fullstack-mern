@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Booking from "../models/Booking.js";
 
 /* ================= ADD BOOKING ================= */
@@ -7,31 +8,36 @@ export const addBooking = async (req, res) => {
     const phone = req.user?.phone || req.body.phone;
 
     if (!date || !time || !city || !phone) {
-      return res.status(400).json({ message: "All fields required" });
+      return res.status(400).json({
+        message: "All fields are required",
+      });
     }
 
     const booking = await Booking.create({
-      phone,
+      phone: phone.trim(),
       date,
       time,
-      city,
+      city: city.trim(),
       status: "pending",
     });
 
-    // 🔥 Live admin update
-    global._io?.emit("new_booking", booking);
+    // 🔥 Real-time admin update
+    req.app.get("io")?.emit("new_booking", booking);
 
-    res.status(201).json({ success: true, booking });
-
+    res.status(201).json({
+      success: true,
+      booking,
+    });
   } catch (err) {
-    // 🔥 SLOT ALREADY BOOKED (MongoDB Atlas)
+    // 🔒 Slot already booked
     if (err.code === 11000) {
       return res.status(409).json({
         message: "Selected slot already booked",
       });
     }
 
-    res.status(500).json({ message: err.message });
+    console.error("ADD BOOKING ERROR:", err);
+    res.status(500).json({ message: "Booking failed" });
   }
 };
 
@@ -44,24 +50,32 @@ export const getBookings = async (req, res) => {
     if (status) filter.status = status;
     if (date) filter.date = date;
 
-    const list = await Booking.find(filter).sort({ createdAt: -1 });
+    const list = await Booking.find(filter)
+      .sort({ createdAt: -1 });
+
     res.json(list);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("GET BOOKINGS ERROR:", err);
+    res.status(500).json({ message: "Failed to load bookings" });
   }
 };
 
 /* ================= UPDATE STATUS ================= */
 export const updateStatus = async (req, res) => {
   try {
+    const { id } = req.params;
     const { status } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid booking ID" });
+    }
 
     if (!["pending", "confirmed", "completed", "cancelled"].includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
     }
 
     const updated = await Booking.findByIdAndUpdate(
-      req.params.id,
+      id,
       { status },
       { new: true }
     );
@@ -70,15 +84,19 @@ export const updateStatus = async (req, res) => {
       return res.status(404).json({ message: "Booking not found" });
     }
 
-    global._io?.emit("booking_status_updated", updated);
+    req.app.get("io")?.emit("booking_status_updated", updated);
 
-    res.json({ success: true, updated });
+    res.json({
+      success: true,
+      booking: updated,
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("UPDATE STATUS ERROR:", err);
+    res.status(500).json({ message: "Update failed" });
   }
 };
 
-/* ================= STATS ================= */
+/* ================= STATS (ADMIN) ================= */
 export const getBookingStats = async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];
@@ -91,7 +109,8 @@ export const getBookingStats = async (req, res) => {
       today: await Booking.countDocuments({ date: today }),
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("BOOKING STATS ERROR:", err);
+    res.status(500).json({ message: "Failed to load stats" });
   }
 };
 
@@ -99,6 +118,7 @@ export const getBookingStats = async (req, res) => {
 export const getBlockedSlots = async (req, res) => {
   try {
     const { date } = req.query;
+
     if (!date) return res.json([]);
 
     const slots = await Booking.find(
@@ -108,6 +128,7 @@ export const getBlockedSlots = async (req, res) => {
 
     res.json(slots.map((s) => s.time));
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("GET BLOCKED SLOTS ERROR:", err);
+    res.status(500).json({ message: "Failed to load slots" });
   }
 };

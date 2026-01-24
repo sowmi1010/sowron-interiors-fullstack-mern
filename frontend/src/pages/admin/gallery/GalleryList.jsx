@@ -16,7 +16,7 @@ import Pagination from "../../../components/ui/Pagination";
 
 export default function GalleryList() {
   const navigate = useNavigate();
-  const { debouncedQuery } = useSearch(); // ✅ global debounced search
+  const { debouncedQuery } = useSearch();
 
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
@@ -34,7 +34,7 @@ export default function GalleryList() {
       setLoading(true);
 
       const res = await api.get(
-        `/gallery/admin?page=${page}&limit=${limit}&q=${debouncedQuery}`
+        `/gallery/admin?page=${page}&limit=${limit}&q=${debouncedQuery || ""}`
       );
 
       setItems(res.data.items || []);
@@ -112,72 +112,77 @@ export default function GalleryList() {
         </p>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
-          {items.map((item) => (
-            <motion.div
-              key={item._id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-black/60 backdrop-blur-xl
-                         rounded-xl border border-white/10
-                         overflow-hidden hover:border-brand-red/40
-                         transition"
-            >
-              {/* IMAGE */}
-              <div className="h-40 bg-black flex items-center justify-center">
-                {item.images?.length ? (
-                  <img
-                    src={item.images[0].url}
-                    className="object-cover w-full h-full"
-                    alt={item.title}
-                  />
-                ) : (
-                  <ImgIcon className="text-gray-500 w-8 h-8" />
-                )}
-              </div>
+          {items.map((item) => {
+            const categoryLabel =
+              typeof item.category === "string"
+                ? item.category.replace(/-/g, " ")
+                : item.category?.name || "Uncategorized";
 
-              {/* CONTENT */}
-              <div className="p-4">
-                <h4 className="font-semibold truncate">
-                  {item.title}
-                </h4>
+            return (
+              <motion.div
+                key={item._id}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-black/60 backdrop-blur-xl
+                           rounded-xl border border-white/10
+                           overflow-hidden hover:border-brand-red/40
+                           transition"
+              >
+                {/* IMAGE */}
+                <div className="h-40 bg-black flex items-center justify-center">
+                  {item.images?.length ? (
+                    <img
+                      src={item.images[0].url}
+                      className="object-cover w-full h-full"
+                      alt={item.title}
+                    />
+                  ) : (
+                    <ImgIcon className="text-gray-500 w-8 h-8" />
+                  )}
+                </div>
 
-                {item.category && (
+                {/* CONTENT */}
+                <div className="p-4">
+                  <h4 className="font-semibold truncate">
+                    {item.title}
+                  </h4>
+
                   <span className="mt-1 inline-flex items-center gap-1
                                    text-xs bg-white/5 border border-white/10
                                    px-2 py-1 rounded">
                     <Folder size={12} />
-                    {item.category.replace(/-/g, " ")}
+                    {categoryLabel}
                   </span>
-                )}
 
-                {/* ACTIONS */}
-                <div className="mt-4 flex justify-between text-sm">
-                  <button
-                    className="text-blue-400 flex items-center gap-1"
-                    onClick={() => setViewImages(item.images || [])}
-                  >
-                    <Eye size={14} /> View
-                  </button>
+                  {/* ACTIONS */}
+                  <div className="mt-4 flex justify-between text-sm">
+                    <button
+                      className="text-blue-400 flex items-center gap-1"
+                      onClick={() => setViewImages(item.images || [])}
+                    >
+                      <Eye size={14} /> View
+                    </button>
 
-                  <button
-                    className="text-yellow-400 flex items-center gap-1"
-                    onClick={() =>
-                      navigate(`/admin/gallery/edit/${item._id}`)
-                    }
-                  >
-                    <Edit3 size={14} /> Edit
-                  </button>
+                    <button
+                      className="text-yellow-400 flex items-center gap-1"
+                      onClick={() =>
+                        navigate(`/admin/gallery/edit/${item._id}`)
+                      }
+                    >
+                      <Edit3 size={14} /> Edit
+                    </button>
 
-                  <button
-                    className="text-red-500 flex items-center gap-1"
-                    onClick={() => setDeleteId(item._id)}
-                  >
-                    <Trash2 size={14} /> Delete
-                  </button>
+                    <button
+                      className="text-red-500 flex items-center gap-1"
+                      onClick={() => setDeleteId(item._id)}
+                    >
+                      <Trash2 size={14} /> Delete
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </div>
       )}
 

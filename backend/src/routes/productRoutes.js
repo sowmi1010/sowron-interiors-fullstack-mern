@@ -4,36 +4,33 @@ import {
   getProducts,
   updateProduct,
   deleteProduct,
-  getProductById
+  getProductById,
 } from "../controllers/productController.js";
 
 import { protect, adminOnly } from "../middleware/authMiddleware.js";
 import { getUploader } from "../utils/uploadCloudinary.js";
-import Product from "../models/Product.js"; // ✅ IMPORTANT
+import Product from "../models/Product.js";
 
 const router = express.Router();
 
-/* 🔐 ADMIN – LIST WITH SEARCH + PAGINATION (MUST BE FIRST) */
+/* ================= ADMIN LIST (SEARCH + PAGINATION) ================= */
 router.get("/admin", protect, adminOnly, async (req, res) => {
   try {
     const { page = 1, limit = 6, q = "" } = req.query;
 
-    const filter = q
+    const match = q
       ? {
-          $or: [
-            { title: { $regex: q, $options: "i" } },
-            { "category.name": { $regex: q, $options: "i" } }
-          ]
+          title: { $regex: q, $options: "i" },
         }
       : {};
 
-    const items = await Product.find(filter)
+    const items = await Product.find(match)
       .populate("category")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(Number(limit));
 
-    const total = await Product.countDocuments(filter);
+    const total = await Product.countDocuments(match);
 
     res.json({ items, total });
   } catch (err) {
@@ -42,11 +39,11 @@ router.get("/admin", protect, adminOnly, async (req, res) => {
   }
 });
 
-/* 🌍 PUBLIC */
+/* ================= PUBLIC ================= */
 router.get("/", getProducts);
 router.get("/:id", getProductById);
 
-/* ➕ ADD PRODUCT */
+/* ================= ADD ================= */
 router.post(
   "/add",
   protect,
@@ -55,7 +52,7 @@ router.post(
   addProduct
 );
 
-/* ✏️ UPDATE PRODUCT */
+/* ================= UPDATE ================= */
 router.put(
   "/:id",
   protect,
@@ -64,12 +61,7 @@ router.put(
   updateProduct
 );
 
-/* ❌ DELETE PRODUCT */
-router.delete(
-  "/:id",
-  protect,
-  adminOnly,
-  deleteProduct
-);
+/* ================= DELETE ================= */
+router.delete("/:id", protect, adminOnly, deleteProduct);
 
 export default router;
