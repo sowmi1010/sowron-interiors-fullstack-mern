@@ -16,13 +16,9 @@ const ViewGallery = lazy(() => import("../pages/ViewGallery.jsx"));
 const Portfolio = lazy(() => import("../pages/Portfolio.jsx"));
 const PortfolioSingle = lazy(() => import("../pages/PortfolioSingle.jsx"));
 
-const Products = lazy(() => import("../pages/ProductsPage.jsx"));
-const ProductView = lazy(() => import("../pages/ProductView.jsx"));
-
 const BookDemo = lazy(() => import("../pages/BookDemo.jsx"));
 const Estimate = lazy(() => import("../pages/Estimate.jsx"));
 
-const Wishlist = lazy(() => import("../pages/Wishlist.jsx"));
 
 /* ---------------------- ADMIN (DO NOT TOUCH) ---------------------- */
 const AdminLogin = lazy(() => import("../pages/admin/AdminLogin.jsx"));
@@ -30,15 +26,7 @@ const AdminForgot = lazy(() => import("../pages/admin/AdminForgot.jsx"));
 const AdminReset = lazy(() => import("../pages/admin/AdminReset.jsx"));
 const AdminDashboard = lazy(() => import("../pages/admin/AdminDashboard.jsx"));
 
-const ProductsAdd = lazy(() =>
-  import("../pages/admin/products/ProductsAdd.jsx")
-);
-const ProductsList = lazy(() =>
-  import("../pages/admin/products/ProductsList.jsx")
-);
-const EditProduct = lazy(() =>
-  import("../pages/admin/products/EditProduct.jsx")
-);
+
 
 const AdminCategories = lazy(() =>
   import("../pages/admin/Categories/AdminCategories.jsx")
@@ -97,9 +85,6 @@ export const router = createBrowserRouter([
       { path: "/portfolio", element: <Portfolio /> },
       { path: "/portfolio/:id", element: <PortfolioSingle /> },
 
-      { path: "/products", element: <Products /> },
-      { path: "/wishlist", element: <Wishlist /> },
-      { path: "/products/:id", element: <ProductView /> },
 
       { path: "/book-demo", element: <BookDemo /> },
       { path: "/estimate", element: <Estimate /> },
@@ -121,10 +106,6 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <AdminDashboard /> },
 
-      /** PRODUCTS */
-      { path: "products", element: <ProductsList /> },
-      { path: "products/add", element: <ProductsAdd /> },
-      { path: "product/edit/:id", element: <EditProduct /> },
 
       { path: "categories", element: <AdminCategories /> },
 

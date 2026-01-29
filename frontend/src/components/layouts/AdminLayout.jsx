@@ -47,7 +47,6 @@ export default function AdminLayout() {
           {[
             { to: "/admin", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
             { to: "/admin/categories", label: "Categories", icon: <Package size={18} /> },
-            { to: "/admin/products", label: "Product", icon: <Package size={18} /> },
             { to: "/admin/gallery", label: "Gallery", icon: <Image size={18} /> },
             { to: "/admin/portfolio", label: "Portfolio", icon: <Home size={18} /> },
             { to: "/admin/estimates", label: "Estimates", icon: <FileText size={18} /> },

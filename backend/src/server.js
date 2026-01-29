@@ -86,7 +86,6 @@ app.set("io", io);
 =========================== */
 import adminRoutes from "./routes/adminRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
-import productRoutes from "./routes/productRoutes.js";
 import galleryRoutes from "./routes/galleryRoutes.js";
 import portfolioRoutes from "./routes/portfolioRoutes.js";
 import enquiryRoutes from "./routes/enquiryRoutes.js";
@@ -96,7 +95,6 @@ import estimateRoutes from "./routes/estimateRoutes.js";
 import feedbackRoutes from "./routes/feedbackRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
-import wishlistRoutes from "./routes/wishlistRoutes.js";
 
 /* ===========================
    TEST ROUTE
@@ -110,7 +108,6 @@ app.get("/api/test", (req, res) => {
 =========================== */
 app.use("/api/admin", adminRoutes);
 app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/products", productRoutes);
 app.use("/api/gallery", galleryRoutes);
 app.use("/api/portfolio", portfolioRoutes);
 app.use("/api/enquiry", enquiryRoutes);
@@ -120,7 +117,6 @@ app.use("/api/estimate", estimateRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/categories", categoryRoutes);
-app.use("/api/wishlist", wishlistRoutes);
 
 /* ===========================
    GLOBAL ERROR HANDLER

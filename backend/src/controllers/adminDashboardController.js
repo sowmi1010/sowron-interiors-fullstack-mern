@@ -3,7 +3,6 @@ import Estimate from "../models/Estimate.js";
 import Portfolio from "../models/Portfolio.js";
 import Feedback from "../models/Feedback.js";
 import Enquiry from "../models/Enquiry.js";
-import Product from "../models/Product.js";
 import Category from "../models/Category.js";
 
 export const getDashboardCounts = async (req, res) => {
@@ -14,7 +13,6 @@ export const getDashboardCounts = async (req, res) => {
       totalPortfolio,
       totalFeedback,
       totalEnquiries,
-      totalProducts,
       totalCategories,
     ] = await Promise.all([
       Booking.countDocuments(),
@@ -22,7 +20,6 @@ export const getDashboardCounts = async (req, res) => {
       Portfolio.countDocuments(),
       Feedback.countDocuments(),
       Enquiry.countDocuments(),
-      Product.countDocuments(),
       Category.countDocuments(),
     ]);
 
@@ -34,7 +31,6 @@ export const getDashboardCounts = async (req, res) => {
         portfolio: totalPortfolio,
         feedback: totalFeedback,
         enquiries: totalEnquiries,
-        products: totalProducts,
         categories: totalCategories,
       },
     });

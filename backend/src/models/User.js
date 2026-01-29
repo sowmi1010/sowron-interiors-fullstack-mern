@@ -44,9 +44,6 @@ const userSchema = new mongoose.Schema(
     otpLockedUntil: Date,
     otpVerified: { type: Boolean, default: false },
 
-    /* ===== WISHLIST ===== */
-    wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
-
     /* ===== RESET ===== */
     resetPasswordToken: String,
     resetPasswordExpires: Date,

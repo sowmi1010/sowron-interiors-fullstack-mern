@@ -101,44 +101,6 @@ export default function Navbar() {
               </NavLink>
             </li>
           ))}
-
-          {token && (
-            <>
-              <NavLink
-                to="/products"
-                className="text-gray-800 dark:text-gray-200 hover:text-red-500 transition"
-              >
-                Products
-              </NavLink>
-
-              {/* ❤️ Wishlist */}
-              <NavLink to="/wishlist" className="relative group">
-                <Heart
-                  size={20}
-                  className="text-red-600 group-hover:scale-110 transition"
-                />
-
-                {/* 🔥 ALWAYS SHOW BADGE */}
-                <span
-                  className={`
-                    absolute -top-2 -right-3
-                    min-w-[18px] h-[18px]
-                    px-1
-                    text-[10px] font-bold
-                    flex items-center justify-center
-                    rounded-full
-                    ${
-                      wishlistCount > 0
-                        ? "bg-red-600 text-white"
-                        : "bg-gray-300 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
-                    }
-                  `}
-                >
-                  {wishlistCount}
-                </span>
-              </NavLink>
-            </>
-          )}
         </ul>
 
         {/* ================= RIGHT ================= */}
@@ -210,35 +172,7 @@ export default function Navbar() {
               </NavLink>
             ))}
 
-            {token && (
-              <>
-                <NavLink  className="text-md font-medium" to="/products" onClick={() => setOpen(false)}>
-                  Products
-                </NavLink>
-
-                {/* ❤️ Mobile Wishlist (WITH COUNT) */}
-                <NavLink
-                  to="/wishlist"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 text-md font-medium"
-                >
-                  <Heart className="text-red-600" />
-                  Wishlist
-                  <span
-                    className={`
-                      ml-auto px-2 py-0.5 text-xs rounded-full
-                      ${
-                        wishlistCount > 0
-                          ? "bg-red-600 text-white"
-                          : "bg-gray-300 dark:bg-gray-700"
-                      }
-                    `}
-                  >
-                    {wishlistCount}
-                  </span>
-                </NavLink>
-              </>
-            )}
+      
 
             {!token ? (
               <NavLink to="/login" onClick={() => setOpen(false)}>
