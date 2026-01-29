@@ -37,29 +37,24 @@ const userSchema = new mongoose.Schema(
       default: true,
     },
 
-    /* ================= OTP ================= */
+    /* ===== OTP ===== */
     otpHash: String,
     otpExpires: Date,
     otpAttempts: { type: Number, default: 0 },
     otpLockedUntil: Date,
     otpVerified: { type: Boolean, default: false },
 
-    /* ================= WISHLIST ================= */
-    wishlist: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
-      },
-    ],
+    /* ===== WISHLIST ===== */
+    wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
 
-    /* ================= RESET ================= */
+    /* ===== RESET ===== */
     resetPasswordToken: String,
     resetPasswordExpires: Date,
   },
   { timestamps: true }
 );
 
-/* ================= PASSWORD ================= */
+/* PASSWORD */
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
   this.password = await bcrypt.hash(this.password, 12);
@@ -67,19 +62,6 @@ userSchema.pre("save", async function () {
 
 userSchema.methods.comparePassword = function (password) {
   return bcrypt.compare(password, this.password);
-};
-
-/* ================= RESET TOKEN ================= */
-userSchema.methods.createPasswordResetToken = function () {
-  const raw = crypto.randomBytes(32).toString("hex");
-
-  this.resetPasswordToken = crypto
-    .createHash("sha256")
-    .update(raw)
-    .digest("hex");
-
-  this.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
-  return raw;
 };
 
 export default mongoose.model("User", userSchema);

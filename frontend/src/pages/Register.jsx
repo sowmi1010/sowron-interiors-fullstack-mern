@@ -114,7 +114,7 @@ export default function Register() {
         <h2
           className="
             text-4xl font-extrabold text-center mb-3
-            bg-gradient-to-r from-red-600 to-yellow-400
+            bg-gradient-to-r from-red-600 to-red-800
             bg-clip-text text-transparent
           "
         >
@@ -202,7 +202,7 @@ export default function Register() {
               />
 
               <PrimaryBtn onClick={verify} loading={loading}>
-                <Check size={18} /> Verify & Register
+                 Verify & Register
               </PrimaryBtn>
             </motion.div>
           )}
@@ -246,7 +246,7 @@ function PrimaryBtn({ children, onClick, loading }) {
       disabled={loading}
       className="
         w-full py-4 rounded-xl font-semibold
-        bg-gradient-to-r from-red-600 to-yellow-400
+        bg-gradient-to-r from-red-600 to-red-800
         text-black
         hover:brightness-110
         disabled:opacity-50 transition

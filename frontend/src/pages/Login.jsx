@@ -89,7 +89,7 @@ export default function Login() {
         <h2
           className="
             text-4xl font-extrabold text-center mb-2
-            bg-gradient-to-r from-red-600 to-yellow-400
+            bg-gradient-to-r from-red-600 to-red-800
             bg-clip-text text-transparent
           "
         >
@@ -144,7 +144,7 @@ export default function Login() {
                 onClick={sendOtp}
                 className="
                   w-full py-4 rounded-xl font-semibold
-                  bg-gradient-to-r from-red-600 to-yellow-400
+                  bg-gradient-to-r from-red-600 to-red-800
                   text-black
                   hover:brightness-110
                   disabled:opacity-50 transition
@@ -205,12 +205,12 @@ export default function Login() {
                 onClick={verifyOtp}
                 className="
                   w-full py-4 rounded-xl font-semibold
-                  bg-gradient-to-r from-red-600 to-yellow-400
+                  bg-gradient-to-r from-red-600 to-red-800
                   text-black
                   hover:brightness-110 transition
                 "
               >
-                Verify & Continue ✔
+                Verify & Continue 
               </button>
 
               <button

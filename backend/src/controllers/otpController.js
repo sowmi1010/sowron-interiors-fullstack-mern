@@ -2,29 +2,25 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
-/* ===========================
-   HELPERS
-=========================== */
+/* ===== HELPERS ===== */
 const hashOtp = (otp) =>
   crypto.createHash("sha256").update(otp).digest("hex");
 
 const generateOtp = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 
-/* ===========================
-   SEND OTP
-=========================== */
+/* ===== SEND OTP ===== */
 export const sendOtp = async (req, res, next) => {
   try {
     const { phone } = req.body;
 
-    if (!phone || phone.length !== 10) {
+    if (!/^[6-9]\d{9}$/.test(phone)) {
       return res.status(400).json({ message: "Invalid phone number" });
     }
 
     let user = await User.findOne({ phone });
 
-    // 🔒 Lock check (per phone)
+    // 🔒 LOCK CHECK
     if (user?.otpLockedUntil && user.otpLockedUntil > Date.now()) {
       return res.status(429).json({
         message: "Too many attempts. Try again later.",
@@ -32,49 +28,48 @@ export const sendOtp = async (req, res, next) => {
     }
 
     const otp = generateOtp();
-    const otpHash = hashOtp(otp);
 
     if (!user) {
-      user = new User({ phone });
+      user = new User({
+        phone,
+        isActive: true,
+      });
     }
 
-    user.otpHash = otpHash;
+    user.otpHash = hashOtp(otp);
     user.otpExpires = Date.now() + 5 * 60 * 1000; // 5 mins
-    user.otpAttempts = 0;
     user.otpLockedUntil = null;
     user.otpVerified = false;
 
     await user.save();
 
-    /* ===========================
-       SEND OTP (PROVIDER)
-       👉 Twilio / MSG91 / Interakt
-    =========================== */
-
-    // ⚠️ DEV ONLY
-    if (process.env.NODE_ENV === "development") {
-      console.log("📲 DEV OTP:", otp);
-    }
+    /* ✅ ALWAYS PRINT OTP (DEBUG MODE) */
+    console.log(
+      "📲 OTP DEBUG =>",
+      {
+        phone,
+        otp,
+        expiresAt: new Date(user.otpExpires).toLocaleTimeString(),
+      }
+    );
 
     res.json({
       success: true,
       message: "OTP sent successfully",
     });
-  } catch (error) {
-    console.error("OTP Send Error:", error);
-    next(error);
+  } catch (err) {
+    console.error("❌ OTP Send Error:", err);
+    next(err);
   }
 };
 
-/* ===========================
-   VERIFY OTP
-=========================== */
+/* ===== VERIFY OTP ===== */
 export const verifyOtp = async (req, res, next) => {
   try {
     const { phone, otp } = req.body;
 
     if (!phone || !otp) {
-      return res.status(400).json({ message: "Phone and OTP required" });
+      return res.status(400).json({ message: "Phone & OTP required" });
     }
 
     const user = await User.findOne({ phone });
@@ -87,19 +82,14 @@ export const verifyOtp = async (req, res, next) => {
       return res.status(403).json({ message: "Account disabled" });
     }
 
-    // ⏰ Expired
-    if (Date.now() > user.otpExpires) {
+    if (user.otpExpires < Date.now()) {
       return res.status(400).json({ message: "OTP expired" });
     }
 
-    // 🔒 Locked
     if (user.otpLockedUntil && user.otpLockedUntil > Date.now()) {
-      return res.status(429).json({
-        message: "OTP locked. Try again later.",
-      });
+      return res.status(429).json({ message: "OTP locked" });
     }
 
-    // ❌ Wrong OTP
     if (hashOtp(otp) !== user.otpHash) {
       user.otpAttempts += 1;
 
@@ -122,9 +112,11 @@ export const verifyOtp = async (req, res, next) => {
 
     const token = jwt.sign(
       { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || "TEMP_SECRET",
       { expiresIn: "7d" }
     );
+
+    console.log("✅ OTP VERIFIED for:", phone);
 
     res.json({
       success: true,
@@ -132,12 +124,11 @@ export const verifyOtp = async (req, res, next) => {
       user: {
         id: user._id,
         phone: user.phone,
-        name: user.name,
         role: user.role,
       },
     });
-  } catch (error) {
-    console.error("OTP Verify Error:", error);
-    next(error);
+  } catch (err) {
+    console.error("❌ OTP Verify Error:", err);
+    next(err);
   }
 };

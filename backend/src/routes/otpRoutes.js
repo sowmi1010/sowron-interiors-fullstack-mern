@@ -6,28 +6,32 @@ import { validateRequest } from "../middleware/validateRequest.js";
 
 const router = express.Router();
 
-/* ================= RATE LIMIT ================= */
-const otpLimiter = rateLimit({
+/* ===== RATE LIMIT ===== */
+const sendLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
-  max: 5,
-  message: "Too many OTP attempts. Try again later.",
+  max: 3,
+  message: "Too many OTP requests",
 });
 
-/* ================= VALIDATION ================= */
+const verifyLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 5,
+  message: "Too many OTP attempts",
+});
+
+/* ===== VALIDATION ===== */
 const phoneValidation = body("phone")
-  .trim()
-  .isLength({ min: 10, max: 10 })
+  .matches(/^[6-9]\d{9}$/)
   .withMessage("Valid phone number required");
 
 const otpValidation = body("otp")
-  .trim()
-  .isLength({ min: 4, max: 6 })
-  .withMessage("Valid OTP required");
+  .isLength({ min: 6, max: 6 })
+  .withMessage("6 digit OTP required");
 
-/* ================= ROUTES ================= */
+/* ===== ROUTES ===== */
 router.post(
   "/send",
-  otpLimiter,
+  sendLimiter,
   [phoneValidation],
   validateRequest,
   sendOtp
@@ -35,7 +39,7 @@ router.post(
 
 router.post(
   "/verify",
-  otpLimiter,
+  verifyLimiter,
   [phoneValidation, otpValidation],
   validateRequest,
   verifyOtp
