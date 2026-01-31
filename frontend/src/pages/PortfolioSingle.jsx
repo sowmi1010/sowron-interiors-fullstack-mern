@@ -14,7 +14,6 @@ export default function PortfolioSingle() {
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  /* ================= LOAD ================= */
   useEffect(() => {
     const load = async () => {
       try {
@@ -34,7 +33,7 @@ export default function PortfolioSingle() {
 
   if (loading) {
     return (
-      <p className="py-32 text-center text-gray-400">
+      <p className="py-40 text-center text-gray-400">
         Loading project…
       </p>
     );
@@ -42,7 +41,7 @@ export default function PortfolioSingle() {
 
   if (!item) {
     return (
-      <p className="py-32 text-center text-gray-400">
+      <p className="py-40 text-center text-gray-400">
         Project not found
       </p>
     );
@@ -52,33 +51,20 @@ export default function PortfolioSingle() {
 
   return (
     <>
-      {/* ================= SEO ================= */}
       <SEO
-        title={`${item.title} | Sowron Interiors Portfolio`}
-        description={
-          item.description ||
-          "Premium turnkey interior project by Sowron Interiors. Luxury residential and commercial interiors."
-        }
-        keywords="interior project, luxury interiors, turnkey interiors, Sowron Interiors"
+        title={`${item.title} | Sowron Interiors`}
+        description={item.description}
       />
 
-      <section
-        className="
-          min-h-screen
-          bg-white dark:bg-[#0a0a0a]
-          text-gray-900 dark:text-gray-100
-        "
-      >
+      <section className="bg-white dark:bg-[#0b0b0b] text-gray-900 dark:text-gray-100">
+
         {/* ================= BACK ================= */}
-        <div className="max-w-7xl mx-auto px-6 pt-8">
+        <div className="max-w-7xl mx-auto px-6 pt-10">
           <button
             onClick={() => navigate(-1)}
-            className="
-              inline-flex items-center gap-2
-              text-sm font-medium
-              text-gray-600 dark:text-gray-300
-              hover:text-red-600 transition
-            "
+            className="inline-flex items-center gap-2
+              text-sm font-medium opacity-70
+              hover:opacity-100 transition"
           >
             <ArrowLeft size={16} /> Back to Portfolio
           </button>
@@ -86,119 +72,90 @@ export default function PortfolioSingle() {
 
         {/* ================= HERO ================= */}
         {heroImage && (
-          <section className="relative mt-8">
+          <section className="relative mt-10">
             <div className="max-w-7xl mx-auto px-6">
-              <motion.img
-                src={heroImage}
-                alt={item.title}
-                loading="lazy"
-                initial={{ opacity: 0, scale: 1.03 }}
+              <motion.div
+                initial={{ opacity: 0, scale: 1.05 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.9 }}
-                className="
-                  w-full h-[320px] md:h-[480px]
-                  object-cover rounded-3xl
-                "
-              />
+                transition={{ duration: 1 }}
+                className="relative overflow-hidden rounded-[3rem] shadow-2xl"
+              >
+                <img
+                  src={heroImage}
+                  alt={item.title}
+                  className="w-full h-[360px] md:h-[520px] object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+              </motion.div>
             </div>
           </section>
         )}
 
         {/* ================= TITLE ================= */}
-        <section className="max-w-4xl mx-auto px-6 pt-14 text-center">
+        <section className="max-w-4xl mx-auto px-6 pt-20 text-center">
           <motion.h1
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-5xl font-extrabold"
+            className="text-4xl md:text-5xl font-extrabold tracking-tight"
           >
             {item.title}
           </motion.h1>
 
           {item.location && (
-            <p className="mt-3 flex justify-center items-center gap-2
-                          text-sm text-gray-500 dark:text-gray-400">
-              <MapPin size={15} /> {item.location}
+            <p className="mt-4 flex justify-center items-center gap-2
+              text-sm uppercase tracking-widest opacity-70">
+              <MapPin size={14} /> {item.location}
             </p>
           )}
 
-          <span
-            className="
-              block mx-auto mt-6 w-20 h-[3px]
-              bg-gradient-to-r from-red-600 to-yellow-400
-              rounded-full
-            "
-          />
+          <span className="block mx-auto mt-8 w-24 h-[2px]
+            bg-gradient-to-r from-red-600 to-yellow-400 rounded-full" />
         </section>
 
-        {/* ================= DESCRIPTION ================= */}
+        {/* ================= STORY ================= */}
         {item.description && (
-          <section className="max-w-3xl mx-auto px-6 pt-12">
-            <p className="text-lg leading-8 text-gray-700 dark:text-gray-300 text-center">
+          <section className="max-w-3xl mx-auto px-6 pt-14 text-center">
+            <p className="text-lg leading-8 text-gray-700 dark:text-gray-300">
               {item.description}
             </p>
           </section>
         )}
 
-        {/* ================= STATS ================= */}
-        <section className="max-w-5xl mx-auto px-6 py-20">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-10 text-center">
-            {[
-              ["120+", "Projects"],
-              ["6+", "Cities"],
-              ["5+", "Years"],
-              ["300+", "Clients"],
-            ].map(([val, label], i) => (
-              <motion.div
-                key={i}
-                whileHover={{ scale: 1.06 }}
-                className="transition"
-              >
-                <p className="text-4xl font-extrabold text-red-600">
-                  {val}
-                </p>
-                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                  {label}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </section>
-
-        {/* ================= GALLERY ================= */}
+        {/* ================= IMAGE STORY ================= */}
         {item.images?.length > 0 && (
-          <section className="max-w-7xl mx-auto px-6 pb-24">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <section className="max-w-7xl mx-auto px-6 pt-28 pb-32">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
               {item.images.map((img, idx) => (
-                <motion.img
-                  key={img.public_id || idx}
-                  src={img.url}
-                  alt={`${item.title} interior image ${idx + 1}`}
-                  loading="lazy"
+                <motion.div
+                  key={idx}
+                  whileHover={{ y: -8 }}
+                  transition={{ duration: 0.4 }}
+                  className="cursor-pointer"
                   onClick={() => setPreview(img.url)}
-                  whileHover={{ scale: 1.02 }}
-                  className="
-                    w-full h-[260px]
-                    object-cover rounded-2xl
-                    cursor-pointer
-                    transition
-                  "
-                />
+                >
+                  <img
+                    src={img.url}
+                    alt={`${item.title} image ${idx + 1}`}
+                    className="w-full h-[280px] object-cover
+                      rounded-3xl shadow-xl"
+                  />
+                </motion.div>
               ))}
             </div>
           </section>
         )}
 
         {/* ================= CTA ================= */}
-        <section className="bg-gray-50 dark:bg-[#111] py-28">
+        <section className="bg-[#fafafa] dark:bg-[#111] py-32">
           <div className="max-w-3xl mx-auto px-6 text-center">
-            <h2 className="text-3xl font-bold">
+            <h2 className="text-3xl md:text-4xl font-extrabold">
               Want a Similar Interior?
             </h2>
-            <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-              Share your details — our design expert will contact you shortly.
+            <p className="mt-4 text-sm opacity-70">
+              Share your details — our design expert will reach out.
             </p>
 
-            <div className="mt-8">
+            <div className="mt-10">
               <EnquiryForm />
             </div>
           </div>
@@ -209,35 +166,28 @@ export default function PortfolioSingle() {
       <AnimatePresence>
         {preview && (
           <motion.div
-            className="
-              fixed inset-0 z-50
-              bg-black/90
-              flex items-center justify-center
-              p-4
-            "
+            className="fixed inset-0 z-50 bg-black/95
+              flex items-center justify-center p-6"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setPreview(null)}
           >
             <button
-              className="
-                absolute top-6 right-6
+              className="absolute top-6 right-6
                 bg-white/20 hover:bg-white/30
-                text-white p-2 rounded-full
-              "
-              onClick={() => setPreview(null)}
+                text-white p-3 rounded-full"
             >
-              <X size={22} />
+              <X size={20} />
             </button>
 
             <motion.img
               src={preview}
-              alt="Interior project preview"
-              initial={{ scale: 0.95 }}
+              initial={{ scale: 0.92 }}
               animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              className="max-h-[90vh] rounded-2xl shadow-2xl"
+              exit={{ scale: 0.92 }}
+              className="max-h-[90vh] max-w-[90vw]
+                rounded-3xl shadow-2xl"
             />
           </motion.div>
         )}

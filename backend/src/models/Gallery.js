@@ -19,7 +19,13 @@ const gallerySchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
       required: true,
-      index: true, // 🔥 required for filter
+      index: true,
+    },
+
+    subCategory: {
+      type: String,
+      trim: true,
+      index: true,
     },
 
     description: {

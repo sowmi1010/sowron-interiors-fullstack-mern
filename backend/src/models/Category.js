@@ -37,7 +37,7 @@ const categorySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-/* ================= AUTO SLUG (FIXED) ================= */
+/* AUTO SLUG */
 categorySchema.pre("save", async function () {
   if (!this.isModified("name")) return;
 
@@ -48,9 +48,7 @@ categorySchema.pre("save", async function () {
     _id: { $ne: this._id },
   });
 
-  if (exists) {
-    slug = `${slug}-${Date.now()}`;
-  }
+  if (exists) slug = `${slug}-${Date.now()}`;
 
   this.slug = slug;
 });

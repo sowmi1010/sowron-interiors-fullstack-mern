@@ -9,8 +9,11 @@ export default function GalleryAdd() {
   const navigate = useNavigate();
 
   const [title, setTitle] = useState("");
-  const [categoryId, setCategoryId] = useState(""); // ✅ FIX
+  const [categoryId, setCategoryId] = useState("");
+  const [subCategory, setSubCategory] = useState(""); // ✅ NEW
   const [categories, setCategories] = useState([]);
+  const [subCategories, setSubCategories] = useState([]); // ✅ NEW
+
   const [files, setFiles] = useState([]);
   const [preview, setPreview] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -26,6 +29,19 @@ export default function GalleryAdd() {
       preview.forEach((url) => URL.revokeObjectURL(url));
     };
   }, []);
+
+  /* 🔁 UPDATE SUBCATEGORIES ON CATEGORY CHANGE */
+  useEffect(() => {
+    if (!categoryId) {
+      setSubCategories([]);
+      setSubCategory("");
+      return;
+    }
+
+    const selected = categories.find((c) => c._id === categoryId);
+    setSubCategories(selected?.subCategories || []);
+    setSubCategory("");
+  }, [categoryId, categories]);
 
   /* 📸 IMAGE PICK */
   const handleFiles = (e) => {
@@ -56,7 +72,8 @@ export default function GalleryAdd() {
 
       const fd = new FormData();
       fd.append("title", title.trim());
-      fd.append("categoryId", categoryId); // ✅ FIX
+      fd.append("categoryId", categoryId);
+      if (subCategory) fd.append("subCategory", subCategory);
       files.forEach((file) => fd.append("images", file));
 
       await api.post("/gallery/add", fd);
@@ -88,6 +105,7 @@ export default function GalleryAdd() {
       <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-glass">
         <form onSubmit={submitHandler} className="space-y-4">
 
+          {/* TITLE */}
           <input
             type="text"
             placeholder="Gallery title"
@@ -96,7 +114,7 @@ export default function GalleryAdd() {
             className="w-full px-4 py-3 rounded-lg bg-black border border-white/10 outline-none"
           />
 
-          {/* ✅ CATEGORY FIX */}
+          {/* CATEGORY */}
           <select
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
@@ -109,6 +127,22 @@ export default function GalleryAdd() {
               </option>
             ))}
           </select>
+
+          {/* ✅ SUBCATEGORY (SAME DESIGN) */}
+          {subCategories.length > 0 && (
+            <select
+              value={subCategory}
+              onChange={(e) => setSubCategory(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg bg-black border border-white/10 outline-none"
+            >
+              <option value="">Select Sub Category</option>
+              {subCategories.map((sc, i) => (
+                <option key={i} value={sc}>
+                  {sc}
+                </option>
+              ))}
+            </select>
+          )}
 
           {/* IMAGE PICKER */}
           <label className="flex items-center justify-center gap-2 border border-dashed border-white/20 rounded-xl bg-black py-6 cursor-pointer">
@@ -130,7 +164,11 @@ export default function GalleryAdd() {
             <div className="grid grid-cols-3 gap-3 mt-4">
               {preview.map((src, i) => (
                 <div key={i} className="relative rounded-xl overflow-hidden">
-                  <img src={src} className="h-24 w-full object-cover" />
+                  <img
+                    src={src}
+                    className="h-24 w-full object-cover pointer-events-none select-none"
+                    draggable={false}
+                  />
                   <button
                     type="button"
                     onClick={() => removeImage(i)}

@@ -9,11 +9,16 @@ export default function GalleryEdit() {
   const navigate = useNavigate();
 
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [subCategory, setSubCategory] = useState(""); // ✅ NEW
+
   const [categories, setCategories] = useState([]);
+  const [subCategories, setSubCategories] = useState([]); // ✅ NEW
+
   const [newFiles, setNewFiles] = useState([]);
   const [oldImages, setOldImages] = useState([]);
   const [preview, setPreview] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -29,9 +34,22 @@ export default function GalleryEdit() {
     const item = res.data;
 
     setTitle(item.title);
-    setCategory(item.category);
+    setCategoryId(item.category?._id || "");
+    setSubCategory(item.subCategory || "");
     setOldImages(item.images || []);
   };
+
+  /* 🔁 UPDATE SUBCATEGORIES WHEN CATEGORY CHANGES */
+  useEffect(() => {
+    if (!categoryId) {
+      setSubCategories([]);
+      setSubCategory("");
+      return;
+    }
+
+    const selected = categories.find((c) => c._id === categoryId);
+    setSubCategories(selected?.subCategories || []);
+  }, [categoryId, categories]);
 
   useEffect(() => {
     Promise.all([loadCategories(), loadGallery()])
@@ -46,7 +64,7 @@ export default function GalleryEdit() {
     };
   }, []);
 
-  /* 📸 NEW IMAGE PREVIEW (SAFE) */
+  /* 📸 NEW IMAGE PREVIEW */
   const handleFiles = (e) => {
     const files = Array.from(e.target.files);
     preview.forEach((url) => URL.revokeObjectURL(url));
@@ -59,7 +77,7 @@ export default function GalleryEdit() {
   const submit = async (e) => {
     e.preventDefault();
 
-    if (!title.trim() || !category) {
+    if (!title.trim() || !categoryId) {
       return toast.error("Title & category are required");
     }
 
@@ -68,15 +86,16 @@ export default function GalleryEdit() {
 
       const fd = new FormData();
       fd.append("title", title.trim());
-      fd.append("category", category);
+      fd.append("categoryId", categoryId);
+      if (subCategory) fd.append("subCategory", subCategory);
       newFiles.forEach((f) => fd.append("images", f));
 
       await api.put(`/gallery/${id}`, fd);
 
       toast.success("Gallery updated successfully");
       navigate("/admin/gallery");
-    } catch {
-      toast.error("Update failed");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Update failed");
     } finally {
       setSaving(false);
     }
@@ -122,19 +141,37 @@ export default function GalleryEdit() {
 
           {/* CATEGORY */}
           <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
             className="w-full px-4 py-3 rounded-lg
                        bg-black border border-white/10
                        outline-none focus:border-brand-yellow transition"
           >
             <option value="">Select Category</option>
             {categories.map((c) => (
-              <option key={c._id} value={c.slug}>
+              <option key={c._id} value={c._id}>
                 {c.name}
               </option>
             ))}
           </select>
+
+          {/* ✅ SUBCATEGORY (SAME DESIGN) */}
+          {subCategories.length > 0 && (
+            <select
+              value={subCategory}
+              onChange={(e) => setSubCategory(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg
+                         bg-black border border-white/10
+                         outline-none focus:border-brand-yellow transition"
+            >
+              <option value="">Select Sub Category</option>
+              {subCategories.map((sc, i) => (
+                <option key={i} value={sc}>
+                  {sc}
+                </option>
+              ))}
+            </select>
+          )}
 
           {/* EXISTING IMAGES */}
           {oldImages.length > 0 && (
@@ -148,8 +185,10 @@ export default function GalleryEdit() {
                     key={img.public_id}
                     src={img.url}
                     alt="Gallery"
+                    draggable={false}
                     className="h-24 rounded-xl object-cover
-                               border border-white/10"
+                               border border-white/10
+                               pointer-events-none select-none"
                   />
                 ))}
               </div>
@@ -174,8 +213,10 @@ export default function GalleryEdit() {
                   key={i}
                   src={src}
                   alt="Preview"
+                  draggable={false}
                   className="h-24 rounded-xl object-cover
-                             border border-white/10"
+                             border border-white/10
+                             pointer-events-none select-none"
                 />
               ))}
             </div>

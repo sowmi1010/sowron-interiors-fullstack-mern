@@ -41,10 +41,9 @@ export default function EnquiryForm() {
 
       setSuccess(true);
       setForm({ name: "", phone: "", city: "", message: "" });
-
-      setTimeout(() => setSuccess(false), 3000);
+      setTimeout(() => setSuccess(false), 3500);
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to submit enquiry");
+      toast.error(err.response?.data?.message || "Submission failed");
     } finally {
       setLoading(false);
     }
@@ -52,11 +51,16 @@ export default function EnquiryForm() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 40 }}
+      initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.7, ease: "easeOut" }}
-      className="max-w-md mx-auto"
+      transition={{ duration: 0.8, ease: "easeOut" }}
+      className="relative max-w-lg mx-auto"
     >
+      {/* GLOW BACKDROP */}
+      <div className="absolute -inset-1 rounded-[3rem]
+        bg-gradient-to-r from-red-600/20 to-yellow-400/20
+        blur-2xl opacity-60" />
+
       {/* SUCCESS */}
       <AnimatePresence>
         {success && (
@@ -69,112 +73,103 @@ export default function EnquiryForm() {
               rounded-2xl p-4 text-sm
               bg-green-100 text-green-700
               dark:bg-green-900/40 dark:text-green-200
-              shadow-md
+              shadow-lg
             "
           >
             <CheckCircle size={20} />
-            Enquiry submitted. Our consultant will call you shortly.
+            Thank you! Our consultant will contact you shortly.
           </motion.div>
         )}
       </AnimatePresence>
 
+      {/* FORM */}
       <form
         onSubmit={submit}
         className="
-          relative rounded-[2.5rem] p-8
+          relative rounded-[3rem] p-10
           bg-white/80 dark:bg-[#121212]/80
-          backdrop-blur-xl
-          border border-gray-200 dark:border-white/10
-          shadow-[0_20px_60px_rgba(0,0,0,0.15)]
+          backdrop-blur-2xl
+          border border-white/20 dark:border-white/10
+          shadow-[0_40px_100px_rgba(0,0,0,0.25)]
         "
       >
         {/* HEADER */}
-        <div className="mb-10">
-          <h3 className="text-2xl font-extrabold tracking-wide">
-            Request a Call Back
+        <div className="mb-12 text-center">
+          <h3 className="text-3xl font-extrabold tracking-tight">
+            Book a Free Consultation
           </h3>
 
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Speak directly with our interior design consultant
+          <p className="mt-3 text-sm opacity-70">
+            Talk directly with our interior design expert
           </p>
 
-          <span className="
-            block mt-4 w-16 h-[3px]
-            bg-gradient-to-r from-red-600 to-yellow-400
-            rounded-full
-          " />
+          <span className="block mx-auto mt-6 w-20 h-[3px]
+            bg-gradient-to-r from-red-600 to-yellow-400 rounded-full" />
         </div>
 
         {/* INPUTS */}
-        <Field
-          label="Your Name"
+        <FloatingField
           icon={User}
+          label="Full Name"
           value={form.name}
           onChange={(v) => setForm({ ...form, name: v })}
         />
 
-        <Field
-          label="Phone Number"
+        <FloatingField
           icon={Phone}
+          label="Phone Number"
           value={form.phone}
           onChange={(v) => setForm({ ...form, phone: v })}
         />
 
-        <Field
-          label="City"
+        <FloatingField
           icon={MapPin}
+          label="City"
           value={form.city}
           onChange={(v) => setForm({ ...form, city: v })}
         />
 
         {/* MESSAGE */}
-        <div className="mb-7">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Message <span className="opacity-60">(Optional)</span>
-          </label>
+        <div className="mb-10 relative">
+          <MessageCircle size={18}
+            className="absolute left-5 top-5 text-gray-400" />
 
-          <div className="relative group">
-            <MessageCircle
-              size={16}
-              className="absolute left-4 top-4 text-gray-400"
-            />
-            <textarea
-              rows={3}
-              value={form.message}
-              onChange={(e) =>
-                setForm({ ...form, message: e.target.value })
-              }
-              className="
-                w-full rounded-2xl pl-11 pr-4 py-3.5
-                bg-gray-50 dark:bg-[#1a1a1a]
-                border border-gray-300 dark:border-white/10
-                outline-none text-sm resize-none
-                focus:border-red-500 focus:ring-2 focus:ring-red-500/20
-                transition-all
-              "
-              placeholder="Tell us briefly about your requirement"
-            />
-          </div>
+          <textarea
+            rows={4}
+            value={form.message}
+            onChange={(e) =>
+              setForm({ ...form, message: e.target.value })
+            }
+            className="
+              peer w-full rounded-3xl pl-12 pr-5 py-4
+              bg-white/60 dark:bg-[#1a1a1a]
+              border border-gray-300 dark:border-white/10
+              outline-none resize-none text-sm
+              focus:border-red-500 focus:ring-2 focus:ring-red-500/20
+              transition-all
+            "
+            placeholder="Tell us about your project (optional)"
+          />
         </div>
 
         {/* SUBMIT */}
         <motion.button
-          whileHover={{ scale: 1.03 }}
+          whileHover={{ scale: 1.04 }}
           whileTap={{ scale: 0.96 }}
           disabled={loading}
           className="
             w-full flex items-center justify-center gap-3
-            py-4 rounded-2xl font-semibold tracking-wide
+            py-5 rounded-full font-semibold tracking-wide
             bg-gradient-to-r from-red-600 to-red-700
             text-white text-sm
-            shadow-lg shadow-red-600/30
-            hover:shadow-red-600/50
+            shadow-xl shadow-red-600/40
+            hover:shadow-red-600/60
             transition disabled:opacity-60
           "
         >
           {loading ? "Submitting…" : (
             <>
-              <Send size={18} /> Submit Enquiry
+              <Send size={18} /> Request Call Back
             </>
           )}
         </motion.button>
@@ -183,30 +178,41 @@ export default function EnquiryForm() {
   );
 }
 
-/* INPUT FIELD */
-function Field({ label, icon: Icon, value, onChange }) {
+/* ================= FLOATING FIELD ================= */
+
+function FloatingField({ icon: Icon, label, value, onChange }) {
   return (
-    <div className="mb-6">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+    <div className="relative mb-8">
+      <Icon size={18}
+        className="absolute left-5 top-5 text-gray-400" />
+
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="
+          peer w-full rounded-3xl pl-12 pr-5 py-4
+          bg-white/60 dark:bg-[#1a1a1a]
+          border border-gray-300 dark:border-white/10
+          outline-none text-sm
+          focus:border-red-500 focus:ring-2 focus:ring-red-500/20
+          transition-all
+        "
+        placeholder=" "
+      />
+
+      <label
+        className="
+          absolute left-12 top-4 text-sm text-gray-500
+          pointer-events-none transition-all
+          peer-placeholder-shown:top-5
+          peer-placeholder-shown:text-gray-400
+          peer-focus:top-1
+          peer-focus:text-xs
+          peer-focus:text-red-600
+        "
+      >
         {label}
       </label>
-
-      <div className="relative group">
-        <Icon size={16} className="absolute left-4 top-4 text-gray-400" />
-        <input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="
-            w-full rounded-2xl pl-11 pr-4 py-3.5
-            bg-gray-50 dark:bg-[#1a1a1a]
-            border border-gray-300 dark:border-white/10
-            outline-none text-sm
-            focus:border-red-500 focus:ring-2 focus:ring-red-500/20
-            transition-all
-          "
-          placeholder={label}
-        />
-      </div>
     </div>
   );
 }

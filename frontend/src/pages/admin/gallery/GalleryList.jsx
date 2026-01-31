@@ -8,6 +8,7 @@ import {
   Folder,
   Eye,
   X,
+  Layers,
 } from "lucide-react";
 import { useSearch } from "../../../context/SearchContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -113,10 +114,8 @@ export default function GalleryList() {
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
           {items.map((item) => {
-            const categoryLabel =
-              typeof item.category === "string"
-                ? item.category.replace(/-/g, " ")
-                : item.category?.name || "Uncategorized";
+            const categoryName =
+              item.category?.name || "Uncategorized";
 
             return (
               <motion.div
@@ -133,8 +132,9 @@ export default function GalleryList() {
                   {item.images?.length ? (
                     <img
                       src={item.images[0].url}
-                      className="object-cover w-full h-full"
+                      className="object-cover w-full h-full pointer-events-none select-none"
                       alt={item.title}
+                      draggable={false}
                     />
                   ) : (
                     <ImgIcon className="text-gray-500 w-8 h-8" />
@@ -147,12 +147,23 @@ export default function GalleryList() {
                     {item.title}
                   </h4>
 
-                  <span className="mt-1 inline-flex items-center gap-1
+                  {/* CATEGORY */}
+                  <span className="mt-2 inline-flex items-center gap-1
                                    text-xs bg-white/5 border border-white/10
                                    px-2 py-1 rounded">
                     <Folder size={12} />
-                    {categoryLabel}
+                    {categoryName}
                   </span>
+
+                  {/* SUBCATEGORY */}
+                  {item.subCategory && (
+                    <span className="mt-1 ml-1 inline-flex items-center gap-1
+                                     text-xs bg-white/5 border border-white/10
+                                     px-2 py-1 rounded">
+                      <Layers size={12} />
+                      {item.subCategory}
+                    </span>
+                  )}
 
                   {/* ACTIONS */}
                   <div className="mt-4 flex justify-between text-sm">
@@ -211,8 +222,10 @@ export default function GalleryList() {
                 <img
                   key={img.public_id || idx}
                   src={img.url}
-                  className="rounded-xl object-cover"
+                  className="rounded-xl object-cover
+                             pointer-events-none select-none"
                   alt=""
+                  draggable={false}
                 />
               ))}
             </div>
