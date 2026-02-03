@@ -1,8 +1,19 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
+import dns from "dns";
 import Admin from "./src/models/Admin.js";
 
 dotenv.config();
+
+// Fix for some Windows networks where Node's DNS (c-ares) can't resolve SRV records
+// for mongodb+srv (Atlas). Only applies to this Node process.
+if (process.env.MONGO_URI?.startsWith("mongodb+srv://") && process.env.DNS_SERVERS) {
+  const servers = process.env.DNS_SERVERS
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (servers.length) dns.setServers(servers);
+}
 
 await mongoose.connect(process.env.MONGO_URI);
 

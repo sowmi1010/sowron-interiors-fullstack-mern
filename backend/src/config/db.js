@@ -1,9 +1,30 @@
 import mongoose from "mongoose";
+import dns from "dns";
+
+const configureDnsServers = () => {
+  const raw = process.env.DNS_SERVERS;
+  if (!raw) return;
+
+  const servers = raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (!servers.length) return;
+
+  // Fix for some Windows networks where Node's DNS (c-ares) can't resolve SRV records
+  // for mongodb+srv (Atlas). Only applies to the Node process, not your whole system.
+  dns.setServers(servers);
+};
 
 export const connectDB = async () => {
   try {
     if (!process.env.MONGO_URI) {
       throw new Error("MONGO_URI not configured");
+    }
+
+    if (process.env.MONGO_URI.startsWith("mongodb+srv://")) {
+      configureDnsServers();
     }
 
     const conn = await mongoose.connect(process.env.MONGO_URI, {
