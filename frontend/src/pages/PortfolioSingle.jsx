@@ -156,7 +156,11 @@ export default function PortfolioSingle() {
             </p>
 
             <div className="mt-10">
-              <EnquiryForm />
+              <EnquiryForm
+                projectId={item._id}
+                projectTitle={item.title}
+                projectLocation={item.location}
+              />
             </div>
           </div>
         </section>

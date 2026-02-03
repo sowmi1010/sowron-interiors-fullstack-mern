@@ -14,16 +14,22 @@ import {
   Star,
   Mail,
 } from "lucide-react";
+import { api } from "../../lib/api";
 
 export default function AdminLayout() {
   const navigate = useNavigate();
   const { query, setQuery } = useSearch();
   const adminName = localStorage.getItem("adminName") || "Admin";
 
-  const logout = () => {
-    localStorage.removeItem("adminToken");
-    localStorage.removeItem("adminName");
-    navigate("/admin/login");
+  const logout = async () => {
+    try {
+      await api.post("/admin/logout");
+    } catch {
+      // ignore
+    } finally {
+      localStorage.removeItem("adminName");
+      navigate("/admin/login");
+    }
   };
 
   return (

@@ -1,7 +1,12 @@
 import express from "express";
 import rateLimit from "express-rate-limit";
 import { body } from "express-validator";
-import { sendOtp, verifyOtp } from "../controllers/otpController.js";
+import {
+  sendOtp,
+  verifyOtp,
+  sendLoginOtpByEmail,
+  verifyLoginOtpByEmail,
+} from "../controllers/otpController.js";
 import { validateRequest } from "../middleware/validateRequest.js";
 
 const router = express.Router();
@@ -28,11 +33,20 @@ const otpValidation = body("otp")
   .isLength({ min: 6, max: 6 })
   .withMessage("6 digit OTP required");
 
+const emailValidation = body("email")
+  .isEmail()
+  .withMessage("Valid email required");
+
+const nameValidation = body("name")
+  .optional({ checkFalsy: true })
+  .isLength({ min: 2 })
+  .withMessage("Name too short");
+
 /* ===== ROUTES ===== */
 router.post(
   "/send",
   sendLimiter,
-  [phoneValidation],
+  [phoneValidation, emailValidation, nameValidation],
   validateRequest,
   sendOtp
 );
@@ -40,9 +54,25 @@ router.post(
 router.post(
   "/verify",
   verifyLimiter,
-  [phoneValidation, otpValidation],
+  [phoneValidation, otpValidation, emailValidation],
   validateRequest,
   verifyOtp
+);
+
+router.post(
+  "/send-login",
+  sendLimiter,
+  [emailValidation],
+  validateRequest,
+  sendLoginOtpByEmail
+);
+
+router.post(
+  "/verify-login",
+  verifyLimiter,
+  [emailValidation, otpValidation],
+  validateRequest,
+  verifyLoginOtpByEmail
 );
 
 export default router;

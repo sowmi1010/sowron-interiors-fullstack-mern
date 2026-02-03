@@ -1,9 +1,8 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { Moon, Sun, Menu, X, Heart } from "lucide-react";
+import { Moon, Sun, Menu, X } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext.jsx";
 import { motion, AnimatePresence } from "framer-motion";
-import { api } from "../../lib/api";
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -11,7 +10,6 @@ export default function Navbar() {
 
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [wishlistCount, setWishlistCount] = useState(0);
 
   const token = localStorage.getItem("userToken");
   const name = localStorage.getItem("userName");
@@ -30,25 +28,6 @@ export default function Navbar() {
     { path: "/book-demo", label: "Book Demo" },
     { path: "/estimate", label: "Estimate" },
   ];
-
-  /* ================= WISHLIST COUNT ================= */
-  useEffect(() => {
-    if (!token) {
-      setWishlistCount(0);
-      return;
-    }
-
-    const loadWishlist = async () => {
-      try {
-        const res = await api.get("/wishlist");
-        setWishlistCount(res.data.length || 0);
-      } catch {
-        setWishlistCount(0);
-      }
-    };
-
-    loadWishlist();
-  }, [token]);
 
   /* ================= SCROLL EFFECT ================= */
   useEffect(() => {
@@ -79,7 +58,7 @@ export default function Navbar() {
         <div
           onClick={() => navigate("/")}
           className="cursor-pointer text-2xl font-extrabold tracking-tight
-            bg-gradient-to-r from-red-600 to-yellow-400
+            bg-gradient-to-r from-red-600 to-red-900
             bg-clip-text text-transparent"
         >
           Sowron<span className="opacity-70">Interiors</span>

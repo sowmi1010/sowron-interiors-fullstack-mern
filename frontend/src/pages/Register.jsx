@@ -5,12 +5,21 @@ import {
   Smartphone,
   User,
   MapPin,
+  Mail,
   Shield
 } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
 
 export default function Register() {
-  const [form, setForm] = useState({ name: "", phone: "", city: "" });
+  const [searchParams] = useSearchParams();
+  const prefillEmail = searchParams.get("email") || "";
+  const [form, setForm] = useState({
+    name: "",
+    email: prefillEmail,
+    phone: "",
+    city: "",
+  });
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -28,13 +37,17 @@ export default function Register() {
 
   /* SEND OTP */
   const sendOtp = async () => {
-    if (!form.name || !form.city || form.phone.length !== 10) {
+    if (!form.name || !form.email || !form.city || form.phone.length !== 10) {
       return setError("Please fill all details correctly");
     }
     try {
       setLoading(true);
       setError("");
-      await api.post("/otp/send", { phone: form.phone });
+      await api.post("/otp/send", {
+        phone: form.phone,
+        email: form.email,
+        name: form.name,
+      });
       setStep(2);
       setCooldown(30);
       setTimeout(() => otpRef.current?.focus(), 300);
@@ -57,11 +70,12 @@ export default function Register() {
       const res = await api.post("/otp/verify", {
         phone: form.phone,
         otp,
+        email: form.email,
       });
 
       await api.put(
         "/user/update",
-        { name: form.name, city: form.city },
+        { name: form.name, city: form.city, email: form.email },
         {
           headers: {
             Authorization: `Bearer ${res.data.token}`,
@@ -72,6 +86,7 @@ export default function Register() {
       localStorage.setItem("userToken", res.data.token);
       localStorage.setItem("userPhone", form.phone);
       localStorage.setItem("userName", form.name);
+      localStorage.setItem("userEmail", form.email);
 
       window.location.href = "/";
     } catch (err) {
@@ -122,7 +137,7 @@ export default function Register() {
         </h2>
 
         <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-8">
-          Register securely using your mobile number
+          Register securely using your email OTP
         </p>
 
         {error && (
@@ -148,8 +163,15 @@ export default function Register() {
                 onChange={(v) => setForm({ ...form, name: v })}
               />
               <Field
+                icon={<Mail size={18} />}
+                placeholder="Email Address"
+                value={form.email}
+                type="email"
+                onChange={(v) => setForm({ ...form, email: v })}
+              />
+              <Field
                 icon={<MapPin size={18} />}
-                placeholder="City"
+                placeholder="Location"
                 value={form.city}
                 onChange={(v) => setForm({ ...form, city: v })}
               />
@@ -179,7 +201,7 @@ export default function Register() {
               className="space-y-5"
             >
               <p className="text-center text-xs text-gray-500 dark:text-gray-400">
-                <Shield size={14} className="inline" /> OTP sent to {form.phone}
+                <Shield size={14} className="inline" /> OTP sent to {form.email}
               </p>
 
               <input

@@ -26,6 +26,20 @@ const enquirySchema = new mongoose.Schema(
       trim: true,
     },
 
+    projectId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Portfolio",
+      index: true,
+    },
+    projectTitle: {
+      type: String,
+      trim: true,
+    },
+    projectLocation: {
+      type: String,
+      trim: true,
+    },
+
     status: {
       type: String,
       enum: ["pending", "replied", "closed"],

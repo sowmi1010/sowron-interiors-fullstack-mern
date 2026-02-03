@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Bell,
@@ -6,44 +6,44 @@ import {
   FileText,
   Home,
   Star,
-  PlusCircle,
   UserCircle,
   Image,
   X,
+  Activity,
+  TrendingUp,
+  BarChart3,
+  Layers,
 } from "lucide-react";
 import AnimatedCounter from "../../components/ui/AnimatedCounter.jsx";
 import { socket } from "../../lib/socket";
 import { motion, AnimatePresence } from "framer-motion";
-import { Line } from "react-chartjs-2";
 import { api } from "../../lib/api";
 
-import {
-  Chart as ChartJS,
-  LineElement,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-} from "chart.js";
-
-ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement);
-
 export default function AdminDashboard() {
-  const [data, setData] = useState({});
-  const [latest, setLatest] = useState([]);
+  const [counts, setCounts] = useState({});
+  const [bookingStatus, setBookingStatus] = useState({});
+  const [activity, setActivity] = useState([]);
+  const [topCities, setTopCities] = useState([]);
+  const [topCategories, setTopCategories] = useState([]);
+  const [trends, setTrends] = useState({});
   const [drawer, setDrawer] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [filter, setFilter] = useState("week");
   const navigate = useNavigate();
 
   /* ================= LOAD DATA ================= */
   const load = async () => {
     try {
       const countsRes = await api.get("/dashboard/counts");
-      setData(countsRes.data);
-
-      const bookingRes = await api.get("/booking");
-      setLatest((bookingRes.data || []).slice(0, 5));
+      const payload = countsRes.data || {};
+      setCounts(payload.counts || {});
+      setBookingStatus(payload.bookingStatus || {});
+      setActivity(payload.activity || []);
+      setTopCities(payload.topCities || []);
+      setTopCategories(payload.topCategories || []);
+      setTrends(payload.trends || {});
     } catch {
-      localStorage.removeItem("adminToken");
+      localStorage.removeItem("adminName");
       navigate("/admin/login");
     }
   };
@@ -63,25 +63,44 @@ export default function AdminDashboard() {
 
   /* ================= STATS ================= */
   const stats = [
-    { label: "Bookings", value: data.totalBookings || 0, icon: Calendar, link: "/admin/bookings" },
-    { label: "Estimates", value: data.totalEstimates || 0, icon: FileText, link: "/admin/estimates" },
-    { label: "Portfolio", value: data.totalPortfolio || 0, icon: Home, link: "/admin/portfolio" },
-    { label: "Feedback", value: data.totalFeedback || 0, icon: Star, link: "/admin/feedback" },
+    {
+      label: "Bookings",
+      value: counts.bookings || 0,
+      icon: Calendar,
+      link: "/admin/bookings",
+      trend: trends.bookings?.change,
+    },
+    {
+      label: "Enquiries",
+      value: counts.enquiries || 0,
+      icon: Activity,
+      link: "/admin/enquiries",
+      trend: trends.enquiries?.change,
+    },
+    {
+      label: "Estimates",
+      value: counts.estimates || 0,
+      icon: FileText,
+      link: "/admin/estimates",
+      trend: trends.estimates?.change,
+    },
+    {
+      label: "Feedback",
+      value: counts.feedback || 0,
+      icon: Star,
+      link: "/admin/feedback",
+    },
   ];
 
-  /* ================= CHART ================= */
-  const chartData = {
-    labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-    datasets: [
-      {
-        data: [2, 5, 4, 7, 6, 8, 9],
-        borderColor: "#D32F2F",
-        tension: 0.45,
-        borderWidth: 3,
-        pointRadius: 0,
-      },
-    ],
-  };
+  const filteredActivity = useMemo(() => {
+    const now = new Date();
+    const start = new Date(now);
+    if (filter === "today") start.setHours(0, 0, 0, 0);
+    if (filter === "week") start.setDate(start.getDate() - 7);
+    if (filter === "month") start.setDate(start.getDate() - 30);
+    if (filter === "all") return activity;
+    return activity.filter((a) => new Date(a.createdAt) >= start);
+  }, [activity, filter]);
 
   return (
     <div className="text-white">
@@ -91,7 +110,7 @@ export default function AdminDashboard() {
         <div>
           <h1 className="text-3xl font-semibold text-brand-red">Dashboard</h1>
           <p className="text-gray-400 text-sm mt-1">
-            Business overview & activity
+            Business overview & premium insights
           </p>
         </div>
 
@@ -116,7 +135,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* STATS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-12">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-10">
         {stats.map((s, i) => (
           <Link
             key={i}
@@ -133,6 +152,21 @@ export default function AdminDashboard() {
                 <h2 className="text-4xl font-bold text-brand-red mt-2">
                   <AnimatedCounter value={s.value} />
                 </h2>
+                {typeof s.trend === "number" && (
+                  <div className="mt-3 inline-flex items-center gap-2 text-xs">
+                    <span
+                      className={`px-2 py-1 rounded-full ${
+                        s.trend >= 0
+                          ? "bg-green-500/20 text-green-300"
+                          : "bg-red-500/20 text-red-300"
+                      }`}
+                    >
+                      {s.trend >= 0 ? "+" : ""}
+                      {s.trend}%
+                    </span>
+                    <span className="text-gray-500">last 7 days</span>
+                  </div>
+                )}
               </div>
               <div className="p-3 rounded-xl bg-brand-red/10 text-brand-red">
                 <s.icon size={28} />
@@ -142,28 +176,64 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* CHART + QUICK ACTIONS */}
+      {/* PIPELINE + QUICK ACTIONS */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-12">
         <div className="xl:col-span-2 bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
-          <h3 className="text-lg font-semibold mb-4">Weekly Bookings</h3>
-          <Line data={chartData} />
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-lg font-semibold">Booking Pipeline</h3>
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <BarChart3 size={14} /> Status overview
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: "Pending", value: bookingStatus.pending || 0, tone: "yellow" },
+              { label: "Confirmed", value: bookingStatus.confirmed || 0, tone: "blue" },
+              { label: "Completed", value: bookingStatus.completed || 0, tone: "green" },
+              { label: "Cancelled", value: bookingStatus.cancelled || 0, tone: "red" },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className="rounded-2xl p-4 bg-white/5 border border-white/10"
+              >
+                <p className="text-xs text-gray-400">{s.label}</p>
+                <p className="text-2xl font-bold mt-2">{s.value}</p>
+                <div className="mt-3 h-2 rounded-full bg-white/10">
+                  <div
+                    className={`h-2 rounded-full ${
+                      s.tone === "yellow"
+                        ? "bg-yellow-400"
+                        : s.tone === "blue"
+                        ? "bg-blue-400"
+                        : s.tone === "green"
+                        ? "bg-green-400"
+                        : "bg-red-400"
+                    }`}
+                    style={{
+                      width: `${
+                        Math.min(
+                          100,
+                          Math.round(
+                            (s.value / Math.max(1, counts.bookings || 1)) * 100
+                          )
+                        )
+                      }%`,
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
           <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
           <div className="flex flex-col gap-3">
             <Link
-              to="/admin/products"
-              className="flex items-center justify-center gap-2 py-3 rounded-lg
-                         bg-brand-red text-white font-semibold hover:bg-brand-redDark transition"
-            >
-              <PlusCircle size={18} /> Add Product
-            </Link>
-
-            <Link
               to="/admin/gallery"
               className="flex items-center justify-center gap-2 py-3 rounded-lg
-                         bg-white/5 hover:bg-white/10 transition"
+                         bg-brand-red text-white font-semibold hover:bg-brand-redDark transition"
             >
               <Image size={18} /> Add Gallery
             </Link>
@@ -175,24 +245,92 @@ export default function AdminDashboard() {
             >
               <Home size={18} /> Add Portfolio
             </Link>
+
+            <Link
+              to="/admin/enquiries"
+              className="flex items-center justify-center gap-2 py-3 rounded-lg
+                         bg-white/5 hover:bg-white/10 transition"
+            >
+              <Layers size={18} /> View Enquiries
+            </Link>
           </div>
         </div>
       </div>
 
-      {/* RECENT BOOKINGS */}
-      <div className="bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
-        <h3 className="text-lg font-semibold mb-4">Recent Bookings</h3>
-        <div className="space-y-3">
-          {latest.map((b) => (
-            <div
-              key={b._id}
-              className="flex justify-between text-sm text-gray-300 bg-white/5 p-3 rounded-lg"
-            >
-              <span>{b.phone}</span>
-              <span>{b.city}</span>
-              <span>{b.date}</span>
+      {/* INSIGHTS + ACTIVITY */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <div className="bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Top Cities</h3>
+            <TrendingUp size={16} className="text-brand-yellow" />
+          </div>
+          <div className="space-y-3">
+            {(topCities.length ? topCities : []).map((c) => (
+              <div key={c.city} className="flex justify-between text-sm text-gray-300 bg-white/5 p-3 rounded-lg">
+                <span className="capitalize">{c.city}</span>
+                <span className="text-brand-yellow font-semibold">{c.count}</span>
+              </div>
+            ))}
+            {!topCities.length && (
+              <p className="text-sm text-gray-500">No city data yet</p>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Top Categories</h3>
+            <TrendingUp size={16} className="text-brand-yellow" />
+          </div>
+          <div className="space-y-3">
+            {(topCategories.length ? topCategories : []).map((c) => (
+              <div key={c.id} className="flex justify-between text-sm text-gray-300 bg-white/5 p-3 rounded-lg">
+                <span>{c.name}</span>
+                <span className="text-brand-yellow font-semibold">{c.count}</span>
+              </div>
+            ))}
+            {!topCategories.length && (
+              <p className="text-sm text-gray-500">No category data yet</p>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Live Activity</h3>
+            <div className="flex items-center gap-2">
+              {["today", "week", "month", "all"].map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`text-xs px-2 py-1 rounded-full border ${
+                    filter === f
+                      ? "border-brand-yellow text-brand-yellow"
+                      : "border-white/10 text-gray-400"
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
             </div>
-          ))}
+          </div>
+
+          <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
+            {filteredActivity.map((a, i) => (
+              <div
+                key={`${a.type}-${i}`}
+                className="p-3 rounded-xl bg-white/5 border border-white/10"
+              >
+                <p className="text-sm text-brand-yellow font-medium">{a.label}</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {a.city || "Unknown city"} - {a.status || "new"}
+                </p>
+              </div>
+            ))}
+            {!filteredActivity.length && (
+              <p className="text-sm text-gray-500">No recent activity</p>
+            )}
+          </div>
         </div>
       </div>
 

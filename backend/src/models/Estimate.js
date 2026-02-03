@@ -37,7 +37,15 @@ const estimateSchema = new mongoose.Schema(
     },
 
     file: {
-      type: String, // filename
+      type: String, // legacy filename
+    },
+    fileUrl: {
+      type: String,
+      trim: true,
+    },
+    filePublicId: {
+      type: String,
+      trim: true,
     },
 
     status: {

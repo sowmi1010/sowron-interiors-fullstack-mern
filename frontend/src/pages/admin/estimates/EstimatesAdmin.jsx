@@ -29,13 +29,6 @@ export default function EstimatesAdmin() {
   const { query = "" } = useSearch();
   const navigate = useNavigate();
 
-  /* ================= AUTH ================= */
-  useEffect(() => {
-    if (!localStorage.getItem("adminToken")) {
-      navigate("/admin/login");
-    }
-  }, []);
-
   /* ================= LOAD ================= */
   const load = async () => {
     try {

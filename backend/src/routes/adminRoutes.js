@@ -4,12 +4,18 @@ import { body } from "express-validator";
 
 import {
   adminLogin,
+  adminVerifyOtp,
   adminForgotPassword,
   adminResetPassword,
+  adminLogout,
 } from "../controllers/adminAuthController.js";
 
-import { protect, adminOnly } from "../middleware/authMiddleware.js";
 import { validateRequest } from "../middleware/validateRequest.js";
+import {
+  adminIpWhitelist,
+  adminAudit,
+} from "../middleware/adminSecurity.js";
+import { adminProtect } from "../middleware/adminAuthMiddleware.js";
 
 const router = express.Router();
 
@@ -27,6 +33,7 @@ const forgotLimiter = rateLimit({
 /* ================= VALIDATION ================= */
 router.post(
   "/login",
+  adminIpWhitelist,
   loginLimiter,
   [
     body("email").isEmail(),
@@ -37,7 +44,17 @@ router.post(
 );
 
 router.post(
+  "/verify-otp",
+  adminIpWhitelist,
+  loginLimiter,
+  [body("email").isEmail(), body("otp").isLength({ min: 6, max: 6 })],
+  validateRequest,
+  adminVerifyOtp
+);
+
+router.post(
   "/forgot-password",
+  adminIpWhitelist,
   forgotLimiter,
   [body("email").isEmail()],
   validateRequest,
@@ -46,6 +63,7 @@ router.post(
 
 router.post(
   "/reset-password",
+  adminIpWhitelist,
   [
     body("token").notEmpty(),
     body("password").isLength({ min: 8 }),
@@ -55,16 +73,40 @@ router.post(
 );
 
 /* ================= DASHBOARD ================= */
-router.get("/dashboard", protect, adminOnly, (req, res) => {
+router.get(
+  "/dashboard",
+  adminProtect,
+  adminIpWhitelist,
+  adminAudit,
+  (req, res) => {
+    res.json({
+      success: true,
+      message: "Welcome Admin",
+      admin: {
+        id: req.admin._id,
+        email: req.admin.email,
+      },
+    });
+  }
+);
+
+router.get("/session", adminProtect, adminIpWhitelist, (req, res) => {
   res.json({
     success: true,
-    message: "Welcome Admin",
     admin: {
-      id: req.user._id,
-      email: req.user.email,
-      role: req.user.role,
+      id: req.admin._id,
+      name: req.admin.name,
+      email: req.admin.email,
     },
   });
 });
+
+router.post(
+  "/logout",
+  adminProtect,
+  adminIpWhitelist,
+  adminAudit,
+  adminLogout
+);
 
 export default router;

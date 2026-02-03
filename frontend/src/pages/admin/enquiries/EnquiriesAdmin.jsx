@@ -11,7 +11,7 @@ import {
   FileSpreadsheet,
   X,
   Send,
-  Clock4,
+  Clock,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import toast from "react-hot-toast";
@@ -76,6 +76,7 @@ export default function EnquiriesAdmin() {
       Name: e.name,
       Phone: e.phone,
       City: e.city,
+      Project: e.projectTitle || "General",
       Message: e.message,
       Status: e.status,
       RepliedAt: e.repliedAt
@@ -178,6 +179,7 @@ Thank you – Sowron Interiors 😊`;
             <tr>
               <th className="px-5 py-4 text-left">Customer</th>
               <th className="px-5 py-4 text-left">City</th>
+              <th className="px-5 py-4 text-left">Project</th>
               <th className="px-5 py-4 text-left">Message</th>
               <th className="px-5 py-4 text-center">Status</th>
               <th className="px-5 py-4 text-center">Action</th>
@@ -205,6 +207,10 @@ Thank you – Sowron Interiors 😊`;
 
                 <td className="px-5 py-4 text-gray-300 flex gap-1 items-center">
                   <MapPin size={14} /> {e.city}
+                </td>
+
+                <td className="px-5 py-4 text-gray-300 max-w-[220px] truncate">
+                  {e.projectTitle || "General"}
                 </td>
 
                 <td className="px-5 py-4 truncate max-w-[220px] text-gray-300">
@@ -240,7 +246,7 @@ Thank you – Sowron Interiors 😊`;
 
             {!paginated.length && (
               <tr>
-                <td colSpan="5" className="py-16 text-center text-gray-500">
+                <td colSpan="6" className="py-16 text-center text-gray-500">
                   No enquiries found
                 </td>
               </tr>
@@ -300,11 +306,12 @@ Thank you – Sowron Interiors 😊`;
                 <p className="flex gap-2"><User2 size={14} /> {selected.name}</p>
                 <p className="flex gap-2"><Phone size={14} /> {selected.phone}</p>
                 <p className="flex gap-2"><MapPin size={14} /> {selected.city}</p>
+                <p className="flex gap-2"><MessageSquare size={14} /> {selected.projectTitle || "General project enquiry"}</p>
                 <p className="flex gap-2"><MessageSquare size={14} /> {selected.message}</p>
 
                 {selected.repliedAt && (
                   <p className="text-xs text-gray-400 flex gap-1">
-                    <Clock4 size={12} />
+                    <Clock size={12} />
                     {new Date(selected.repliedAt).toLocaleString()}
                   </p>
                 )}

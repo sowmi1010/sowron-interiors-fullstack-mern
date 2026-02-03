@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { Phone, ShieldCheck, ArrowRight } from "lucide-react";
+import { ShieldCheck, ArrowRight, Mail } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "../../lib/api";
 
 export default function OtpLogin({ onSuccess }) {
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -22,15 +22,15 @@ export default function OtpLogin({ onSuccess }) {
 
   /* ================= SEND OTP ================= */
   const sendOtp = async () => {
-    if (phone.length !== 10) {
-      return setError("Enter a valid 10-digit mobile number");
+    if (!email) {
+      return setError("Enter your email address");
     }
 
     try {
       setLoading(true);
       setError("");
 
-      await api.post("/otp/send", { phone });
+      await api.post("/otp/send-login", { email });
 
       setStep(2);
       setCooldown(30);
@@ -38,6 +38,8 @@ export default function OtpLogin({ onSuccess }) {
     } catch (err) {
       if (!err.response) {
         setError("Server not responding. Please try again.");
+      } else if (err.response.status === 404) {
+        setError("Account not found. Please register first.");
       } else {
         setError(err.response.data.message || "Failed to send OTP");
       }
@@ -56,10 +58,11 @@ export default function OtpLogin({ onSuccess }) {
       setLoading(true);
       setError("");
 
-      const res = await api.post("/otp/verify", { phone, otp });
+      const res = await api.post("/otp/verify-login", { otp, email });
 
       localStorage.setItem("userToken", res.data.token);
-      localStorage.setItem("userPhone", phone);
+      if (res.data.user?.phone) localStorage.setItem("userPhone", res.data.user.phone);
+      if (res.data.user?.email) localStorage.setItem("userEmail", res.data.user.email);
       localStorage.setItem("isLoggedIn", "true");
 
       if (res.data.user?.name) {
@@ -87,10 +90,10 @@ export default function OtpLogin({ onSuccess }) {
       {/* TITLE */}
       <div className="text-center">
         <h2 className="text-2xl font-extrabold">
-          Secure Phone Verification
+          Secure Email Verification
         </h2>
         <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-          We’ll send a one-time password to verify your number
+          We'll send a one-time password to your email
         </p>
 
         <span className="block mx-auto mt-4 w-14 h-[3px] bg-gradient-to-r from-red-600 to-yellow-400 rounded-full" />
@@ -111,11 +114,12 @@ export default function OtpLogin({ onSuccess }) {
             className="space-y-4"
           >
             <Input
-              icon={Phone}
-              placeholder="Mobile Number"
-              value={phone}
-              onChange={setPhone}
-              maxLength={10}
+              icon={Mail}
+              placeholder="Email Address"
+              value={email}
+              onChange={setEmail}
+              type="email"
+              autoComplete="email"
             />
 
             <PrimaryButton
@@ -149,6 +153,7 @@ export default function OtpLogin({ onSuccess }) {
               onChange={setOtp}
               maxLength={6}
               inputRef={otpRef}
+              sanitize={(v) => v.replace(/\\D/g, "")}
             />
 
             <PrimaryButton
@@ -173,7 +178,14 @@ export default function OtpLogin({ onSuccess }) {
 }
 
 /* ================= INPUT ================= */
-function Input({ icon: Icon, value, onChange, inputRef, ...props }) {
+function Input({
+  icon: Icon,
+  value,
+  onChange,
+  inputRef,
+  sanitize,
+  ...props
+}) {
   return (
     <div className="relative">
       <Icon size={16} className="absolute left-3 top-3.5 text-gray-400" />
@@ -181,9 +193,10 @@ function Input({ icon: Icon, value, onChange, inputRef, ...props }) {
         {...props}
         ref={inputRef}
         value={value}
-        onChange={(e) =>
-          onChange(e.target.value.replace(/\D/g, ""))
-        }
+        onChange={(e) => {
+          const next = e.target.value;
+          onChange(sanitize ? sanitize(next) : next);
+        }}
         className="
           w-full pl-10 pr-3 py-3 rounded-xl
           bg-gray-50 dark:bg-[#1a1a1a]

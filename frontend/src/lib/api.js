@@ -1,10 +1,12 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api"; // 🔥 LOCAL backend
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5000/api";
 
 export const api = axios.create({
   baseURL: API_URL,
-  withCredentials: false, // ✅ IMPORTANT
+  withCredentials: true,
 });
 
 /* ===========================
@@ -12,12 +14,9 @@ export const api = axios.create({
 =========================== */
 api.interceptors.request.use(
   (config) => {
-    const adminToken = localStorage.getItem("adminToken");
     const userToken = localStorage.getItem("userToken");
 
-    if (adminToken) {
-      config.headers.Authorization = `Bearer ${adminToken}`;
-    } else if (userToken) {
+    if (userToken) {
       config.headers.Authorization = `Bearer ${userToken}`;
     }
 

@@ -7,8 +7,12 @@ import {
   getSinglePortfolio,
 } from "../controllers/portfolioController.js";
 
-import { protect, adminOnly } from "../middleware/authMiddleware.js";
+import { adminProtect } from "../middleware/adminAuthMiddleware.js";
 import { getUploader } from "../utils/uploadCloudinary.js";
+import {
+  adminIpWhitelist,
+  adminAudit,
+} from "../middleware/adminSecurity.js";
 
 const router = express.Router();
 
@@ -19,24 +23,27 @@ router.get("/:id", getSinglePortfolio);
 /* ================= ADMIN ================= */
 router.post(
   "/add",
-  protect,
-  adminOnly,
+  adminProtect,
+  adminIpWhitelist,
+  adminAudit,
   getUploader("sowron-interiors/portfolio").array("images", 10),
   addPortfolio
 );
 
 router.put(
   "/:id",
-  protect,
-  adminOnly,
+  adminProtect,
+  adminIpWhitelist,
+  adminAudit,
   getUploader("sowron-interiors/portfolio").array("images", 10),
   updatePortfolio
 );
 
 router.delete(
   "/:id",
-  protect,
-  adminOnly,
+  adminProtect,
+  adminIpWhitelist,
+  adminAudit,
   deletePortfolio
 );
 

@@ -6,8 +6,12 @@ import {
   deleteEnquiry,
 } from "../controllers/enquiryController.js";
 
-import { protect, adminOnly } from "../middleware/authMiddleware.js";
+import { adminProtect } from "../middleware/adminAuthMiddleware.js";
 import { publicFormLimiter } from "../middleware/rateLimit.js";
+import {
+  adminIpWhitelist,
+  adminAudit,
+} from "../middleware/adminSecurity.js";
 
 const router = express.Router();
 
@@ -15,7 +19,7 @@ const router = express.Router();
 router.post("/add", publicFormLimiter, addEnquiry);
 
 /* ================= ADMIN ================= */
-router.use(protect, adminOnly);
+router.use(adminProtect, adminIpWhitelist, adminAudit);
 
 router.get("/", getEnquiries);
 router.patch("/:id", updateEnquiry);

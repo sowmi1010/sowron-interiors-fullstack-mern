@@ -7,9 +7,13 @@ import {
   deleteGallery,
 } from "../controllers/galleryController.js";
 
-import { protect, adminOnly } from "../middleware/authMiddleware.js";
+import { adminProtect } from "../middleware/adminAuthMiddleware.js";
 import { getUploader } from "../utils/uploadCloudinary.js";
 import Gallery from "../models/Gallery.js";
+import {
+  adminIpWhitelist,
+  adminAudit,
+} from "../middleware/adminSecurity.js";
 
 const router = express.Router();
 
@@ -21,7 +25,12 @@ router.get("/", getGallery);
 /* ===========================
    🔐 ADMIN – LIST + SEARCH + PAGINATION (FIXED)
 =========================== */
-router.get("/admin", protect, adminOnly, async (req, res) => {
+router.get(
+  "/admin",
+  adminProtect,
+  adminIpWhitelist,
+  adminAudit,
+  async (req, res) => {
   try {
     let { page = 1, limit = 9, q } = req.query;
 
@@ -48,7 +57,8 @@ router.get("/admin", protect, adminOnly, async (req, res) => {
     console.error("ADMIN GALLERY LIST ERROR:", err);
     res.status(400).json({ message: "Invalid query parameters" });
   }
-});
+  }
+);
 
 /* ===========================
    🌍 PUBLIC SINGLE
@@ -60,20 +70,28 @@ router.get("/:id", getSingleGallery);
 =========================== */
 router.post(
   "/add",
-  protect,
-  adminOnly,
+  adminProtect,
+  adminIpWhitelist,
+  adminAudit,
   getUploader("sowron-interiors/gallery").array("images", 8),
   addGallery
 );
 
 router.put(
   "/:id",
-  protect,
-  adminOnly,
+  adminProtect,
+  adminIpWhitelist,
+  adminAudit,
   getUploader("sowron-interiors/gallery").array("images", 8),
   updateGallery
 );
 
-router.delete("/:id", protect, adminOnly, deleteGallery);
+router.delete(
+  "/:id",
+  adminProtect,
+  adminIpWhitelist,
+  adminAudit,
+  deleteGallery
+);
 
 export default router;

@@ -96,6 +96,30 @@ export const updateStatus = async (req, res) => {
   }
 };
 
+/* ================= DELETE BOOKING ================= */
+export const deleteBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid booking ID" });
+    }
+
+    const deleted = await Booking.findByIdAndDelete(id);
+
+    if (!deleted) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    req.app.get("io")?.emit("booking_deleted", deleted);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("DELETE BOOKING ERROR:", err);
+    res.status(500).json({ message: "Delete failed" });
+  }
+};
+
 /* ================= STATS (ADMIN) ================= */
 export const getBookingStats = async (req, res) => {
   try {

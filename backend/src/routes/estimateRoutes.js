@@ -1,6 +1,5 @@
 import express from "express";
-import multer from "multer";
-import path from "path";
+import { getEstimateUploader } from "../utils/uploadCloudinary.js";
 
 import {
   addEstimate,
@@ -10,23 +9,17 @@ import {
   addEstimateNote,
 } from "../controllers/estimateController.js";
 
-import { protect, adminOnly } from "../middleware/authMiddleware.js";
+import { adminProtect } from "../middleware/adminAuthMiddleware.js";
+import { protect } from "../middleware/authMiddleware.js";
+import {
+  adminIpWhitelist,
+  adminAudit,
+} from "../middleware/adminSecurity.js";
 
 const router = express.Router();
 
 /* ================= FILE UPLOAD ================= */
-const storage = multer.diskStorage({
-  destination: "uploads/estimate",
-  filename: (req, file, cb) => {
-    const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, unique + path.extname(file.originalname));
-  },
-});
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-});
+const upload = getEstimateUploader("sowron-interiors/estimates");
 
 /* ================= USER ================= */
 router.post(
@@ -37,7 +30,7 @@ router.post(
 );
 
 /* ================= ADMIN ================= */
-router.use(protect, adminOnly);
+router.use(adminProtect, adminIpWhitelist, adminAudit);
 
 router.get("/", getEstimates);
 router.patch("/:id", updateEstimate);

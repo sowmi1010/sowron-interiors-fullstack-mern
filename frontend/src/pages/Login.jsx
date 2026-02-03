@@ -1,15 +1,17 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Smartphone, KeyRound } from "lucide-react";
+import { KeyRound, Mail } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 
 export default function Login() {
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
   const [cooldown, setCooldown] = useState(0);
   const otpRef = useRef(null);
+  const navigate = useNavigate();
 
   /* ⏳ COOLDOWN TIMER */
   useEffect(() => {
@@ -21,16 +23,19 @@ export default function Login() {
 
   /* SEND OTP */
   const sendOtp = async () => {
-    if (phone.length !== 10) {
-      return setError("Enter valid 10-digit mobile number");
+    if (!email) {
+      return setError("Enter your email address");
     }
     try {
       setError("");
-      await api.post("/otp/send", { phone });
+      await api.post("/otp/send-login", { email });
       setStep(2);
       setCooldown(30);
       setTimeout(() => otpRef.current?.focus(), 300);
     } catch (err) {
+      if (err.response?.status === 404) {
+        return navigate(`/register?email=${encodeURIComponent(email)}`);
+      }
       setError(err.response?.data?.message || "Failed to send OTP");
     }
   };
@@ -41,13 +46,12 @@ export default function Login() {
       return setError("Enter 6-digit OTP");
     }
     try {
-      const res = await api.post("/otp/verify", { phone, otp });
+      const res = await api.post("/otp/verify-login", { otp, email });
 
       localStorage.setItem("userToken", res.data.token);
-      localStorage.setItem("userPhone", phone);
-      if (res.data.user?.name) {
-        localStorage.setItem("userName", res.data.user.name);
-      }
+      if (res.data.user?.phone) localStorage.setItem("userPhone", res.data.user.phone);
+      if (res.data.user?.email) localStorage.setItem("userEmail", res.data.user.email);
+      if (res.data.user?.name) localStorage.setItem("userName", res.data.user.name);
 
       window.location.href = "/";
     } catch (err) {
@@ -97,7 +101,7 @@ export default function Login() {
         </h2>
 
         <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-8">
-          Secure login using your mobile number
+          Secure login using your email OTP
         </p>
 
         {error && (
@@ -117,11 +121,12 @@ export default function Login() {
               className="space-y-5"
             >
               <div className="relative">
-                <Smartphone
+                <Mail
                   size={18}
                   className="absolute left-4 top-4 text-gray-400"
                 />
                 <input
+                  type="email"
                   className="
                     w-full pl-12 py-4 rounded-xl
                     bg-white dark:bg-black/40
@@ -130,12 +135,10 @@ export default function Login() {
                     focus:ring-red-600/30
                     outline-none transition
                   "
-                  placeholder="Enter mobile number"
-                  maxLength={10}
-                  value={phone}
-                  onChange={(e) =>
-                    setPhone(e.target.value.replace(/\D/g, ""))
-                  }
+                  placeholder="Enter email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
                 />
               </div>
 
@@ -221,7 +224,7 @@ export default function Login() {
                 }}
                 className="w-full text-sm text-gray-500 dark:text-gray-400"
               >
-                ← Change number
+                ← Change email
               </button>
             </motion.div>
           )}

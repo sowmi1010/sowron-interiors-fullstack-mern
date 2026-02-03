@@ -6,7 +6,11 @@ import {
   updateCategory,
 } from "../controllers/categoryController.js";
 
-import { protect, adminOnly } from "../middleware/authMiddleware.js";
+import { adminProtect } from "../middleware/adminAuthMiddleware.js";
+import {
+  adminIpWhitelist,
+  adminAudit,
+} from "../middleware/adminSecurity.js";
 
 const router = express.Router();
 
@@ -14,8 +18,26 @@ const router = express.Router();
 router.get("/", getCategories);
 
 /* ================= ADMIN ================= */
-router.post("/", protect, adminOnly, addCategory);
-router.put("/:id", protect, adminOnly, updateCategory);
-router.delete("/:id", protect, adminOnly, deleteCategory);
+router.post(
+  "/",
+  adminProtect,
+  adminIpWhitelist,
+  adminAudit,
+  addCategory
+);
+router.put(
+  "/:id",
+  adminProtect,
+  adminIpWhitelist,
+  adminAudit,
+  updateCategory
+);
+router.delete(
+  "/:id",
+  adminProtect,
+  adminIpWhitelist,
+  adminAudit,
+  deleteCategory
+);
 
 export default router;

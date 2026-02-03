@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Gallery from "../models/Gallery.js";
 import Category from "../models/Category.js";
 import { deleteMultipleImages } from "../services/cloudinary.service.js";
+import cloudinary from "../config/cloudinary.js";
 
 /* SLUG */
 const createSlug = (text) =>
@@ -10,6 +11,49 @@ const createSlug = (text) =>
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+
+const SIGNED_TTL = Number(process.env.GALLERY_SIGNED_TTL || 60);
+const WATERMARK_TEXT = "SOWRON";
+
+const signImage = (img, watermarkText = WATERMARK_TEXT) => {
+  if (!img?.public_id) return img;
+
+  const expiresAt = Math.floor(Date.now() / 1000) + SIGNED_TTL;
+  const signedUrl = cloudinary.url(img.public_id, {
+    secure: true,
+    sign_url: true,
+    expires_at: expiresAt,
+    transformation: [
+      {
+        overlay: {
+          font_family: "Arial",
+          font_size: 24,
+          font_weight: "bold",
+          text: watermarkText,
+        },
+        color: "white",
+        opacity: 50,
+        gravity: "south_east",
+        x: 10,
+        y: 10,
+      },
+    ],
+  });
+
+  return {
+    ...img,
+    url: signedUrl,
+    expiresAt,
+  };
+};
+
+const withSignedImages = (item) => {
+  const data = item?.toObject ? item.toObject() : item;
+  return {
+    ...data,
+    images: (data.images || []).map((img) => signImage(img)),
+  };
+};
 
 /* ================= ADD ================= */
 export const addGallery = async (req, res) => {
@@ -76,7 +120,7 @@ export const getGallery = async (req, res) => {
       .populate("category", "name slug")
       .sort({ createdAt: -1 });
 
-    res.json(items);
+    res.json(items.map(withSignedImages));
   } catch (err) {
     console.error("GET GALLERY ERROR:", err);
     res.status(500).json({ message: "Failed to load gallery" });
@@ -98,7 +142,7 @@ export const getSingleGallery = async (req, res) => {
 
     if (!item) return res.status(404).json({ message: "Not found" });
 
-    res.json(item);
+    res.json(withSignedImages(item));
   } catch (err) {
     console.error("GET SINGLE ERROR:", err);
     res.status(500).json({ message: "Failed to load item" });

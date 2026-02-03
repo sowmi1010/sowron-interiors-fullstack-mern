@@ -11,12 +11,14 @@ import {
   ChevronDown,
 } from "lucide-react";
 import SEO from "../components/SEO";
+import SecureImageCanvas from "../components/ui/SecureImageCanvas.jsx";
 
 const PAGE_SIZE = 8;
 
 export default function Gallery() {
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [isBlurred, setIsBlurred] = useState(false);
 
   const [category, setCategory] = useState("all");
   const [subCategory, setSubCategory] = useState("all");
@@ -26,6 +28,7 @@ export default function Gallery() {
 
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const watermark = "enquiry@sowron.com";
 
   /* ================= LOAD ================= */
   useEffect(() => {
@@ -45,6 +48,28 @@ export default function Gallery() {
       }
     };
     load();
+  }, []);
+
+  useEffect(() => {
+    const onBlur = () => setIsBlurred(true);
+    const onFocus = () => setIsBlurred(false);
+    window.addEventListener("blur", onBlur);
+    window.addEventListener("focus", onFocus);
+    const onKeyDown = (e) => {
+      if (
+        e.key === "F12" ||
+        (e.ctrlKey && e.shiftKey && ["I", "J", "C"].includes(e.key)) ||
+        (e.ctrlKey && ["U", "S", "P"].includes(e.key))
+      ) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("blur", onBlur);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("keydown", onKeyDown);
+    };
   }, []);
 
   /* ================= SUBCATEGORIES ================= */
@@ -86,34 +111,43 @@ export default function Gallery() {
     <>
       <SEO title="Gallery | Sowron Interiors" />
 
-      <section className="relative min-h-screen mt-20 overflow-hidden">
+      <section
+        className="relative min-h-screen mt-20 overflow-hidden"
+        onContextMenu={(e) => e.preventDefault()}
+      >
+        {isBlurred && (
+          <div className="fixed inset-0 z-[999] bg-black/70 backdrop-blur-md
+            flex items-center justify-center text-white text-sm">
+            Screen hidden for security
+          </div>
+        )}
 
         {/* ===== PREMIUM ANIMATED BACKGROUND ===== */}
         <motion.div
           className="absolute -inset-[30%] -z-10 rounded-full blur-3xl
-            bg-gradient-to-tr from-red-500/20 via-pink-400/20 to-red-700/20
-            dark:from-red-900/20 dark:via-red-800/10 dark:to-black"
+            bg-[conic-gradient(at_top,rgba(255,60,60,0.18),rgba(255,210,80,0.12),rgba(255,60,60,0.18))]
+            dark:bg-[conic-gradient(at_top,rgba(255,90,90,0.12),rgba(255,210,80,0.08),rgba(255,90,90,0.12))]"
           animate={{ rotate: 360 }}
-          transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
+          transition={{ duration: 70, repeat: Infinity, ease: "linear" }}
         />
 
         <div className="absolute inset-0 -z-10
-          bg-gradient-to-b from-white via-white to-[#fff5f5]
-          dark:from-[#0b0b0b] dark:via-[#111] dark:to-[#0b0b0b]" />
+          bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.85),rgba(255,245,245,0.9),rgba(255,255,255,0.95))]
+          dark:bg-[radial-gradient(circle_at_top,rgba(20,20,20,0.9),rgba(10,10,10,0.95),rgba(0,0,0,0.98))]" />
 
         {/* ===== HEADER ===== */}
-        <div className="max-w-6xl mx-auto px-6 pt-24 pb-14 text-center">
+        <div className="max-w-6xl mx-auto px-6 pt-24 pb-10 text-center">
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-5xl font-extrabold
+            className="text-4xl md:text-6xl font-extrabold tracking-tight
               bg-gradient-to-r from-red-600 via-red-700 to-red-900
               bg-clip-text text-transparent"
           >
             Our Signature Works
           </motion.h1>
 
-          <p className="mt-4 text-sm md:text-base
+          <p className="mt-3 text-sm md:text-base
             text-gray-600 dark:text-gray-400">
             Bespoke interiors crafted with timeless elegance
           </p>
@@ -123,7 +157,7 @@ export default function Gallery() {
     <div className="max-w-5xl mx-auto px-6 mb-16">
   <div
     className="grid grid-cols-1 md:grid-cols-3 gap-6
-      bg-white/70 dark:bg-[#141414]/70
+      bg-white/80 dark:bg-[#141414]/80
       backdrop-blur-2xl
       border border-black/5 dark:border-white/10
       rounded-3xl px-6 py-6
@@ -211,9 +245,14 @@ export default function Gallery() {
           <>
             {/* ===== GRID ===== */}
             <div className="max-w-[1400px] mx-auto px-6 pb-20
-              grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
               {visible.map((item, i) => (
-                <GalleryCard key={item._id} item={item} index={i} />
+                <GalleryCard
+                  key={item._id}
+                  item={item}
+                  index={i}
+                  watermark={watermark}
+                />
               ))}
             </div>
 
@@ -270,27 +309,30 @@ function Dropdown({ label, value, options, onChange, disabled }) {
   );
 }
 
-function GalleryCard({ item, index }) {
+function GalleryCard({ item, index, watermark }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04 }}
       viewport={{ once: true }}
-      whileHover={{ y: -10 }}
+      whileHover={{ y: -12 }}
       className="relative rounded-3xl overflow-hidden
         bg-white dark:bg-[#121212]
-        shadow-xl hover:shadow-red-900/30 transition"
+        shadow-[0_20px_50px_rgba(0,0,0,0.12)]
+        hover:shadow-[0_25px_80px_rgba(200,20,20,0.25)]
+        transition"
     >
       <Link to={`/view-gallery/${item._id}`} className="block relative">
         {item.images?.[0]?.url ? (
-          <img
+          <SecureImageCanvas
             src={item.images[0].url}
             alt={item.title}
-            draggable={false}
-            className="h-[260px] w-full object-cover
-              hover:scale-110 transition-transform duration-700
+            watermark={watermark}
+            className="h-[260px] w-full
+              hover:scale-105 transition-transform duration-700
               pointer-events-none select-none"
+            rounded={false}
           />
         ) : (
           <div className="h-[260px] flex items-center justify-center">
@@ -299,10 +341,10 @@ function GalleryCard({ item, index }) {
         )}
 
         <div className="absolute inset-0 pointer-events-none
-          bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+          bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
 
         <div className="absolute bottom-0 left-0 right-0 p-5 pointer-events-none">
-          <h3 className="text-white font-semibold truncate">
+          <h3 className="text-white font-semibold truncate text-lg">
             {item.title}
           </h3>
           <p className="text-xs uppercase tracking-widest text-white/70 mt-1">

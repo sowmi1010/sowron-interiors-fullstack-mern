@@ -1,4 +1,10 @@
 import nodemailer from "nodemailer";
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST || "smtp.gmail.com",
@@ -11,17 +17,23 @@ const transporter = nodemailer.createTransport({
 });
 
 /* Verify once */
-transporter.verify((err) => {
-  if (err) {
-    console.error("❌ SMTP Error:", err.message);
-  } else {
-    console.log("✅ SMTP Ready");
-  }
-});
+if (process.env.NODE_ENV !== "production") {
+  transporter.verify((err) => {
+    if (err) {
+      console.error("❌ SMTP Error:", err.message);
+    } else {
+      console.log("✅ SMTP Ready");
+    }
+  });
+}
 
 const sendEmail = async ({ to, subject, html }) => {
   if (!to || !subject || !html) {
     throw new Error("Missing email parameters");
+  }
+
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    throw new Error("Email credentials not configured");
   }
 
   return transporter.sendMail({

@@ -5,9 +5,15 @@ import {
   updateStatus,
   getBlockedSlots,
   getBookingStats,
+  deleteBooking,
 } from "../controllers/bookingController.js";
 
-import { protect, adminOnly } from "../middleware/authMiddleware.js";
+import { adminProtect } from "../middleware/adminAuthMiddleware.js";
+import { protect } from "../middleware/authMiddleware.js";
+import {
+  adminIpWhitelist,
+  adminAudit,
+} from "../middleware/adminSecurity.js";
 
 const router = express.Router();
 
@@ -16,10 +22,11 @@ router.get("/blocked-slots", getBlockedSlots);
 router.post("/add", protect, addBooking);
 
 /* ================= ADMIN ================= */
-router.use(protect, adminOnly);
+router.use(adminProtect, adminIpWhitelist, adminAudit);
 
 router.get("/", getBookings);
 router.get("/stats", getBookingStats);
 router.patch("/status/:id", updateStatus);
+router.delete("/:id", deleteBooking);
 
 export default router;

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import SEO from "../components/SEO";
+import SecureImageCanvas from "../components/ui/SecureImageCanvas.jsx";
 
 export default function ViewGallery() {
   const { id } = useParams();
@@ -20,6 +21,8 @@ export default function ViewGallery() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [zoomImage, setZoomImage] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isBlurred, setIsBlurred] = useState(false);
+  const watermark = "enquiry@sowron.com";
 
   const intervalRef = useRef(null);
 
@@ -41,6 +44,28 @@ export default function ViewGallery() {
     loadItem();
     window.scrollTo(0, 0);
   }, [id]);
+
+  useEffect(() => {
+    const onBlur = () => setIsBlurred(true);
+    const onFocus = () => setIsBlurred(false);
+    window.addEventListener("blur", onBlur);
+    window.addEventListener("focus", onFocus);
+    const onKeyDown = (e) => {
+      if (
+        e.key === "F12" ||
+        (e.ctrlKey && e.shiftKey && ["I", "J", "C"].includes(e.key)) ||
+        (e.ctrlKey && ["U", "S", "P"].includes(e.key))
+      ) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("blur", onBlur);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, []);
 
   /* ================= AUTO SLIDER ================= */
   useEffect(() => {
@@ -83,7 +108,19 @@ export default function ViewGallery() {
         description={`Explore ${item.title} interior project by Sowron Interiors.`}
       />
 
-      <section className="min-h-screen bg-white dark:bg-black text-black dark:text-white pb-32">
+      <section
+        className="min-h-screen bg-white dark:bg-black text-black dark:text-white pb-32"
+        onContextMenu={(e) => e.preventDefault()}
+      >
+        <div className="absolute inset-0 -z-10
+          bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.9),rgba(255,245,245,0.92),rgba(255,255,255,0.96))]
+          dark:bg-[radial-gradient(circle_at_top,rgba(20,20,20,0.9),rgba(10,10,10,0.95),rgba(0,0,0,0.98))]" />
+        {isBlurred && (
+          <div className="fixed inset-0 z-[999] bg-black/70 backdrop-blur-md
+            flex items-center justify-center text-white text-sm">
+            Screen hidden for security
+          </div>
+        )}
 
         {/* BACK */}
         <div className="max-w-7xl mx-auto px-6 pt-24">
@@ -100,11 +137,11 @@ export default function ViewGallery() {
         </div>
 
         {/* TITLE */}
-        <div className="text-center mt-20 px-6">
+        <div className="text-center mt-16 px-6">
           <motion.h1
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-6xl font-extrabold tracking-wide"
+            className="text-4xl md:text-6xl font-extrabold tracking-tight"
           >
             {item.title}
           </motion.h1>
@@ -122,11 +159,12 @@ export default function ViewGallery() {
         </div>
 
         {/* HERO SLIDER */}
-        <div className="relative max-w-7xl mx-auto px-6 mt-24">
+        <div className="relative max-w-7xl mx-auto px-6 mt-20">
           <motion.div
             whileHover={{ scale: 1.01 }}
             className="relative h-[320px] sm:h-[460px] md:h-[600px]
-              rounded-[3rem] overflow-hidden shadow-2xl bg-black cursor-zoom-in"
+              rounded-[3rem] overflow-hidden shadow-[0_30px_90px_rgba(0,0,0,0.35)]
+              bg-black cursor-zoom-in"
             onClick={() => setZoomImage(images[activeIndex].url)}
           >
             {/* CONTROLS */}
@@ -153,17 +191,22 @@ export default function ViewGallery() {
             </button>
 
             <AnimatePresence mode="wait">
-              <motion.img
+              <motion.div
                 key={activeIndex}
-                src={images[activeIndex].url}
-                alt={item.title}
                 initial={{ opacity: 0, scale: 1.08 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.7 }}
-                className="object-cover w-full h-full"
-                draggable={false}
-              />
+                className="w-full h-full"
+              >
+                <SecureImageCanvas
+                  src={images[activeIndex].url}
+                  alt={item.title}
+                  watermark={watermark}
+                  className="w-full h-full"
+                  rounded={false}
+                />
+              </motion.div>
             </AnimatePresence>
 
             {/* ZOOM LABEL */}
@@ -182,10 +225,8 @@ export default function ViewGallery() {
         <div className="max-w-7xl mx-auto px-6 mt-14">
           <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
             {images.map((img, idx) => (
-              <motion.img
+              <motion.div
                 key={idx}
-                src={img.url}
-                onClick={() => setActiveIndex(idx)}
                 whileHover={{ scale: 1.1 }}
                 className={`h-24 w-40 rounded-2xl cursor-pointer
                   transition-all
@@ -194,7 +235,15 @@ export default function ViewGallery() {
                       ? "ring-4 ring-red-600 shadow-2xl"
                       : "opacity-60 hover:opacity-100"
                   }`}
-              />
+                onClick={() => setActiveIndex(idx)}
+              >
+                <SecureImageCanvas
+                  src={img.url}
+                  alt={item.title}
+                  watermark={watermark}
+                  className="h-24 w-40"
+                />
+              </motion.div>
             ))}
           </div>
         </div>
@@ -218,15 +267,20 @@ export default function ViewGallery() {
               <X />
             </button>
 
-            <motion.img
-              src={zoomImage}
+            <motion.div
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
               className="max-h-[90vh] max-w-[90vw]
                 rounded-3xl shadow-2xl"
-              draggable={false}
-            />
+            >
+              <SecureImageCanvas
+                src={zoomImage}
+                alt={item.title}
+                watermark={watermark}
+                className="max-h-[90vh] max-w-[90vw]"
+              />
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

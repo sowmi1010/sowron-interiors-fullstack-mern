@@ -2,51 +2,40 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
-const userSchema = new mongoose.Schema(
+const adminSchema = new mongoose.Schema(
   {
-    name: String,
-    city: {
+    name: {
       type: String,
       trim: true,
     },
-
     email: {
-      type: String,
-      lowercase: true,
-      trim: true,
-      unique: true,
-      sparse: true,
-    },
-
-    phone: {
       type: String,
       required: true,
       unique: true,
+      lowercase: true,
+      trim: true,
     },
-
+    phone: {
+      type: String,
+      trim: true,
+    },
     password: {
       type: String,
-      minlength: 6,
+      required: true,
+      minlength: 8,
       select: false,
     },
-
-    role: {
-      type: String,
-      enum: ["user", "admin"],
-      default: "user",
-    },
-
     isActive: {
       type: Boolean,
       default: true,
     },
+    lastLogin: Date,
 
     /* ===== OTP ===== */
     otpHash: String,
     otpExpires: Date,
     otpAttempts: { type: Number, default: 0 },
     otpLockedUntil: Date,
-    otpVerified: { type: Boolean, default: false },
 
     /* ===== RESET ===== */
     resetPasswordToken: String,
@@ -55,26 +44,23 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-/* PASSWORD */
-userSchema.pre("save", async function () {
+adminSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
   this.password = await bcrypt.hash(this.password, 12);
 });
 
-userSchema.methods.comparePassword = function (password) {
+adminSchema.methods.comparePassword = function (password) {
   return bcrypt.compare(password, this.password);
 };
 
-userSchema.methods.createPasswordResetToken = function () {
+adminSchema.methods.createPasswordResetToken = function () {
   const resetToken = crypto.randomBytes(32).toString("hex");
-
   this.resetPasswordToken = crypto
     .createHash("sha256")
     .update(resetToken)
     .digest("hex");
   this.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
-
   return resetToken;
 };
 
-export default mongoose.model("User", userSchema);
+export default mongoose.model("Admin", adminSchema);

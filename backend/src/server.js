@@ -1,5 +1,9 @@
 import dotenv from "dotenv";
-dotenv.config(); // MUST be first
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, "../.env") }); // ensure backend/.env
 
 import express from "express";
 import cors from "cors";
@@ -7,6 +11,8 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import http from "http";
 import { Server } from "socket.io";
+import morgan from "morgan";
+import cookieParser from "cookie-parser";
 
 import { connectDB } from "./config/db.js";
 
@@ -36,6 +42,19 @@ const allowedOrigins = [
 =========================== */
 app.use(helmet());
 
+/* ===========================
+   LOGGING (NO ADMIN LOGS IN PROD)
+=========================== */
+if (process.env.NODE_ENV !== "production") {
+  app.use(morgan("dev"));
+} else {
+  app.use(
+    morgan("combined", {
+      skip: (req) => req.originalUrl.startsWith("/api/admin"),
+    })
+  );
+}
+
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -51,6 +70,7 @@ app.use(
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 /* ===========================
    GLOBAL RATE LIMIT

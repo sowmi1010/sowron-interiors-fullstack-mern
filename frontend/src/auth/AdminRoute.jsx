@@ -1,25 +1,37 @@
+import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
+import { api } from "../lib/api";
 
 export default function AdminRoute({ children }) {
-  const token = localStorage.getItem("adminToken");
+  const [checking, setChecking] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
 
-  if (!token) {
-    return <Navigate to="/admin/login" replace />;
-  }
+  useEffect(() => {
+    let mounted = true;
+    api
+      .get("/admin/session")
+      .then((res) => {
+        if (!mounted) return;
+        setAuthorized(true);
+        if (res.data?.admin?.name) {
+          localStorage.setItem("adminName", res.data.admin.name);
+        }
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setAuthorized(false);
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setChecking(false);
+      });
 
-  try {
-    // Decode JWT payload manually
-    const payload = JSON.parse(atob(token.split(".")[1]));
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
-    // Check expiry
-    if (payload.exp * 1000 < Date.now()) {
-      localStorage.removeItem("adminToken");
-      return <Navigate to="/admin/login" replace />;
-    }
-
-    return children;
-  } catch (error) {
-    localStorage.removeItem("adminToken");
-    return <Navigate to="/admin/login" replace />;
-  }
+  if (checking) return null;
+  if (!authorized) return <Navigate to="/admin/login" replace />;
+  return children;
 }

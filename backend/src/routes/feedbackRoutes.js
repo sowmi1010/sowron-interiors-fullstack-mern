@@ -7,8 +7,12 @@ import {
   deleteFeedback,
 } from "../controllers/feedbackController.js";
 
-import { protect, adminOnly } from "../middleware/authMiddleware.js";
+import { adminProtect } from "../middleware/adminAuthMiddleware.js";
 import { getUploader } from "../utils/uploadCloudinary.js";
+import {
+  adminIpWhitelist,
+  adminAudit,
+} from "../middleware/adminSecurity.js";
 
 const router = express.Router();
 
@@ -19,24 +23,27 @@ router.get("/:id", getSingleFeedbackById);
 /* ================= ADMIN ================= */
 router.post(
   "/add",
-  protect,
-  adminOnly,
+  adminProtect,
+  adminIpWhitelist,
+  adminAudit,
   getUploader("sowron-interiors/feedback").single("photo"),
   addFeedback
 );
 
 router.put(
   "/:id",
-  protect,
-  adminOnly,
+  adminProtect,
+  adminIpWhitelist,
+  adminAudit,
   getUploader("sowron-interiors/feedback").single("photo"),
   updateFeedback
 );
 
 router.delete(
   "/:id",
-  protect,
-  adminOnly,
+  adminProtect,
+  adminIpWhitelist,
+  adminAudit,
   deleteFeedback
 );
 

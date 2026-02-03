@@ -4,7 +4,7 @@ import Enquiry from "../models/Enquiry.js";
 /* ================= PUBLIC ADD ================= */
 export const addEnquiry = async (req, res) => {
   try {
-    const { name, phone, city, message } = req.body;
+    const { name, phone, city, message, projectId, projectTitle, projectLocation } = req.body;
 
     if (!name || !phone) {
       return res.status(400).json({
@@ -17,6 +17,9 @@ export const addEnquiry = async (req, res) => {
       phone: phone.trim(),
       city: city?.trim(),
       message: message?.trim(),
+      projectId: projectId || null,
+      projectTitle: projectTitle?.trim(),
+      projectLocation: projectLocation?.trim(),
     });
 
     res.status(201).json({

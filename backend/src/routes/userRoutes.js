@@ -7,11 +7,12 @@ const router = express.Router();
 /* ================= UPDATE PROFILE ================= */
 router.put("/update", userProtect, async (req, res) => {
   try {
-    const { name, city } = req.body;
+    const { name, city, email } = req.body;
 
     const updates = {};
     if (name) updates.name = name.trim();
     if (city) updates.city = city.trim();
+    if (email) updates.email = email.toLowerCase().trim();
 
     const user = await User.findByIdAndUpdate(
       req.user._id,
