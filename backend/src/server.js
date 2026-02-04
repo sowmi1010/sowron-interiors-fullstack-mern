@@ -143,9 +143,28 @@ app.use("/api/categories", categoryRoutes);
 =========================== */
 app.use((err, req, res, next) => {
   console.error("❌ Error:", err.message);
-  res.status(500).json({
+  const isNetworkError =
+    err?.code &&
+    [
+      "ESOCKET",
+      "ETIMEDOUT",
+      "ECONNREFUSED",
+      "ECONNRESET",
+      "EHOSTUNREACH",
+      "ENETUNREACH",
+      "ENOTFOUND",
+    ].includes(err.code);
+
+  const statusCode = err?.statusCode || err?.status || (isNetworkError ? 503 : 500);
+  const isProd = process.env.NODE_ENV === "production";
+
+  res.status(statusCode).json({
     success: false,
-    message: "Internal Server Error",
+    message: isProd
+      ? statusCode === 503
+        ? "Service Unavailable"
+        : "Internal Server Error"
+      : err?.message || "Internal Server Error",
   });
 });
 
