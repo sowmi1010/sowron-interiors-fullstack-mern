@@ -1,14 +1,26 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
+
+if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+  throw new Error("Gmail credentials missing");
+}
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS, // App password
+  },
+});
 
 const sendEmail = async ({ to, subject, html }) => {
-  if (!to || !subject || !html) {
-    throw new Error("Missing email parameters");
-  }
-
-  return resend.emails.send({
-    from: "Sowron Interiors <onboarding@resend.dev>",
+  return transporter.sendMail({
+    from: process.env.EMAIL_FROM,
     to,
     subject,
     html,

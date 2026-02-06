@@ -11,118 +11,44 @@ export const adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ message: "Email & password required" });
-    }
-
     const admin = await Admin.findOne({
       email: email.toLowerCase(),
     }).select("+password");
 
-    // Prevent user enumeration
     if (!admin || !(await admin.comparePassword(password))) {
-      await logAdminAuthEvent({
-        action: "ADMIN_LOGIN_FAILED",
-        req,
-        success: false,
-        meta: { email: email.toLowerCase() },
-      });
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
     if (!admin.isActive) {
-      await logAdminAuthEvent({
-        adminId: admin._id,
-        action: "ADMIN_LOGIN_BLOCKED",
-        req,
-        success: false,
-        meta: { reason: "disabled" },
-      });
       return res.status(403).json({ message: "Account disabled" });
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
     admin.otpHash = crypto.createHash("sha256").update(otp).digest("hex");
     admin.otpExpires = Date.now() + 5 * 60 * 1000;
     admin.otpAttempts = 0;
     admin.otpLockedUntil = null;
     await admin.save({ validateBeforeSave: false });
 
-    const debugAuth = process.env.DEBUG_AUTH === "true";
-    const emailConfigured = Boolean(
-      process.env.EMAIL_USER && process.env.EMAIL_PASS
-    );
-
-    if (!emailConfigured) {
-      if (debugAuth || process.env.NODE_ENV !== "production") {
-        console.warn("ADMIN LOGIN: email not configured; returning OTP (debug)", {
-          email: admin.email,
-          otp,
-        });
-        return res.json({
-          success: true,
-          message: "OTP generated (debug mode)",
-          otpRequired: true,
-          adminId: admin._id,
-          otp,
-        });
-      }
-
-      return res
-        .status(500)
-        .json({ message: "Email service not configured" });
-    }
-
-    try {
-      await sendEmail({
-        to: admin.email,
-        subject: "Admin Login OTP - Sowron Interiors",
-        html: `
-          <p>Your admin OTP is <strong>${otp}</strong></p>
-          <p>This OTP is valid for 5 minutes. Do not share it.</p>
-        `,
-      });
-    } catch (err) {
-      console.error("ADMIN OTP EMAIL ERROR:", err);
-
-      if (debugAuth || process.env.NODE_ENV !== "production") {
-        console.warn("ADMIN LOGIN: email send failed; returning OTP (debug)", {
-          email: admin.email,
-          otp,
-        });
-        return res.json({
-          success: true,
-          message: "OTP generated (email send failed)",
-          otpRequired: true,
-          adminId: admin._id,
-          otp,
-        });
-      }
-
-      return res.status(500).json({ message: "Unable to send OTP email" });
-    }
-
-    await logAdminAuthEvent({
-      adminId: admin._id,
-      action: "ADMIN_OTP_SENT",
-      req,
-      success: true,
+    // ✅ SEND OTP VIA GMAIL
+    await sendEmail({
+      to: admin.email,
+      subject: "Admin Login OTP - Sowron Interiors",
+      html: `
+        <p>Your OTP is <b>${otp}</b></p>
+        <p>Valid for 5 minutes.</p>
+      `,
     });
 
     res.json({
       success: true,
-      message: "OTP sent to admin email",
       otpRequired: true,
-      adminId: admin._id,
+      message: "OTP sent to your email",
     });
-  } catch (error) {
-    console.error("ADMIN LOGIN ERROR:", error);
-    res.status(500).json({
-      message:
-        process.env.NODE_ENV === "production"
-          ? "Login failed"
-          : error?.message || "Login failed",
-    });
+  } catch (err) {
+    console.error("ADMIN LOGIN ERROR:", err);
+    res.status(500).json({ message: "Failed to send OTP" });
   }
 };
 
