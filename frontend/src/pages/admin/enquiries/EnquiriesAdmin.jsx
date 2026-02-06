@@ -109,7 +109,7 @@ export default function EnquiriesAdmin() {
     }
 
     try {
-      await api.patch(`/enquiry/update/${selected._id}`, {
+      await api.patch(`/enquiry/${selected._id}`, {
         status,
         replyMessage: selected.replyMessage,
       });

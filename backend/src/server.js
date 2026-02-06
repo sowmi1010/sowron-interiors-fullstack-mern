@@ -31,7 +31,7 @@ app.set("trust proxy", 1);
    ALLOWED ORIGINS
 =========================== */
 const allowedOrigins = [
-  "https://sowron-interiors.netlify.app",
+  "https://sowron-interiors-fullstack-mern.pages.dev",
   "https://sowron.com",
   "https://www.sowron.com",
   "http://localhost:5173",
