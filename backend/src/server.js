@@ -1,10 +1,5 @@
 import dotenv from "dotenv";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config();
-
 
 import express from "express";
 import cors from "cors";
@@ -24,34 +19,9 @@ const app = express();
 const server = http.createServer(app);
 
 /* ===========================
-   TRUST PROXY (REQUIRED FOR CLOUDFLARE)
+   TRUST PROXY (CLOUDFLARE REQUIRED)
 =========================== */
 app.set("trust proxy", 1);
-
-/* ===========================
-   ALLOWED ORIGINS
-=========================== */
-const allowedOrigins = [
-  "https://sowron-interiors-fullstack-mern.pages.dev",
-  "https://sowron.com",
-  "https://www.sowron.com",
-  "http://localhost:5173",
-];
-
-const isAllowedOrigin = (origin) => {
-  if (!origin) return true;
-  if (allowedOrigins.includes(origin)) return true;
-
-  try {
-    const { hostname } = new URL(origin);
-    if (hostname.endsWith("sowron-interiors-fullstack-mern.pages.dev")) {
-      return true;
-    }
-  } catch {
-    return false;
-  }
-  return false;
-};
 
 /* ===========================
    SECURITY
@@ -64,22 +34,20 @@ app.use(helmet());
 if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"));
 } else {
-  app.use(
-    morgan("combined", {
-      skip: (req) => req.originalUrl.startsWith("/api/admin"),
-    })
-  );
+  app.use(morgan("combined"));
 }
 
 /* ===========================
-   CORS
+   CORS (FIXED FOR CLOUDFLARE)
 =========================== */
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (isAllowedOrigin(origin)) callback(null, true);
-      else callback(new Error("CORS not allowed"));
-    },
+    origin: [
+      "http://localhost:5173",
+      "https://sowron-interiors-fullstack-mern.pages.dev",
+      "https://sowron.com",
+      "https://www.sowron.com",
+    ],
     credentials: true,
   })
 );
@@ -96,10 +64,8 @@ app.use(cookieParser());
 =========================== */
 app.use(
   rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 mins
-    max: 200,
-    keyGenerator: (req) =>
-      req.headers["cf-connecting-ip"] || req.ip,
+    windowMs: 15 * 60 * 1000,
+    max: 300,
     standardHeaders: true,
     legacyHeaders: false,
   })
@@ -115,10 +81,12 @@ connectDB();
 =========================== */
 const io = new Server(server, {
   cors: {
-    origin: (origin, callback) => {
-      if (isAllowedOrigin(origin)) callback(null, true);
-      else callback(new Error("CORS not allowed"));
-    },
+    origin: [
+      "http://localhost:5173",
+      "https://sowron-interiors-fullstack-mern.pages.dev",
+      "https://sowron.com",
+      "https://www.sowron.com",
+    ],
     credentials: true,
   },
 });
@@ -168,30 +136,14 @@ app.use("/api/categories", categoryRoutes);
 app.use((err, req, res, next) => {
   console.error("❌ Error:", err.message);
 
-  const isNetworkError =
-    err?.code &&
-    [
-      "ESOCKET",
-      "ETIMEDOUT",
-      "ECONNREFUSED",
-      "ECONNRESET",
-      "EHOSTUNREACH",
-      "ENETUNREACH",
-      "ENOTFOUND",
-    ].includes(err.code);
-
-  const statusCode =
-    err?.statusCode || err?.status || (isNetworkError ? 503 : 500);
-
-  const isProd = process.env.NODE_ENV === "production";
+  const statusCode = err.statusCode || err.status || 500;
 
   res.status(statusCode).json({
     success: false,
-    message: isProd
-      ? statusCode === 503
-        ? "Service Unavailable"
-        : "Internal Server Error"
-      : err?.message || "Internal Server Error",
+    message:
+      process.env.NODE_ENV === "production"
+        ? "Internal Server Error"
+        : err.message,
   });
 });
 

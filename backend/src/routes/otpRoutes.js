@@ -15,20 +15,14 @@ const router = express.Router();
    RATE LIMITERS (CLOUDFLARE SAFE)
 ========================= */
 const sendLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000, // 10 minutes
-  max: 3,                  // 3 OTP sends
+  windowMs: 10 * 60 * 1000,
+  max: 10, // ⬅️ increase
   keyGenerator: (req) =>
-    req.body?.email ||
-    req.body?.phone ||
-    req.headers["cf-connecting-ip"] ||
-    req.ip,
+    req.body?.email || req.body?.phone || req.ip,
   standardHeaders: true,
   legacyHeaders: false,
-  message: {
-    success: false,
-    message: "Too many OTP requests. Please try again later.",
-  },
 });
+
 
 const verifyLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
