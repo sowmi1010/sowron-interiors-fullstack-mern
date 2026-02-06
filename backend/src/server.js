@@ -37,6 +37,26 @@ const allowedOrigins = [
   "http://localhost:5173",
 ];
 
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+
+  if (allowedOrigins.includes(origin)) return true;
+
+  try {
+    const { hostname } = new URL(origin);
+
+    // Allow all Cloudflare Pages preview deployments for this project, e.g.
+    // `https://a6aa7bd3.sowron-interiors-fullstack-mern.pages.dev`
+    if (hostname.endsWith("sowron-interiors-fullstack-mern.pages.dev")) {
+      return true;
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
+};
+
 /* ===========================
    SECURITY MIDDLEWARE
 =========================== */
@@ -58,7 +78,7 @@ if (process.env.NODE_ENV !== "production") {
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (isAllowedOrigin(origin)) {
         callback(null, true);
       } else {
         callback(new Error("CORS not allowed"));
@@ -94,7 +114,13 @@ connectDB();
 =========================== */
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS not allowed"));
+      }
+    },
     credentials: true,
   },
 });
