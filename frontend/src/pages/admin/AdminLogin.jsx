@@ -23,7 +23,9 @@ export default function AdminLogin() {
     try {
       setLoading(true);
 
-      await api.post("/admin/login", { email, password });
+      const res = await api.post("/admin/login", { email, password });
+      if (res.data?.otp) setOtp(String(res.data.otp));
+
       setStep(2);
       setTimeout(() => otpRef.current?.focus(), 300);
     } catch (err) {

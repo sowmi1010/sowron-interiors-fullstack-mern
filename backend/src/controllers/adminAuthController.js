@@ -48,14 +48,59 @@ export const adminLogin = async (req, res) => {
     admin.otpLockedUntil = null;
     await admin.save({ validateBeforeSave: false });
 
-    await sendEmail({
-      to: admin.email,
-      subject: "Admin Login OTP - Sowron Interiors",
-      html: `
-        <p>Your admin OTP is <strong>${otp}</strong></p>
-        <p>This OTP is valid for 5 minutes. Do not share it.</p>
-      `,
-    });
+    const debugAuth = process.env.DEBUG_AUTH === "true";
+    const emailConfigured = Boolean(
+      process.env.EMAIL_USER && process.env.EMAIL_PASS
+    );
+
+    if (!emailConfigured) {
+      if (debugAuth || process.env.NODE_ENV !== "production") {
+        console.warn("ADMIN LOGIN: email not configured; returning OTP (debug)", {
+          email: admin.email,
+          otp,
+        });
+        return res.json({
+          success: true,
+          message: "OTP generated (debug mode)",
+          otpRequired: true,
+          adminId: admin._id,
+          otp,
+        });
+      }
+
+      return res
+        .status(500)
+        .json({ message: "Email service not configured" });
+    }
+
+    try {
+      await sendEmail({
+        to: admin.email,
+        subject: "Admin Login OTP - Sowron Interiors",
+        html: `
+          <p>Your admin OTP is <strong>${otp}</strong></p>
+          <p>This OTP is valid for 5 minutes. Do not share it.</p>
+        `,
+      });
+    } catch (err) {
+      console.error("ADMIN OTP EMAIL ERROR:", err);
+
+      if (debugAuth || process.env.NODE_ENV !== "production") {
+        console.warn("ADMIN LOGIN: email send failed; returning OTP (debug)", {
+          email: admin.email,
+          otp,
+        });
+        return res.json({
+          success: true,
+          message: "OTP generated (email send failed)",
+          otpRequired: true,
+          adminId: admin._id,
+          otp,
+        });
+      }
+
+      return res.status(500).json({ message: "Unable to send OTP email" });
+    }
 
     await logAdminAuthEvent({
       adminId: admin._id,
@@ -72,7 +117,12 @@ export const adminLogin = async (req, res) => {
     });
   } catch (error) {
     console.error("ADMIN LOGIN ERROR:", error);
-    res.status(500).json({ message: "Login failed" });
+    res.status(500).json({
+      message:
+        process.env.NODE_ENV === "production"
+          ? "Login failed"
+          : error?.message || "Login failed",
+    });
   }
 };
 
