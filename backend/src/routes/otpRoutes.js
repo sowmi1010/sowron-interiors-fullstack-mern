@@ -11,21 +11,46 @@ import { validateRequest } from "../middleware/validateRequest.js";
 
 const router = express.Router();
 
-/* ===== RATE LIMIT ===== */
+/* =========================
+   RATE LIMITERS (CLOUDFLARE SAFE)
+========================= */
 const sendLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
-  max: 3,
-  message: "Too many OTP requests",
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 3,                  // 3 OTP sends
+  keyGenerator: (req) =>
+    req.body?.email ||
+    req.body?.phone ||
+    req.headers["cf-connecting-ip"] ||
+    req.ip,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many OTP requests. Please try again later.",
+  },
 });
 
 const verifyLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
-  max: 5,
-  message: "Too many OTP attempts",
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 5,                  // 5 verify attempts
+  keyGenerator: (req) =>
+    req.body?.email ||
+    req.body?.phone ||
+    req.headers["cf-connecting-ip"] ||
+    req.ip,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many OTP attempts. Please try again later.",
+  },
 });
 
-/* ===== VALIDATION ===== */
+/* =========================
+   VALIDATIONS
+========================= */
 const phoneValidation = body("phone")
+  .optional()
   .matches(/^[6-9]\d{9}$/)
   .withMessage("Valid phone number required");
 
@@ -42,7 +67,11 @@ const nameValidation = body("name")
   .isLength({ min: 2 })
   .withMessage("Name too short");
 
-/* ===== ROUTES ===== */
+/* =========================
+   ROUTES
+========================= */
+
+// Send OTP (phone/email)
 router.post(
   "/send",
   sendLimiter,
@@ -51,6 +80,7 @@ router.post(
   sendOtp
 );
 
+// Verify OTP (phone/email)
 router.post(
   "/verify",
   verifyLimiter,
@@ -59,6 +89,7 @@ router.post(
   verifyOtp
 );
 
+// Send Login OTP (email)
 router.post(
   "/send-login",
   sendLimiter,
@@ -67,6 +98,7 @@ router.post(
   sendLoginOtpByEmail
 );
 
+// Verify Login OTP (email)
 router.post(
   "/verify-login",
   verifyLimiter,

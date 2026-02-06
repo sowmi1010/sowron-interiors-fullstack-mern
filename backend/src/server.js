@@ -3,7 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.resolve(__dirname, "../.env") }); // ensure backend/.env
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 import express from "express";
 import cors from "cors";
@@ -23,7 +23,7 @@ const app = express();
 const server = http.createServer(app);
 
 /* ===========================
-   TRUST PROXY (Render / Nginx)
+   TRUST PROXY (REQUIRED FOR CLOUDFLARE)
 =========================== */
 app.set("trust proxy", 1);
 
@@ -39,31 +39,26 @@ const allowedOrigins = [
 
 const isAllowedOrigin = (origin) => {
   if (!origin) return true;
-
   if (allowedOrigins.includes(origin)) return true;
 
   try {
     const { hostname } = new URL(origin);
-
-    // Allow all Cloudflare Pages preview deployments for this project, e.g.
-    // `https://a6aa7bd3.sowron-interiors-fullstack-mern.pages.dev`
     if (hostname.endsWith("sowron-interiors-fullstack-mern.pages.dev")) {
       return true;
     }
   } catch {
     return false;
   }
-
   return false;
 };
 
 /* ===========================
-   SECURITY MIDDLEWARE
+   SECURITY
 =========================== */
 app.use(helmet());
 
 /* ===========================
-   LOGGING (NO ADMIN LOGS IN PROD)
+   LOGGING
 =========================== */
 if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"));
@@ -75,30 +70,35 @@ if (process.env.NODE_ENV !== "production") {
   );
 }
 
+/* ===========================
+   CORS
+=========================== */
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (isAllowedOrigin(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("CORS not allowed"));
-      }
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) callback(null, true);
+      else callback(new Error("CORS not allowed"));
     },
     credentials: true,
   })
 );
 
+/* ===========================
+   BODY & COOKIES
+=========================== */
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 /* ===========================
-   GLOBAL RATE LIMIT
+   GLOBAL RATE LIMIT (SAFE)
 =========================== */
 app.use(
   rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 200, // safe default
+    windowMs: 15 * 60 * 1000, // 15 mins
+    max: 200,
+    keyGenerator: (req) =>
+      req.headers["cf-connecting-ip"] || req.ip,
     standardHeaders: true,
     legacyHeaders: false,
   })
@@ -110,16 +110,13 @@ app.use(
 connectDB();
 
 /* ===========================
-   SOCKET.IO (Future Chatbot Ready)
+   SOCKET.IO
 =========================== */
 const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
-      if (isAllowedOrigin(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("CORS not allowed"));
-      }
+      if (isAllowedOrigin(origin)) callback(null, true);
+      else callback(new Error("CORS not allowed"));
     },
     credentials: true,
   },
@@ -143,7 +140,7 @@ import userRoutes from "./routes/userRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 
 /* ===========================
-   TEST ROUTE
+   HEALTH CHECK
 =========================== */
 app.get("/api/test", (req, res) => {
   res.status(200).json({ success: true, message: "Backend Working 🚀" });
@@ -169,6 +166,7 @@ app.use("/api/categories", categoryRoutes);
 =========================== */
 app.use((err, req, res, next) => {
   console.error("❌ Error:", err.message);
+
   const isNetworkError =
     err?.code &&
     [
@@ -181,7 +179,9 @@ app.use((err, req, res, next) => {
       "ENOTFOUND",
     ].includes(err.code);
 
-  const statusCode = err?.statusCode || err?.status || (isNetworkError ? 503 : 500);
+  const statusCode =
+    err?.statusCode || err?.status || (isNetworkError ? 503 : 500);
+
   const isProd = process.env.NODE_ENV === "production";
 
   res.status(statusCode).json({
