@@ -4,6 +4,8 @@ import { Resend } from "resend";
 let transporter;
 let resendDisabled = false;
 
+const providerModes = new Set(["auto", "resend", "smtp"]);
+
 const parseBoolean = (value, defaultValue = false) => {
   if (typeof value !== "string") return defaultValue;
   return ["1", "true", "yes", "on"].includes(value.toLowerCase());
@@ -18,6 +20,15 @@ const getResendClient = () => {
   const apiKey = process.env.RESEND_API_KEY?.trim();
   return apiKey ? new Resend(apiKey) : null;
 };
+
+const getEmailProviderMode = () => {
+  const raw = process.env.EMAIL_PROVIDER?.trim().toLowerCase() || "auto";
+  return providerModes.has(raw) ? raw : "auto";
+};
+
+const isRenderRuntime = () =>
+  parseBoolean(process.env.RENDER, false) ||
+  Boolean(process.env.RENDER_SERVICE_ID);
 
 const getNetworkOptions = () => {
   const family = parseNumber(process.env.EMAIL_DNS_FAMILY, 4);
@@ -73,9 +84,10 @@ const trySendWithResend = async ({ to, subject, html }) => {
 
     if (result?.error) {
       const statusCode = Number(result.error.statusCode || 0);
-      console.error("RESEND SEND ERROR:", result.error.message || result.error);
+      const message = result.error.message || String(result.error);
+      console.error("RESEND SEND ERROR:", message);
       if (statusCode === 401 || statusCode === 403) {
-        resendDisabled = true;
+        resendDisabled = true; // permanent auth failure; avoid retrying on every request
       }
       return false;
     }
@@ -96,8 +108,18 @@ const sendEmail = async ({ to, subject, html }) => {
     throw new Error("Email payload is incomplete");
   }
 
-  if (await trySendWithResend({ to, subject, html })) {
+  const providerMode = getEmailProviderMode();
+  const allowResend = providerMode === "auto" || providerMode === "resend";
+  const allowSmtp = providerMode === "auto" || providerMode === "smtp";
+
+  if (allowResend && (await trySendWithResend({ to, subject, html }))) {
     return;
+  }
+
+  if (!allowSmtp) {
+    throw new Error(
+      "Email provider is set to Resend only, but Resend send failed. Check RESEND_API_KEY and RESEND_FROM."
+    );
   }
 
   const from = process.env.EMAIL_FROM?.trim() || process.env.EMAIL_USER?.trim();
@@ -121,6 +143,12 @@ const sendEmail = async ({ to, subject, html }) => {
       /timed?out/i.test(String(err?.message || ""));
 
     if (isTimeout) {
+      if (isRenderRuntime()) {
+        throw new Error(
+          "SMTP timeout on Render. On Render Free plans, outbound SMTP ports are blocked. Use RESEND_API_KEY + RESEND_FROM, or upgrade the service plan."
+        );
+      }
+
       throw new Error(
         "SMTP timeout. Check EMAIL_HOST/EMAIL_PORT, firewall, or use RESEND_API_KEY."
       );
