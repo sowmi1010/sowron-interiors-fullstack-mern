@@ -1,5 +1,5 @@
 import express from "express";
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { body } from "express-validator";
 import {
   sendOtp,
@@ -11,27 +11,38 @@ import { validateRequest } from "../middleware/validateRequest.js";
 
 const router = express.Router();
 
+const normalizeText = (value) =>
+  typeof value === "string" ? value.trim().toLowerCase() : "";
+
+const getFallbackIpKey = (req) => {
+  const cfIp = req.headers["cf-connecting-ip"];
+  const ip = typeof cfIp === "string" && cfIp.trim() ? cfIp.trim() : req.ip;
+  return ipKeyGenerator(ip || "");
+};
+
+const keyByIdentityOrIp = (req) => {
+  const email = normalizeText(req.body?.email);
+  const phone = normalizeText(req.body?.phone);
+  if (email) return `email:${email}`;
+  if (phone) return `phone:${phone}`;
+  return `ip:${getFallbackIpKey(req)}`;
+};
+
 /* =========================
-   RATE LIMITERS (CLOUDFLARE SAFE)
+   RATE LIMITERS
 ========================= */
 const sendLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
-  max: 10, // ⬅️ increase
-  keyGenerator: (req) =>
-    req.body?.email || req.body?.phone || req.ip,
+  max: 10,
+  keyGenerator: keyByIdentityOrIp,
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-
 const verifyLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000, // 10 minutes
-  max: 5,                  // 5 verify attempts
-  keyGenerator: (req) =>
-    req.body?.email ||
-    req.body?.phone ||
-    req.headers["cf-connecting-ip"] ||
-    req.ip,
+  windowMs: 10 * 60 * 1000,
+  max: 5,
+  keyGenerator: keyByIdentityOrIp,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -64,8 +75,6 @@ const nameValidation = body("name")
 /* =========================
    ROUTES
 ========================= */
-
-// Send OTP (phone/email)
 router.post(
   "/send",
   sendLimiter,
@@ -74,7 +83,6 @@ router.post(
   sendOtp
 );
 
-// Verify OTP (phone/email)
 router.post(
   "/verify",
   verifyLimiter,
@@ -83,7 +91,6 @@ router.post(
   verifyOtp
 );
 
-// Send Login OTP (email)
 router.post(
   "/send-login",
   sendLimiter,
@@ -92,7 +99,6 @@ router.post(
   sendLoginOtpByEmail
 );
 
-// Verify Login OTP (email)
 router.post(
   "/verify-login",
   verifyLimiter,

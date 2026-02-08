@@ -10,9 +10,11 @@ router.put("/update", userProtect, async (req, res) => {
     const { name, city, email } = req.body;
 
     const updates = {};
-    if (name) updates.name = name.trim();
-    if (city) updates.city = city.trim();
-    if (email) updates.email = email.toLowerCase().trim();
+    if (typeof name === "string" && name.trim()) updates.name = name.trim();
+    if (typeof city === "string" && city.trim()) updates.city = city.trim();
+    if (typeof email === "string" && email.trim()) {
+      updates.email = email.toLowerCase().trim();
+    }
 
     const user = await User.findByIdAndUpdate(
       req.user._id,
@@ -25,6 +27,10 @@ router.put("/update", userProtect, async (req, res) => {
       user,
     });
   } catch (err) {
+    if (err?.code === 11000) {
+      return res.status(409).json({ message: "Email already in use" });
+    }
+
     console.error("UPDATE USER ERROR:", err);
     res.status(500).json({ message: "Profile update failed" });
   }

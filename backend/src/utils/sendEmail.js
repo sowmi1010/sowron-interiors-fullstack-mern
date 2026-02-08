@@ -1,87 +1,132 @@
 import nodemailer from "nodemailer";
 import { Resend } from "resend";
 
+let transporter;
+let resendDisabled = false;
+
+const parseBoolean = (value, defaultValue = false) => {
+  if (typeof value !== "string") return defaultValue;
+  return ["1", "true", "yes", "on"].includes(value.toLowerCase());
+};
+
+const parseNumber = (value, defaultValue) => {
+  const num = Number(value);
+  return Number.isFinite(num) && num > 0 ? num : defaultValue;
+};
+
 const getResendClient = () => {
   const apiKey = process.env.RESEND_API_KEY?.trim();
-  if (!apiKey) return null;
-  return new Resend(apiKey);
+  return apiKey ? new Resend(apiKey) : null;
 };
 
-const getGmailTransporter = () => {
+const getNetworkOptions = () => {
+  const family = parseNumber(process.env.EMAIL_DNS_FAMILY, 4);
+  return {
+    family: family === 4 || family === 6 ? family : 4,
+    connectionTimeout: parseNumber(process.env.EMAIL_CONNECTION_TIMEOUT, 20000),
+    greetingTimeout: parseNumber(process.env.EMAIL_GREETING_TIMEOUT, 15000),
+    socketTimeout: parseNumber(process.env.EMAIL_SOCKET_TIMEOUT, 30000),
+  };
+};
+
+const getTransporter = () => {
+  if (transporter) return transporter;
+
+  const host = process.env.EMAIL_HOST?.trim();
+  const port = parseNumber(process.env.EMAIL_PORT, 0);
   const user = process.env.EMAIL_USER?.trim();
   const pass = process.env.EMAIL_PASS?.trim();
-  if (!user || !pass) return null;
 
-  return nodemailer.createTransport({
-    service: "gmail",
+  if (!user || !pass) {
+    throw new Error("EMAIL_USER and EMAIL_PASS are required for SMTP fallback");
+  }
+
+  const networkOptions = getNetworkOptions();
+  const smtpHost = host || "smtp.gmail.com";
+  const smtpPort = port || 587;
+  const secure = parseBoolean(process.env.EMAIL_SECURE, smtpPort === 465);
+
+  transporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: smtpPort,
+    secure,
     auth: { user, pass },
+    ...networkOptions,
   });
+
+  return transporter;
 };
 
-const getFromAddress = ({ provider }) => {
-  if (provider === "resend") {
-    return process.env.RESEND_FROM?.trim() || "Sowron <onboarding@resend.dev>";
-  }
+const trySendWithResend = async ({ to, subject, html }) => {
+  if (resendDisabled) return false;
 
-  return (
-    process.env.EMAIL_FROM?.trim() ||
-    process.env.EMAIL_USER?.trim() ||
-    "no-reply@example.com"
-  );
-};
-
-const toErrorMessage = (err) => {
-  if (!err) return "Unknown error";
-  if (typeof err === "string") return err;
-  if (err instanceof Error) return err.message || "Unknown error";
-  try {
-    return JSON.stringify(err);
-  } catch {
-    return "Unknown error";
-  }
-};
-
-const sendWithResend = async ({ to, subject, html }) => {
   const resend = getResendClient();
-  if (!resend) return { ok: false, reason: "RESEND_API_KEY not set" };
+  if (!resend) return false;
 
-  const from = getFromAddress({ provider: "resend" });
-  const result = await resend.emails.send({ from, to, subject, html });
-  return { ok: true, result };
-};
+  const from =
+    process.env.RESEND_FROM?.trim() ||
+    process.env.EMAIL_FROM?.trim() ||
+    "Sowron <onboarding@resend.dev>";
 
-const sendWithGmail = async ({ to, subject, html }) => {
-  const transporter = getGmailTransporter();
-  if (!transporter) return { ok: false, reason: "EMAIL_USER/EMAIL_PASS not set" };
+  try {
+    const result = await resend.emails.send({ from, to, subject, html });
 
-  const from = getFromAddress({ provider: "gmail" });
-  const result = await transporter.sendMail({ from, to, subject, html });
-  return { ok: true, result };
+    if (result?.error) {
+      const statusCode = Number(result.error.statusCode || 0);
+      console.error("RESEND SEND ERROR:", result.error.message || result.error);
+      if (statusCode === 401 || statusCode === 403) {
+        resendDisabled = true;
+      }
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error("RESEND SEND ERROR:", err?.message || err);
+    const statusCode = Number(err?.statusCode || err?.status || 0);
+    if (statusCode === 401 || statusCode === 403) {
+      resendDisabled = true;
+    }
+    return false;
+  }
 };
 
 const sendEmail = async ({ to, subject, html }) => {
   if (!to || !subject || !html) {
-    throw new Error("sendEmail requires { to, subject, html }");
+    throw new Error("Email payload is incomplete");
   }
 
-  // Prefer Resend on cloud (HTTP API is more reliable than SMTP).
-  try {
-    const resendAttempt = await sendWithResend({ to, subject, html });
-    if (resendAttempt.ok) return resendAttempt.result;
-  } catch (err) {
-    console.error("RESEND SEND ERROR:", toErrorMessage(err));
+  if (await trySendWithResend({ to, subject, html })) {
+    return;
   }
 
-  // Fallback to Gmail SMTP if configured.
-  try {
-    const gmailAttempt = await sendWithGmail({ to, subject, html });
-    if (gmailAttempt.ok) return gmailAttempt.result;
-
+  const from = process.env.EMAIL_FROM?.trim() || process.env.EMAIL_USER?.trim();
+  if (!from) {
     throw new Error(
-      `Email not configured (${gmailAttempt.reason}). Set RESEND_API_KEY (and optional RESEND_FROM) or EMAIL_USER/EMAIL_PASS.`
+      "Email sender not configured (set RESEND_FROM/RESEND_API_KEY or EMAIL_FROM/EMAIL_USER)"
     );
+  }
+
+  try {
+    return await getTransporter().sendMail({
+      from,
+      to,
+      subject,
+      html,
+    });
   } catch (err) {
-    throw new Error(`Email send failed: ${toErrorMessage(err)}`);
+    const isTimeout =
+      err?.code === "ETIMEDOUT" ||
+      err?.code === "ESOCKET" ||
+      /timed?out/i.test(String(err?.message || ""));
+
+    if (isTimeout) {
+      throw new Error(
+        "SMTP timeout. Check EMAIL_HOST/EMAIL_PORT, firewall, or use RESEND_API_KEY."
+      );
+    }
+
+    throw err;
   }
 };
 

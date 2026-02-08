@@ -11,8 +11,19 @@ export const adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    if (
+      typeof email !== "string" ||
+      typeof password !== "string" ||
+      !email.trim() ||
+      !password
+    ) {
+      return res.status(400).json({ message: "Email and password required" });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+
     const admin = await Admin.findOne({
-      email: email.toLowerCase(),
+      email: normalizedEmail,
     }).select("+password");
 
     if (!admin || !(await admin.comparePassword(password))) {
@@ -32,14 +43,27 @@ export const adminLogin = async (req, res) => {
     await admin.save({ validateBeforeSave: false });
 
     // ✅ SEND OTP VIA GMAIL
-    await sendEmail({
-      to: admin.email,
-      subject: "Admin Login OTP - Sowron Interiors",
-      html: `
-        <p>Your OTP is <b>${otp}</b></p>
-        <p>Valid for 5 minutes.</p>
-      `,
-    });
+    try {
+      await sendEmail({
+        to: admin.email,
+        subject: "Admin Login OTP - Sowron Interiors",
+        html: `
+          <p>Your OTP is <b>${otp}</b></p>
+          <p>Valid for 5 minutes.</p>
+        `,
+      });
+    } catch (emailErr) {
+      admin.otpHash = undefined;
+      admin.otpExpires = undefined;
+      admin.otpAttempts = 0;
+      admin.otpLockedUntil = null;
+      await admin.save({ validateBeforeSave: false });
+
+      console.error("ADMIN LOGIN EMAIL ERROR:", emailErr?.message || emailErr);
+      return res.status(503).json({
+        message: "Email service unavailable. Try again later.",
+      });
+    }
 
     res.json({
       success: true,
@@ -48,15 +72,7 @@ export const adminLogin = async (req, res) => {
     });
   } catch (err) {
     console.error("ADMIN LOGIN ERROR:", err);
-    const msg = String(err?.message || "");
-    const isEmailIssue =
-      msg.includes("Email not configured") || msg.startsWith("Email send failed");
-
-    res.status(500).json({
-      message: isEmailIssue
-        ? "Email service is not configured/available. Set RESEND_API_KEY (and RESEND_FROM) or EMAIL_USER/EMAIL_PASS on the server."
-        : "Failed to send OTP",
-    });
+    res.status(500).json({ message: "Failed to send OTP" });
   }
 };
 
@@ -67,7 +83,12 @@ export const adminVerifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
 
-    if (!email || !otp) {
+    if (
+      typeof email !== "string" ||
+      typeof otp !== "string" ||
+      !email.trim() ||
+      !otp.trim()
+    ) {
       return res.status(400).json({ message: "Email & OTP required" });
     }
 
@@ -75,9 +96,8 @@ export const adminVerifyOtp = async (req, res) => {
       return res.status(500).json({ message: "Server misconfigured" });
     }
 
-    const admin = await Admin.findOne({
-      email: email.toLowerCase(),
-    }).select("+password");
+    const normalizedEmail = email.toLowerCase().trim();
+    const admin = await Admin.findOne({ email: normalizedEmail }).select("+password");
 
     if (!admin || !admin.otpHash) {
       return res.status(400).json({ message: "Invalid OTP" });
@@ -174,9 +194,14 @@ export const adminLogout = async (req, res) => {
 export const adminForgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({ message: "Email required" });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
 
     const admin = await Admin.findOne({
-      email: email.toLowerCase(),
+      email: normalizedEmail,
     });
 
     // Always respond success (anti-enumeration)
@@ -185,7 +210,7 @@ export const adminForgotPassword = async (req, res) => {
         action: "ADMIN_FORGOT_REQUEST",
         req,
         success: true,
-        meta: { email: email.toLowerCase(), userFound: false },
+        meta: { email: normalizedEmail, userFound: false },
       });
       return res.json({
         success: true,
@@ -193,10 +218,15 @@ export const adminForgotPassword = async (req, res) => {
       });
     }
 
+    const adminUrl = process.env.ADMIN_URL?.trim();
+    if (!adminUrl) {
+      throw new Error("ADMIN_URL not configured");
+    }
+
     const resetToken = admin.createPasswordResetToken();
     await admin.save({ validateBeforeSave: false });
 
-    const resetUrl = `${process.env.ADMIN_URL}/reset/${resetToken}`;
+    const resetUrl = `${adminUrl.replace(/\/+$/, "")}/reset/${resetToken}`;
 
     await sendEmail({
       to: admin.email,

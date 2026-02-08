@@ -1,18 +1,18 @@
 import { motion, useMotionValue, useTransform, useSpring } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
-import { Phone, MessageCircle, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
+
+const PHRASES = [
+  "Modular Kitchens",
+  "Wardrobes",
+  "TV Units",
+  "Office Interiors",
+  "Turnkey Projects",
+  "Premium Custom Furniture",
+];
 
 export default function Hero() {
-  const phrases = [
-    "Modular Kitchens",
-    "Wardrobes",
-    "TV Units",
-    "Office Interiors",
-    "Turnkey Projects",
-    "Premium Custom Furniture",
-  ];
-
   const [index, setIndex] = useState(0);
   const [displayText, setDisplayText] = useState("");
 
@@ -22,8 +22,8 @@ export default function Hero() {
     let timeout;
 
     const type = () => {
-      if (current <= phrases[index].length) {
-        setDisplayText(phrases[index].slice(0, current));
+      if (current <= PHRASES[index].length) {
+        setDisplayText(PHRASES[index].slice(0, current));
         current++;
         timeout = setTimeout(type, 60);
       } else {
@@ -33,11 +33,11 @@ export default function Hero() {
 
     const erase = () => {
       if (current >= 0) {
-        setDisplayText(phrases[index].slice(0, current));
+        setDisplayText(PHRASES[index].slice(0, current));
         current--;
         timeout = setTimeout(erase, 40);
       } else {
-        setIndex((prev) => (prev + 1) % phrases.length);
+        setIndex((prev) => (prev + 1) % PHRASES.length);
       }
     };
 

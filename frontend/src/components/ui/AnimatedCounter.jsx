@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 export default function AnimatedCounter({ value, duration = 800 }) {
   const [count, setCount] = useState(0);
+
   useEffect(() => {
     let start = 0;
     const end = value || 0;
@@ -14,7 +15,9 @@ export default function AnimatedCounter({ value, duration = 800 }) {
       }
       setCount(Math.floor(start));
     }, 20);
-  }, [value]);
+
+    return () => clearInterval(timer);
+  }, [duration, value]);
 
   return count;
 }

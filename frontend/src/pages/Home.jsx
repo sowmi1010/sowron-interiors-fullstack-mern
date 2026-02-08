@@ -35,7 +35,7 @@ export default function Home() {
             transition={{ duration: 16, repeat: Infinity }}
             className="absolute right-0 bottom-40 w-96 h-96 rounded-full bg-brand-yellow/10 blur-[160px]"
           />
-          <div className="absolute inset-0 opacity-[0.03] bg-[url('/noise.png')] mix-blend-soft-light" />
+          <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(rgba(255,255,255,0.5)_1px,transparent_1px)] [background-size:3px_3px] mix-blend-soft-light" />
         </div>
 
         {/* ================= HERO ================= */}

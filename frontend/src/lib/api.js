@@ -18,6 +18,18 @@ export const api = axios.create({
   withCredentials: true,
 });
 
+const clearUserAuth = () => {
+  localStorage.removeItem("userToken");
+  localStorage.removeItem("userPhone");
+  localStorage.removeItem("userEmail");
+  localStorage.removeItem("userName");
+  localStorage.removeItem("isLoggedIn");
+};
+
+const clearAdminAuth = () => {
+  localStorage.removeItem("adminName");
+};
+
 /* ===========================
    ATTACH TOKEN AUTOMATICALLY
 =========================== */
@@ -41,11 +53,11 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      localStorage.clear();
-
       if (window.location.pathname.startsWith("/admin")) {
+        clearAdminAuth();
         window.location.replace("/admin/login");
       } else {
+        clearUserAuth();
         window.location.replace("/login");
       }
     }

@@ -2,10 +2,26 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import User from "../models/User.js";
 import sendEmail from "../utils/sendEmail.js";
+import sendSms from "../utils/sendSms.js";
 
 /* ===== HELPERS ===== */
 const generateOtp = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
+
+const requireJwtSecret = () => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET not configured");
+  }
+  return process.env.JWT_SECRET;
+};
+
+const resetOtpState = async (user) => {
+  user.otpHash = undefined;
+  user.otpExpires = undefined;
+  user.otpAttempts = 0;
+  user.otpLockedUntil = null;
+  await user.save();
+};
 
 /* =========================================================
    SEND OTP (REGISTER / PHONE + EMAIL)
@@ -18,7 +34,7 @@ export const sendOtp = async (req, res, next) => {
       return res.status(400).json({ message: "Invalid phone number" });
     }
 
-    if (!email) {
+    if (!email || typeof email !== "string") {
       return res.status(400).json({ message: "Email required" });
     }
 
@@ -54,7 +70,18 @@ export const sendOtp = async (req, res, next) => {
 
     await user.save();
 
-    /* ===== SEND EMAIL OTP (SAFE) ===== */
+    const deliveredVia = [];
+
+    try {
+      await sendSms({
+        to: phone,
+        message: `${otp} is your Sowron Interiors OTP. Valid for 5 minutes.`,
+      });
+      deliveredVia.push("mobile");
+    } catch (smsErr) {
+      console.error("SMS failed:", smsErr.message);
+    }
+
     try {
       await sendEmail({
         to: normalizedEmail,
@@ -64,21 +91,24 @@ export const sendOtp = async (req, res, next) => {
           <p>This OTP is valid for 5 minutes.</p>
         `,
       });
+      deliveredVia.push("email");
     } catch (emailErr) {
-      console.error("❌ Email failed:", emailErr.message);
+      console.error("Email failed:", emailErr.message);
+    }
 
-      user.otpHash = undefined;
-      user.otpExpires = undefined;
-      await user.save();
-
+    if (!deliveredVia.length) {
+      await resetOtpState(user);
       return res.status(503).json({
-        message: "Email service unavailable. Try again later.",
+        message: "OTP delivery failed. Try again later.",
       });
     }
 
-    res.json({ success: true, message: "OTP sent successfully" });
+    res.json({
+      success: true,
+      message: `OTP sent to ${deliveredVia.join(" and ")}`,
+    });
   } catch (err) {
-    console.error("❌ OTP Send Error:", err);
+    console.error("OTP Send Error:", err);
     next(err);
   }
 };
@@ -88,9 +118,14 @@ export const sendOtp = async (req, res, next) => {
 ========================================================= */
 export const verifyOtp = async (req, res, next) => {
   try {
-    const { phone, otp } = req.body;
+    const { phone, otp, email } = req.body;
 
-    if (!phone || !otp) {
+    if (
+      typeof phone !== "string" ||
+      typeof otp !== "string" ||
+      !phone.trim() ||
+      !otp.trim()
+    ) {
       return res.status(400).json({ message: "Phone & OTP required" });
     }
 
@@ -98,6 +133,13 @@ export const verifyOtp = async (req, res, next) => {
 
     if (!user || !user.otpHash) {
       return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    if (typeof email === "string" && email.trim()) {
+      const normalizedEmail = email.toLowerCase().trim();
+      if (user.email !== normalizedEmail) {
+        return res.status(400).json({ message: "Invalid OTP" });
+      }
     }
 
     if (user.otpExpires < Date.now()) {
@@ -128,7 +170,7 @@ export const verifyOtp = async (req, res, next) => {
 
     const token = jwt.sign(
       { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
+      requireJwtSecret(),
       { expiresIn: "7d" }
     );
 
@@ -142,7 +184,7 @@ export const verifyOtp = async (req, res, next) => {
       },
     });
   } catch (err) {
-    console.error("❌ OTP Verify Error:", err);
+    console.error("OTP Verify Error:", err);
     next(err);
   }
 };
@@ -154,7 +196,7 @@ export const sendLoginOtpByEmail = async (req, res, next) => {
   try {
     const { email } = req.body;
 
-    if (!email) {
+    if (!email || typeof email !== "string") {
       return res.status(400).json({ message: "Email required" });
     }
 
@@ -181,27 +223,44 @@ export const sendLoginOtpByEmail = async (req, res, next) => {
 
     await user.save();
 
+    const deliveredVia = [];
+
+    if (user.phone) {
+      try {
+        await sendSms({
+          to: user.phone,
+          message: `${otp} is your Sowron Interiors login OTP. Valid for 5 minutes.`,
+        });
+        deliveredVia.push("mobile");
+      } catch (smsErr) {
+        console.error("SMS failed:", smsErr.message);
+      }
+    }
+
     try {
       await sendEmail({
         to: normalizedEmail,
         subject: "Login OTP - Sowron Interiors",
         html: `<p>Your OTP is <strong>${otp}</strong></p>`,
       });
-    } catch (err) {
-      console.error("❌ Email failed:", err.message);
+      deliveredVia.push("email");
+    } catch (emailErr) {
+      console.error("Email failed:", emailErr.message);
+    }
 
-      user.otpHash = undefined;
-      user.otpExpires = undefined;
-      await user.save();
-
+    if (!deliveredVia.length) {
+      await resetOtpState(user);
       return res.status(503).json({
-        message: "Email service unavailable. Try again later.",
+        message: "OTP delivery failed. Try again later.",
       });
     }
 
-    res.json({ success: true, message: "OTP sent successfully" });
+    res.json({
+      success: true,
+      message: `OTP sent to ${deliveredVia.join(" and ")}`,
+    });
   } catch (err) {
-    console.error("❌ OTP Send (Login) Error:", err);
+    console.error("OTP Send (Login) Error:", err);
     next(err);
   }
 };
@@ -213,11 +272,17 @@ export const verifyLoginOtpByEmail = async (req, res, next) => {
   try {
     const { email, otp } = req.body;
 
-    if (!email || !otp) {
+    if (
+      typeof email !== "string" ||
+      typeof otp !== "string" ||
+      !email.trim() ||
+      !otp.trim()
+    ) {
       return res.status(400).json({ message: "Email & OTP required" });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user || !user.otpHash) {
       return res.status(400).json({ message: "Invalid OTP" });
@@ -247,7 +312,7 @@ export const verifyLoginOtpByEmail = async (req, res, next) => {
 
     const token = jwt.sign(
       { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
+      requireJwtSecret(),
       { expiresIn: "7d" }
     );
 
@@ -261,7 +326,7 @@ export const verifyLoginOtpByEmail = async (req, res, next) => {
       },
     });
   } catch (err) {
-    console.error("❌ OTP Verify (Login) Error:", err);
+    console.error("OTP Verify (Login) Error:", err);
     next(err);
   }
 };

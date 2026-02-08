@@ -10,9 +10,6 @@ export default function BookDemo() {
   );
 
   useEffect(() => {
-    if (localStorage.getItem("userToken")) {
-      setLogged(true);
-    }
     window.scrollTo(0, 0);
   }, []);
 

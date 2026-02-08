@@ -22,7 +22,7 @@ export default function OtpLogin({ onSuccess }) {
 
   /* ================= SEND OTP ================= */
   const sendOtp = async () => {
-    if (!email) {
+    if (!email.trim()) {
       return setError("Enter your email address");
     }
 
@@ -30,7 +30,7 @@ export default function OtpLogin({ onSuccess }) {
       setLoading(true);
       setError("");
 
-      await api.post("/otp/send-login", { email });
+      await api.post("/otp/send-login", { email: email.trim() });
 
       setStep(2);
       setCooldown(30);
@@ -58,7 +58,10 @@ export default function OtpLogin({ onSuccess }) {
       setLoading(true);
       setError("");
 
-      const res = await api.post("/otp/verify-login", { otp, email });
+      const res = await api.post("/otp/verify-login", {
+        otp,
+        email: email.trim(),
+      });
 
       localStorage.setItem("userToken", res.data.token);
       if (res.data.user?.phone) localStorage.setItem("userPhone", res.data.user.phone);
@@ -153,7 +156,7 @@ export default function OtpLogin({ onSuccess }) {
               onChange={setOtp}
               maxLength={6}
               inputRef={otpRef}
-              sanitize={(v) => v.replace(/\\D/g, "")}
+              sanitize={(v) => v.replace(/\D/g, "")}
             />
 
             <PrimaryButton
