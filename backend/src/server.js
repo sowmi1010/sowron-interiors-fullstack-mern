@@ -1,5 +1,4 @@
-import dotenv from "dotenv";
-dotenv.config();
+import "dotenv/config";
 
 import express from "express";
 import cors from "cors";
@@ -19,38 +18,73 @@ const app = express();
 const server = http.createServer(app);
 
 /* ===========================
-   TRUST PROXY (CLOUDFLARE REQUIRED)
+   TRUST PROXY (CLOUDFLARE)
 =========================== */
 app.set("trust proxy", 1);
 
 /* ===========================
    SECURITY
 =========================== */
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: false,
+    contentSecurityPolicy: false,
+  })
+);
 
 /* ===========================
    LOGGING
 =========================== */
-if (process.env.NODE_ENV !== "production") {
-  app.use(morgan("dev"));
-} else {
-  app.use(morgan("combined"));
-}
+app.use(
+  morgan(process.env.NODE_ENV === "production" ? "combined" : "dev")
+);
 
 /* ===========================
-   CORS (FIXED FOR CLOUDFLARE)
+   CORS (EXPRESS 5 SAFE)
 =========================== */
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173",
-      "https://sowron-interiors-fullstack-mern.pages.dev",
-      "https://sowron.com",
-      "https://www.sowron.com",
-    ],
-    credentials: true,
-  })
+const defaultCorsOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "https://sowron-interiors-fullstack-mern.pages.dev",
+  "https://sowron.com",
+  "https://www.sowron.com",
+];
+
+const normalizeOrigin = (value) => value.replace(/\/+$/, "");
+
+const envCorsOrigins = (process.env.CORS_ORIGINS || "")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean)
+  .map(normalizeOrigin);
+
+const allowlistedOrigins = new Set(
+  (envCorsOrigins.length ? envCorsOrigins : defaultCorsOrigins).map(
+    normalizeOrigin
+  )
 );
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true; // non-browser clients (health checks, curl, etc.)
+
+  const normalized = normalizeOrigin(origin);
+  if (allowlistedOrigins.has(normalized)) return true;
+
+  // Cloudflare Pages preview deployments are often on subdomains.
+  return /^https:\/\/([a-z0-9-]+\.)?sowron-interiors-fullstack-mern\.pages\.dev$/i.test(
+    normalized
+  );
+};
+
+const corsOptions = {
+  origin: (origin, callback) => callback(null, isAllowedOrigin(origin)),
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
 /* ===========================
    BODY & COOKIES
@@ -60,16 +94,16 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 /* ===========================
-   GLOBAL RATE LIMIT (SAFE)
+   RATE LIMIT
 =========================== */
-app.use(
-  rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 300,
-    standardHeaders: true,
-    legacyHeaders: false,
-  })
-);
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 500,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use(generalLimiter);
 
 /* ===========================
    DATABASE
@@ -81,13 +115,9 @@ connectDB();
 =========================== */
 const io = new Server(server, {
   cors: {
-    origin: [
-      "http://localhost:5173",
-      "https://sowron-interiors-fullstack-mern.pages.dev",
-      "https://sowron.com",
-      "https://www.sowron.com",
-    ],
+    origin: (origin, callback) => callback(null, isAllowedOrigin(origin)),
     credentials: true,
+    methods: ["GET", "POST"],
   },
 });
 
@@ -112,7 +142,10 @@ import categoryRoutes from "./routes/categoryRoutes.js";
    HEALTH CHECK
 =========================== */
 app.get("/api/test", (req, res) => {
-  res.status(200).json({ success: true, message: "Backend Working 🚀" });
+  res.status(200).json({
+    success: true,
+    message: "Backend Working 🚀",
+  });
 });
 
 /* ===========================
@@ -134,11 +167,9 @@ app.use("/api/categories", categoryRoutes);
    GLOBAL ERROR HANDLER
 =========================== */
 app.use((err, req, res, next) => {
-  console.error("❌ Error:", err.message);
+  console.error("❌ Error:", err);
 
-  const statusCode = err.statusCode || err.status || 500;
-
-  res.status(statusCode).json({
+  res.status(err.statusCode || 500).json({
     success: false,
     message:
       process.env.NODE_ENV === "production"
