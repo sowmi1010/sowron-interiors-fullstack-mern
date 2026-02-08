@@ -48,7 +48,15 @@ export const adminLogin = async (req, res) => {
     });
   } catch (err) {
     console.error("ADMIN LOGIN ERROR:", err);
-    res.status(500).json({ message: "Failed to send OTP" });
+    const msg = String(err?.message || "");
+    const isEmailIssue =
+      msg.includes("Email not configured") || msg.startsWith("Email send failed");
+
+    res.status(500).json({
+      message: isEmailIssue
+        ? "Email service is not configured/available. Set RESEND_API_KEY (and RESEND_FROM) or EMAIL_USER/EMAIL_PASS on the server."
+        : "Failed to send OTP",
+    });
   }
 };
 
