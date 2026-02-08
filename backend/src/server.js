@@ -25,6 +25,10 @@ import categoryRoutes from "./routes/categoryRoutes.js";
 
 const app = express();
 const server = http.createServer(app);
+server.on("error", (err) => {
+  console.error("HTTP SERVER ERROR:", err?.message || err);
+  process.exit(1);
+});
 
 app.set("trust proxy", 1);
 app.use(helmet());
@@ -37,24 +41,65 @@ const defaultOrigins = [
   "https://www.sowron.com",
 ];
 
-const envOrigins = (process.env.CORS_ORIGINS || "")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const normalizeOrigin = (value) => {
+  if (typeof value !== "string") return "";
 
-const allowedOrigins = envOrigins.length ? envOrigins : defaultOrigins;
+  const cleaned = value.trim().replace(/^['"]|['"]$/g, "");
+  if (!cleaned) return "";
+  if (cleaned === "*") return "*";
+
+  try {
+    return new URL(cleaned).origin;
+  } catch {
+    return "";
+  }
+};
+
+const parseOrigins = (raw) =>
+  String(raw || "")
+    .split(/[,\n\r\t ]+/)
+    .map((origin) => normalizeOrigin(origin))
+    .filter(Boolean);
+
+const envOrigins = parseOrigins(process.env.CORS_ORIGINS);
+const allowAnyOrigin = envOrigins.includes("*");
+const adminOrigin = normalizeOrigin(process.env.ADMIN_URL);
+const allowedOrigins = [...new Set([
+  ...defaultOrigins.map((origin) => normalizeOrigin(origin)),
+  ...envOrigins.filter((origin) => origin !== "*"),
+  adminOrigin,
+].filter(Boolean))];
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (allowAnyOrigin) return true;
+
+  const normalized = normalizeOrigin(origin);
+  return normalized ? allowedOrigins.includes(normalized) : false;
+};
 
 const corsOptions = {
   origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       return callback(null, true);
     }
-    return callback(new Error("CORS origin not allowed"));
+    return callback(null, false);
   },
   credentials: true,
+  optionsSuccessStatus: 204,
 };
 
 app.use(cors(corsOptions));
+app.use((req, res, next) => {
+  if (req.headers.origin && !isAllowedOrigin(req.headers.origin)) {
+    console.warn(`CORS blocked origin: ${req.headers.origin}`);
+    return res.status(403).json({
+      success: false,
+      message: "CORS origin not allowed",
+    });
+  }
+  next();
+});
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
@@ -69,11 +114,12 @@ app.use(
   })
 );
 
-connectDB();
-
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin(origin, callback) {
+      if (isAllowedOrigin(origin)) return callback(null, true);
+      return callback(new Error("Socket origin not allowed"), false);
+    },
     credentials: true,
   },
 });
@@ -117,6 +163,17 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = Number(process.env.PORT) || 5000;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const startServer = async () => {
+  await connectDB();
+  console.log(
+    `CORS origins: ${allowAnyOrigin ? "*" : allowedOrigins.join(", ")}`
+  );
+  server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+};
+
+startServer().catch((err) => {
+  console.error("SERVER START FAILED:", err?.message || err);
+  process.exit(1);
 });
