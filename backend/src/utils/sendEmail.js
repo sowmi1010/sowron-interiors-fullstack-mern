@@ -5,6 +5,7 @@ let transporter;
 let resendDisabled = false;
 
 const providerModes = new Set(["auto", "resend", "smtp"]);
+const apiKeyPattern = /^re_[A-Za-z0-9_-]+$/;
 
 const parseBoolean = (value, defaultValue = false) => {
   if (typeof value !== "string") return defaultValue;
@@ -16,13 +17,23 @@ const parseNumber = (value, defaultValue) => {
   return Number.isFinite(num) && num > 0 ? num : defaultValue;
 };
 
+const sanitizeSecret = (value) =>
+  typeof value === "string" ? value.replace(/\s+/g, "").trim() : "";
+
 const getResendClient = () => {
-  const apiKey = process.env.RESEND_API_KEY?.trim();
+  const apiKey = sanitizeSecret(process.env.RESEND_API_KEY);
+  if (apiKey && !apiKeyPattern.test(apiKey)) {
+    console.error(
+      "RESEND CONFIG ERROR: RESEND_API_KEY format looks invalid. It must start with 're_'."
+    );
+  }
   return apiKey ? new Resend(apiKey) : null;
 };
 
 const getEmailProviderMode = () => {
-  const raw = process.env.EMAIL_PROVIDER?.trim().toLowerCase() || "auto";
+  const envMode = process.env.EMAIL_PROVIDER?.trim().toLowerCase();
+  const fallback = isRenderRuntime() ? "resend" : "auto";
+  const raw = envMode || fallback;
   return providerModes.has(raw) ? raw : "auto";
 };
 
@@ -46,7 +57,7 @@ const getTransporter = () => {
   const host = process.env.EMAIL_HOST?.trim();
   const port = parseNumber(process.env.EMAIL_PORT, 0);
   const user = process.env.EMAIL_USER?.trim();
-  const pass = process.env.EMAIL_PASS?.trim();
+  const pass = sanitizeSecret(process.env.EMAIL_PASS);
 
   if (!user || !pass) {
     throw new Error("EMAIL_USER and EMAIL_PASS are required for SMTP fallback");
