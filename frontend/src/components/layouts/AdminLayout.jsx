@@ -27,14 +27,15 @@ export default function AdminLayout() {
     } catch {
       // ignore
     } finally {
+      // ✅ clear both name + token
       localStorage.removeItem("adminName");
+      localStorage.removeItem("adminToken");
       navigate("/admin/login");
     }
   };
 
   return (
     <div className="bg-brand-darkBg text-white font-poppins">
-
       {/* ================= SIDEBAR (FIXED) ================= */}
       <aside
         className="fixed left-0 top-0 h-screen w-64
@@ -101,7 +102,6 @@ export default function AdminLayout() {
 
       {/* ================= MAIN ================= */}
       <div className="ml-64">
-
         {/* ================= TOP BAR (FIXED) ================= */}
         <header
           className="fixed top-0 left-64 right-0 h-14

@@ -8,17 +8,33 @@ export default function AdminRoute({ children }) {
 
   useEffect(() => {
     let mounted = true;
+
+    const adminToken = localStorage.getItem("adminToken");
+    if (!adminToken) {
+      // ✅ no token, no need to call backend
+      if (!mounted) return;
+      setAuthorized(false);
+      setChecking(false);
+      return;
+    }
+
     api
       .get("/admin/session")
       .then((res) => {
         if (!mounted) return;
         setAuthorized(true);
+
         if (res.data?.admin?.name) {
           localStorage.setItem("adminName", res.data.admin.name);
         }
       })
       .catch(() => {
         if (!mounted) return;
+
+        // ✅ clear token if invalid/expired
+        localStorage.removeItem("adminToken");
+        localStorage.removeItem("adminName");
+
         setAuthorized(false);
       })
       .finally(() => {

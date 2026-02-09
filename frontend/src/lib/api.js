@@ -15,7 +15,7 @@ const API_URL = normalizeApiBase(rawApiUrl);
 
 export const api = axios.create({
   baseURL: API_URL,
-  withCredentials: true,
+  withCredentials: true, // ok to keep (cookies), but we will also support Bearer token
 });
 
 const clearUserAuth = () => {
@@ -28,6 +28,7 @@ const clearUserAuth = () => {
 
 const clearAdminAuth = () => {
   localStorage.removeItem("adminName");
+  localStorage.removeItem("adminToken"); // ✅ IMPORTANT
 };
 
 /* ===========================
@@ -35,9 +36,16 @@ const clearAdminAuth = () => {
 =========================== */
 api.interceptors.request.use(
   (config) => {
+    const url = typeof config.url === "string" ? config.url : "";
+    const isAdminRequest =
+      url.startsWith("/admin") || window.location.pathname.startsWith("/admin");
+
+    const adminToken = localStorage.getItem("adminToken");
     const userToken = localStorage.getItem("userToken");
 
-    if (userToken) {
+    if (isAdminRequest && adminToken) {
+      config.headers.Authorization = `Bearer ${adminToken}`;
+    } else if (!isAdminRequest && userToken) {
       config.headers.Authorization = `Bearer ${userToken}`;
     }
 

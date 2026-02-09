@@ -23,10 +23,10 @@ export default function AdminLogin() {
     try {
       setLoading(true);
 
-      const res = await api.post("/admin/login", { email, password });
-      if (res.data?.otp) setOtp(String(res.data.otp));
+      await api.post("/admin/login", { email, password });
 
       setStep(2);
+      setOtp(""); // ✅ clear old otp
       setTimeout(() => otpRef.current?.focus(), 300);
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");
@@ -45,9 +45,20 @@ export default function AdminLogin() {
 
     try {
       setLoading(true);
+
       const res = await api.post("/admin/verify-otp", { email, otp });
+
+      // ✅ IMPORTANT: store admin token (needed for cloud)
+      const token = res.data?.token;
+      if (!token) {
+        return setError("Token not received from server. Please try again.");
+      }
+
+      localStorage.setItem("adminToken", token);
       localStorage.setItem("adminName", res.data.admin?.name || "Admin");
-      window.location.replace("/admin");
+
+      // ✅ go to admin page
+      window.location.href = "/admin";
     } catch (err) {
       setError(err.response?.data?.message || "OTP verification failed");
     } finally {
@@ -61,8 +72,10 @@ export default function AdminLogin() {
         <title>Admin Login | Sowro Interiors</title>
       </Helmet>
 
-      <form onSubmit={step === 1 ? login : verifyOtp} className="w-full max-w-md p-8 rounded-2xl bg-black/60 backdrop-blur-xl border border-white/10 shadow-glass">
-
+      <form
+        onSubmit={step === 1 ? login : verifyOtp}
+        className="w-full max-w-md p-8 rounded-2xl bg-black/60 backdrop-blur-xl border border-white/10 shadow-glass"
+      >
         <h2 className="text-2xl font-semibold text-brand-red text-center mb-6">
           Admin Login
         </h2>
@@ -74,7 +87,6 @@ export default function AdminLogin() {
         )}
 
         <div className="space-y-4">
-
           <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/5 border border-white/10">
             <Mail size={18} className="text-gray-400" />
             <input
@@ -83,6 +95,7 @@ export default function AdminLogin() {
               placeholder="Email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
             />
           </div>
 
@@ -95,6 +108,7 @@ export default function AdminLogin() {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
               />
             </div>
           )}
@@ -110,9 +124,7 @@ export default function AdminLogin() {
                 className="bg-transparent w-full outline-none text-sm tracking-[0.3em] text-center"
                 placeholder="Enter OTP"
                 value={otp}
-                onChange={(e) =>
-                  setOtp(e.target.value.replace(/\D/g, ""))
-                }
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
               />
             </div>
           )}
@@ -132,11 +144,13 @@ export default function AdminLogin() {
           </button>
 
           <p className="text-center text-sm text-gray-400 mt-4">
-            <a href="/admin/forgot" className="text-brand-yellow hover:underline">
+            <a
+              href="/admin/forgot"
+              className="text-brand-yellow hover:underline"
+            >
               Forgot password?
             </a>
           </p>
-
         </div>
       </form>
     </div>

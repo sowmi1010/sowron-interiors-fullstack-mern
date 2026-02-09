@@ -163,6 +163,7 @@ export const adminVerifyOtp = async (req, res) => {
 
     res.json({
       success: true,
+      token,
       admin: {
         id: admin._id,
         name: admin.name,
