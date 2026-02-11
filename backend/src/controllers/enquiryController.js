@@ -1,6 +1,14 @@
 import mongoose from "mongoose";
 import Enquiry from "../models/Enquiry.js";
 
+const toPositiveInt = (value, fallback, max = 100) => {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.min(Math.floor(n), max);
+};
+
+const escapeRegex = (input = "") => input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 /* ================= PUBLIC ADD ================= */
 export const addEnquiry = async (req, res) => {
   try {
@@ -35,8 +43,43 @@ export const addEnquiry = async (req, res) => {
 /* ================= ADMIN LIST ================= */
 export const getEnquiries = async (req, res) => {
   try {
-    const list = await Enquiry.find()
-      .sort({ createdAt: -1 });
+    const page = toPositiveInt(req.query.page, 1, 1_000_000);
+    const limit = toPositiveInt(req.query.limit, 10, 200);
+    const keyword = typeof req.query.q === "string" ? req.query.q.trim() : "";
+    const wantsPagination =
+      req.query.page !== undefined ||
+      req.query.limit !== undefined ||
+      req.query.q !== undefined;
+
+    const filter = {};
+    if (keyword) {
+      const regex = new RegExp(escapeRegex(keyword), "i");
+      filter.$or = [
+        { name: regex },
+        { phone: regex },
+        { city: regex },
+        { projectTitle: regex },
+        { message: regex },
+        { status: regex },
+      ];
+    }
+
+    const baseQuery = Enquiry.find(filter)
+      .sort({ createdAt: -1 })
+      .select(
+        "name phone city message status projectTitle projectLocation replyMessage repliedAt createdAt"
+      )
+      .lean();
+
+    if (wantsPagination) {
+      const [items, total] = await Promise.all([
+        baseQuery.clone().skip((page - 1) * limit).limit(limit),
+        Enquiry.countDocuments(filter),
+      ]);
+      return res.json({ items, total, page, limit });
+    }
+
+    const list = await baseQuery;
 
     res.json(list);
   } catch (err) {

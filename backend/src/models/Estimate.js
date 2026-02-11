@@ -80,5 +80,6 @@ const estimateSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+estimateSchema.index({ createdAt: -1 });
 
 export default mongoose.model("Estimate", estimateSchema);

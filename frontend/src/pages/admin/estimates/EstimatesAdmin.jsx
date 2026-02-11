@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Pagination from "../../../components/ui/Pagination.jsx";
 import { useSearch } from "../../../context/SearchContext";
 import {
@@ -20,29 +20,50 @@ const PER_PAGE = 10;
 
 export default function EstimatesAdmin() {
   const [list, setList] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [drawer, setDrawer] = useState(null);
   const [note, setNote] = useState("");
   const [status, setStatus] = useState("contacted");
   const [deleteId, setDeleteId] = useState(null);
 
-  const { query = "" } = useSearch();
+  const { query = "", debouncedQuery = "" } = useSearch();
   const navigate = useNavigate();
 
   /* ================= LOAD ================= */
   const load = async () => {
     try {
-      const res = await api.get("/estimate");
-      setList(res.data || []);
+      setLoading(true);
+      const res = await api.get("/estimate", {
+        params: {
+          page,
+          limit: PER_PAGE,
+          q: debouncedQuery || undefined,
+        },
+      });
+      const payload = res.data || {};
+      const items = Array.isArray(payload.items)
+        ? payload.items
+        : Array.isArray(payload)
+        ? payload
+        : [];
+      const count =
+        typeof payload.total === "number" ? payload.total : items.length;
+
+      setList(items);
+      setTotal(count);
     } catch {
       toast.error("Session expired");
       navigate("/admin/login");
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     load();
-  }, []);
+  }, [page, debouncedQuery]);
 
   /* ================= ESC TO CLOSE ================= */
   useEffect(() => {
@@ -51,38 +72,41 @@ export default function EstimatesAdmin() {
     return () => window.removeEventListener("keydown", esc);
   }, []);
 
-  /* ================= SEARCH ================= */
-  const filtered = useMemo(() => {
-    const q = query.toLowerCase();
-    return list.filter((e) =>
-      `${e.name} ${e.phone} ${e.city} ${e.homeType} ${e.budget}`
-        .toLowerCase()
-        .includes(q)
-    );
-  }, [list, query]);
-
   useEffect(() => setPage(1), [query]);
 
-  const paginated = filtered.slice(
-    (page - 1) * PER_PAGE,
-    page * PER_PAGE
-  );
-
   /* ================= EXCEL ================= */
-  const downloadExcel = () => {
-    const rows = filtered.map((e, i) => ({
-      S_No: i + 1,
-      Name: e.name,
-      Phone: e.phone,
-      City: e.city,
-      Home: e.homeType,
-      Budget: e.budget,
-      Status: e.status,
-    }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Estimates");
-    XLSX.writeFile(wb, `Estimates_${Date.now()}.xlsx`);
+  const downloadExcel = async () => {
+    try {
+      const res = await api.get("/estimate", {
+        params: {
+          page: 1,
+          limit: 5000,
+          q: debouncedQuery || undefined,
+        },
+      });
+      const payload = res.data || {};
+      const exportList = Array.isArray(payload.items)
+        ? payload.items
+        : Array.isArray(payload)
+        ? payload
+        : [];
+
+      const rows = exportList.map((e, i) => ({
+        S_No: i + 1,
+        Name: e.name,
+        Phone: e.phone,
+        City: e.city,
+        Home: e.homeType,
+        Budget: e.budget,
+        Status: e.status,
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Estimates");
+      XLSX.writeFile(wb, `Estimates_${Date.now()}.xlsx`);
+    } catch {
+      toast.error("Failed to export");
+    }
   };
 
   /* ================= NOTE ================= */
@@ -144,7 +168,9 @@ export default function EstimatesAdmin() {
       <div className="bg-black/60 backdrop-blur-xl
                       border border-white/10
                       rounded-2xl overflow-hidden">
-
+        {loading ? (
+          <p className="py-16 text-center text-gray-500">Loading estimates...</p>
+        ) : (
         <table className="w-full text-sm">
           <thead className="bg-black/40 text-xs uppercase text-gray-400">
             <tr>
@@ -159,14 +185,14 @@ export default function EstimatesAdmin() {
           </thead>
 
           <tbody>
-            {paginated.length === 0 ? (
+            {list.length === 0 ? (
               <tr>
                 <td colSpan="7" className="py-16 text-center text-gray-500">
                   No estimate requests found
                 </td>
               </tr>
             ) : (
-              paginated.map((e) => (
+              list.map((e) => (
                 <tr
                   key={e._id}
                   onClick={() => setDrawer(e)}
@@ -204,14 +230,15 @@ export default function EstimatesAdmin() {
             )}
           </tbody>
         </table>
+        )}
       </div>
 
       {/* PAGINATION */}
-      {filtered.length > PER_PAGE && (
+      {total > PER_PAGE && (
         <div className="mt-8 flex justify-center">
           <Pagination
             page={page}
-            total={filtered.length}
+            total={total}
             limit={PER_PAGE}
             onChange={setPage}
           />

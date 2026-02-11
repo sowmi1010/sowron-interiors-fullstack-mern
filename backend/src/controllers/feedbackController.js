@@ -3,6 +3,12 @@ import Feedback from "../models/Feedback.js";
 import { deleteImage } from "../services/cloudinary.service.js";
 import cloudinary from "../config/cloudinary.js";
 
+const toPositiveInt = (value, fallback, max = 100) => {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.min(Math.floor(n), max);
+};
+
 const buildFeedbackPhotoUrl = (publicId, options = {}) => {
   if (!publicId) return "";
 
@@ -104,11 +110,31 @@ export const addFeedback = async (req, res) => {
 /* ================= LIST (PUBLIC) ================= */
 export const getFeedback = async (req, res) => {
   try {
-    const list = await Feedback.find()
-      .sort({ createdAt: -1 })
-      .lean();
+    const page = toPositiveInt(req.query.page, 1, 1_000_000);
+    const limit = toPositiveInt(req.query.limit, 6, 100);
+    const wantsPagination =
+      req.query.page !== undefined || req.query.limit !== undefined;
 
     res.set("Cache-Control", "public, max-age=60, s-maxage=300");
+    if (wantsPagination) {
+      const [items, total] = await Promise.all([
+        Feedback.find()
+          .sort({ createdAt: -1 })
+          .select("name city rating message photo createdAt")
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .lean(),
+        Feedback.countDocuments(),
+      ]);
+      return res.json({
+        items: items.map(withOptimizedFeedbackPhoto),
+        total,
+        page,
+        limit,
+      });
+    }
+
+    const list = await Feedback.find().sort({ createdAt: -1 }).lean();
     res.json(list.map(withOptimizedFeedbackPhoto));
   } catch (err) {
     console.error("GET FEEDBACK ERROR:", err);

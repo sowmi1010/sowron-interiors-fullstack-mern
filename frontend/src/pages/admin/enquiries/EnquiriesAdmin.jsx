@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../../../lib/api";
 import Pagination from "../../../components/ui/Pagination.jsx";
 import { useSearch } from "../../../context/SearchContext";
@@ -22,27 +22,49 @@ const PER_PAGE = 10;
 
 export default function EnquiriesAdmin() {
   const [data, setData] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
 
-  const { query = "" } = useSearch();
+  const { query = "", debouncedQuery = "" } = useSearch();
   const navigate = useNavigate();
 
   /* ================= LOAD ================= */
   const load = async () => {
     try {
-      const res = await api.get("/enquiry");
-      setData(res.data || []);
+      setLoading(true);
+      const res = await api.get("/enquiry", {
+        params: {
+          page,
+          limit: PER_PAGE,
+          q: debouncedQuery || undefined,
+        },
+      });
+
+      const payload = res.data || {};
+      const items = Array.isArray(payload.items)
+        ? payload.items
+        : Array.isArray(payload)
+        ? payload
+        : [];
+      const count =
+        typeof payload.total === "number" ? payload.total : items.length;
+
+      setData(items);
+      setTotal(count);
     } catch {
-      toast.error("Session expired – Login again");
+      toast.error("Session expired - Login again");
       navigate("/admin/login");
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     load();
-  }, []);
+  }, [page, debouncedQuery]);
 
   /* ================= ESC TO CLOSE ================= */
   useEffect(() => {
@@ -51,43 +73,46 @@ export default function EnquiriesAdmin() {
     return () => window.removeEventListener("keydown", esc);
   }, []);
 
-  /* ================= SEARCH ================= */
-  const filtered = useMemo(() => {
-    const q = query.toLowerCase();
-    return data.filter(
-      (e) =>
-        e.name?.toLowerCase().includes(q) ||
-        e.phone?.toLowerCase().includes(q) ||
-        e.city?.toLowerCase().includes(q)
-    );
-  }, [data, query]);
-
   useEffect(() => setPage(1), [query]);
 
-  const paginated = filtered.slice(
-    (page - 1) * PER_PAGE,
-    page * PER_PAGE
-  );
-
   /* ================= EXCEL ================= */
-  const downloadExcel = () => {
-    const rows = filtered.map((e, i) => ({
-      S_No: i + 1,
-      Name: e.name,
-      Phone: e.phone,
-      City: e.city,
-      Project: e.projectTitle || "General",
-      Message: e.message,
-      Status: e.status,
-      RepliedAt: e.repliedAt
-        ? new Date(e.repliedAt).toLocaleString()
-        : "Not replied",
-    }));
+  const downloadExcel = async () => {
+    try {
+      const res = await api.get("/enquiry", {
+        params: {
+          page: 1,
+          limit: 5000,
+          q: debouncedQuery || undefined,
+        },
+      });
 
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Enquiries");
-    XLSX.writeFile(wb, `Enquiries_${Date.now()}.xlsx`);
+      const payload = res.data || {};
+      const exportList = Array.isArray(payload.items)
+        ? payload.items
+        : Array.isArray(payload)
+        ? payload
+        : [];
+
+      const rows = exportList.map((e, i) => ({
+        S_No: i + 1,
+        Name: e.name,
+        Phone: e.phone,
+        City: e.city,
+        Project: e.projectTitle || "General",
+        Message: e.message,
+        Status: e.status,
+        RepliedAt: e.repliedAt
+          ? new Date(e.repliedAt).toLocaleString()
+          : "Not replied",
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Enquiries");
+      XLSX.writeFile(wb, `Enquiries_${Date.now()}.xlsx`);
+    } catch {
+      toast.error("Failed to export");
+    }
   };
 
   /* ================= DELETE ================= */
@@ -125,12 +150,7 @@ export default function EnquiriesAdmin() {
   /* ================= WHATSAPP ================= */
   const sendWhatsapp = (phone, msg) => {
     const clean = phone.replace(/\D/g, "");
-    const text = `Hello 👋
-
-Regarding your enquiry:
-"${msg}"
-
-Thank you – Sowron Interiors 😊`;
+    const text = `Hello\n\nRegarding your enquiry:\n\"${msg}\"\n\nThank you - Sowron Interiors`;
 
     window.open(
       `https://wa.me/91${clean}?text=${encodeURIComponent(text)}`,
@@ -140,7 +160,6 @@ Thank you – Sowron Interiors 😊`;
 
   return (
     <div className="p-6 text-white">
-
       {/* HEADER */}
       <div className="flex justify-between items-center mb-8">
         <div>
@@ -155,7 +174,7 @@ Thank you – Sowron Interiors 😊`;
         <div className="flex gap-3">
           <span className="text-xs bg-black/40 border border-white/10
                            px-3 py-1 rounded-full">
-            Total: {filtered.length}
+            Total: {total}
           </span>
 
           <button
@@ -170,98 +189,98 @@ Thank you – Sowron Interiors 😊`;
       </div>
 
       {/* TABLE */}
-      <div className="bg-black/60 backdrop-blur-xl
+      <div
+        className="bg-black/60 backdrop-blur-xl
                       border border-white/10
-                      rounded-2xl overflow-hidden shadow-glass">
+                      rounded-2xl overflow-hidden shadow-glass"
+      >
+        {loading ? (
+          <p className="py-16 text-center text-gray-500">Loading enquiries...</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-white/5 text-xs uppercase text-gray-300">
+              <tr>
+                <th className="px-5 py-4 text-left">Customer</th>
+                <th className="px-5 py-4 text-left">City</th>
+                <th className="px-5 py-4 text-left">Project</th>
+                <th className="px-5 py-4 text-left">Message</th>
+                <th className="px-5 py-4 text-center">Status</th>
+                <th className="px-5 py-4 text-center">Action</th>
+              </tr>
+            </thead>
 
-        <table className="w-full text-sm">
-          <thead className="bg-white/5 text-xs uppercase text-gray-300">
-            <tr>
-              <th className="px-5 py-4 text-left">Customer</th>
-              <th className="px-5 py-4 text-left">City</th>
-              <th className="px-5 py-4 text-left">Project</th>
-              <th className="px-5 py-4 text-left">Message</th>
-              <th className="px-5 py-4 text-center">Status</th>
-              <th className="px-5 py-4 text-center">Action</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {paginated.map((e) => (
-              <tr
-                key={e._id}
-                onClick={() => setSelected(e)}
-                className="border-t border-white/5
+            <tbody>
+              {data.map((e) => (
+                <tr
+                  key={e._id}
+                  onClick={() => setSelected(e)}
+                  className="border-t border-white/5
                            hover:bg-white/5 transition cursor-pointer"
-              >
-                <td className="px-5 py-4">
-                  <div className="flex flex-col">
-                    <span className="font-medium flex gap-2 items-center">
-                      <User2 size={14} /> {e.name}
-                    </span>
-                    <span className="text-xs text-gray-400 flex gap-1">
-                      <Phone size={12} /> {e.phone}
-                    </span>
-                  </div>
-                </td>
+                >
+                  <td className="px-5 py-4">
+                    <div className="flex flex-col">
+                      <span className="font-medium flex gap-2 items-center">
+                        <User2 size={14} /> {e.name}
+                      </span>
+                      <span className="text-xs text-gray-400 flex gap-1">
+                        <Phone size={12} /> {e.phone}
+                      </span>
+                    </div>
+                  </td>
 
-                <td className="px-5 py-4 text-gray-300 flex gap-1 items-center">
-                  <MapPin size={14} /> {e.city}
-                </td>
+                  <td className="px-5 py-4 text-gray-300 flex gap-1 items-center">
+                    <MapPin size={14} /> {e.city}
+                  </td>
 
-                <td className="px-5 py-4 text-gray-300 max-w-[220px] truncate">
-                  {e.projectTitle || "General"}
-                </td>
+                  <td className="px-5 py-4 text-gray-300 max-w-[220px] truncate">
+                    {e.projectTitle || "General"}
+                  </td>
 
-                <td className="px-5 py-4 truncate max-w-[220px] text-gray-300">
-                  {e.message}
-                </td>
+                  <td className="px-5 py-4 truncate max-w-[220px] text-gray-300">
+                    {e.message}
+                  </td>
 
-                <td className="px-5 py-4 text-center">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium
+                  <td className="px-5 py-4 text-center">
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium
                       ${
                         e.status === "replied"
                           ? "bg-green-500/20 text-green-400"
                           : "bg-yellow-400/20 text-yellow-300"
                       }`}
-                  >
-                    {e.status}
-                  </span>
-                </td>
+                    >
+                      {e.status}
+                    </span>
+                  </td>
 
-                <td
-                  className="px-5 py-4 text-center"
-                  onClick={(ev) => ev.stopPropagation()}
-                >
-                  <button
-                    onClick={() => setDeleteId(e._id)}
-                    className="text-red-500 hover:underline"
+                  <td
+                    className="px-5 py-4 text-center"
+                    onClick={(ev) => ev.stopPropagation()}
                   >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
+                    <button
+                      onClick={() => setDeleteId(e._id)}
+                      className="text-red-500 hover:underline"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
 
-            {!paginated.length && (
-              <tr>
-                <td colSpan="6" className="py-16 text-center text-gray-500">
-                  No enquiries found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              {!data.length && (
+                <tr>
+                  <td colSpan="6" className="py-16 text-center text-gray-500">
+                    No enquiries found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {/* PAGINATION */}
-      <Pagination
-        page={page}
-        total={filtered.length}
-        limit={PER_PAGE}
-        onChange={setPage}
-      />
+      <Pagination page={page} total={total} limit={PER_PAGE} onChange={setPage} />
 
       {/* DRAWER */}
       <AnimatePresence>
@@ -303,11 +322,22 @@ Thank you – Sowron Interiors 😊`;
               </div>
 
               <div className="space-y-3 text-sm text-gray-200">
-                <p className="flex gap-2"><User2 size={14} /> {selected.name}</p>
-                <p className="flex gap-2"><Phone size={14} /> {selected.phone}</p>
-                <p className="flex gap-2"><MapPin size={14} /> {selected.city}</p>
-                <p className="flex gap-2"><MessageSquare size={14} /> {selected.projectTitle || "General project enquiry"}</p>
-                <p className="flex gap-2"><MessageSquare size={14} /> {selected.message}</p>
+                <p className="flex gap-2">
+                  <User2 size={14} /> {selected.name}
+                </p>
+                <p className="flex gap-2">
+                  <Phone size={14} /> {selected.phone}
+                </p>
+                <p className="flex gap-2">
+                  <MapPin size={14} /> {selected.city}
+                </p>
+                <p className="flex gap-2">
+                  <MessageSquare size={14} />
+                  {selected.projectTitle || "General project enquiry"}
+                </p>
+                <p className="flex gap-2">
+                  <MessageSquare size={14} /> {selected.message}
+                </p>
 
                 {selected.repliedAt && (
                   <p className="text-xs text-gray-400 flex gap-1">
@@ -344,9 +374,7 @@ Thank you – Sowron Interiors 😊`;
               </div>
 
               <button
-                onClick={() =>
-                  sendWhatsapp(selected.phone, selected.message)
-                }
+                onClick={() => sendWhatsapp(selected.phone, selected.message)}
                 className="mt-4 w-full bg-green-700 py-2 rounded
                            flex gap-2 justify-center"
               >
@@ -360,10 +388,14 @@ Thank you – Sowron Interiors 😊`;
       {/* DELETE MODAL */}
       <AnimatePresence>
         {deleteId && (
-          <motion.div className="fixed inset-0 bg-black/60
-                                 flex items-center justify-center z-50">
-            <div className="bg-[#111] border border-white/10
-                            p-6 rounded-xl w-80 text-center">
+          <motion.div
+            className="fixed inset-0 bg-black/60
+                                 flex items-center justify-center z-50"
+          >
+            <div
+              className="bg-[#111] border border-white/10
+                            p-6 rounded-xl w-80 text-center"
+            >
               <p className="mb-4">Delete this enquiry?</p>
               <div className="flex justify-between">
                 <button onClick={() => setDeleteId(null)}>Cancel</button>
@@ -378,7 +410,6 @@ Thank you – Sowron Interiors 😊`;
           </motion.div>
         )}
       </AnimatePresence>
-
     </div>
   );
 }

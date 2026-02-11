@@ -9,6 +9,7 @@ import http from "http";
 import { Server } from "socket.io";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
+import compression from "compression";
 
 import { connectDB } from "./config/db.js";
 import adminRoutes from "./routes/adminRoutes.js";
@@ -32,6 +33,7 @@ server.on("error", (err) => {
 
 app.set("trust proxy", 1);
 app.use(helmet());
+app.use(compression());
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 
 const defaultOrigins = [

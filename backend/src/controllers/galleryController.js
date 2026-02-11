@@ -12,12 +12,14 @@ const createSlug = (text) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-const toPositiveInt = (value, fallback) => {
+const toPositiveInt = (value, fallback, max = 200) => {
   const n = Number(value);
-  return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.min(Math.floor(n), max);
 };
+const escapeRegex = (input = "") => input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-const SIGNED_TTL = toPositiveInt(process.env.GALLERY_SIGNED_TTL, 3600);
+const SIGNED_TTL = toPositiveInt(process.env.GALLERY_SIGNED_TTL, 3600, 86_400);
 const WATERMARK_TEXT = String(
   process.env.GALLERY_WATERMARK_TEXT || "SOWRON"
 )
@@ -173,23 +175,71 @@ export const addGallery = async (req, res) => {
 /* ================= LIST (PUBLIC + FILTER) ================= */
 export const getGallery = async (req, res) => {
   try {
-    const { category, subCategory } = req.query;
+    const page = toPositiveInt(req.query.page, 1, 1_000_000);
+    const limit = toPositiveInt(req.query.limit, 8, 60);
+    const category = typeof req.query.category === "string" ? req.query.category.trim() : "";
+    const categorySlug =
+      typeof req.query.categorySlug === "string" ? req.query.categorySlug.trim() : "";
+    const subCategory =
+      typeof req.query.subCategory === "string" ? req.query.subCategory.trim() : "";
+    const keyword = typeof req.query.q === "string" ? req.query.q.trim() : "";
+    const wantsPagination =
+      req.query.page !== undefined ||
+      req.query.limit !== undefined ||
+      req.query.q !== undefined ||
+      req.query.category !== undefined ||
+      req.query.categorySlug !== undefined ||
+      req.query.subCategory !== undefined;
+
     const filter = {};
 
     if (category && mongoose.Types.ObjectId.isValid(category)) {
       filter.category = category;
     }
 
-    if (subCategory) {
+    if (!filter.category && categorySlug && categorySlug !== "all") {
+      const categoryDoc = await Category.findOne({ slug: categorySlug })
+        .select("_id")
+        .lean();
+      if (!categoryDoc) {
+        if (wantsPagination) {
+          return res.json({ items: [], total: 0, page, limit });
+        }
+        return res.json([]);
+      }
+      filter.category = categoryDoc._id;
+    }
+
+    if (subCategory && subCategory !== "all") {
       filter.subCategory = subCategory;
     }
 
-    const items = await Gallery.find(filter)
+    if (keyword) {
+      const regex = new RegExp(escapeRegex(keyword), "i");
+      filter.$or = [{ title: regex }, { subCategory: regex }];
+    }
+
+    const baseQuery = Gallery.find(filter)
       .populate("category", "name slug")
       .sort({ createdAt: -1 })
+      .select("title slug category subCategory images createdAt")
       .lean();
 
     res.set("Cache-Control", "public, max-age=60, s-maxage=300");
+    if (wantsPagination) {
+      const [items, total] = await Promise.all([
+        baseQuery.clone().skip((page - 1) * limit).limit(limit),
+        Gallery.countDocuments(filter),
+      ]);
+      return res.json({
+        items: items.map((item) => withSignedImages(item, { coverOnly: true })),
+        total,
+        page,
+        limit,
+      });
+    }
+
+    const items = await baseQuery;
     res.json(items.map((item) => withSignedImages(item, { coverOnly: true })));
   } catch (err) {
     console.error("GET GALLERY ERROR:", err);

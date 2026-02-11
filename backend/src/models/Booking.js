@@ -50,5 +50,6 @@ bookingSchema.index(
     },
   }
 );
+bookingSchema.index({ createdAt: -1 });
 
 export default mongoose.model("Booking", bookingSchema);

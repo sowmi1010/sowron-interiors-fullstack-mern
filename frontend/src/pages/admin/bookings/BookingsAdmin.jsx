@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Pagination from "../../../components/ui/Pagination.jsx";
 import { useSearch } from "../../../context/SearchContext";
 import {
@@ -17,70 +17,93 @@ const PER_PAGE = 10;
 
 export default function BookingsAdmin() {
   const [list, setList] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [deleteId, setDeleteId] = useState(null);
 
-  const { query } = useSearch();
+  const { query = "", debouncedQuery } = useSearch();
   const navigate = useNavigate();
 
   /* ================= LOAD ================= */
   const load = async () => {
     try {
-      const res = await api.get("/booking");
-      setList(res.data || []);
+      setLoading(true);
+      const res = await api.get("/booking", {
+        params: {
+          page,
+          limit: PER_PAGE,
+          q: debouncedQuery || undefined,
+        },
+      });
+      const payload = res.data || {};
+      const items = Array.isArray(payload.items)
+        ? payload.items
+        : Array.isArray(payload)
+        ? payload
+        : [];
+      const count =
+        typeof payload.total === "number" ? payload.total : items.length;
+
+      setList(items);
+      setTotal(count);
     } catch {
       toast.error("Session expired");
       navigate("/admin/login");
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     load();
-  }, []);
+  }, [page, debouncedQuery]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query]);
 
   /* ================= HELPERS ================= */
   const cleanPhone = (num = "") => num.split("_")[0];
 
-  /* ================= SEARCH ================= */
-  const filtered = useMemo(() => {
-    const q = query.toLowerCase();
-    return list.filter(
-      (b) =>
-        cleanPhone(b.phone).includes(q) ||
-        b.city?.toLowerCase().includes(q) ||
-        b.date?.toLowerCase().includes(q) ||
-        b.time?.toLowerCase().includes(q) ||
-        b.status?.toLowerCase().includes(q)
-    );
-  }, [list, query]);
-
-  useEffect(() => setPage(1), [query]);
-
-  const paginated = filtered.slice(
-    (page - 1) * PER_PAGE,
-    page * PER_PAGE
-  );
-
   /* ================= EXCEL ================= */
-  const exportExcel = () => {
-    const rows = filtered.map((b, i) => ({
-      S_No: i + 1,
-      Phone: cleanPhone(b.phone),
-      Date: b.date,
-      Time: b.time,
-      City: b.city,
-      Status: b.status,
-    }));
+  const exportExcel = async () => {
+    try {
+      const res = await api.get("/booking", {
+        params: {
+          page: 1,
+          limit: 5000,
+          q: debouncedQuery || undefined,
+        },
+      });
+      const payload = res.data || {};
+      const exportList = Array.isArray(payload.items)
+        ? payload.items
+        : Array.isArray(payload)
+        ? payload
+        : [];
 
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Bookings");
+      const rows = exportList.map((b, i) => ({
+        S_No: i + 1,
+        Phone: cleanPhone(b.phone),
+        Date: b.date,
+        Time: b.time,
+        City: b.city,
+        Status: b.status,
+      }));
 
-    const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    saveAs(
-      new Blob([buf], { type: "application/octet-stream" }),
-      `Bookings_${Date.now()}.xlsx`
-    );
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Bookings");
+
+      const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+      saveAs(
+        new Blob([buf], { type: "application/octet-stream" }),
+        `Bookings_${Date.now()}.xlsx`
+      );
+    } catch {
+      toast.error("Failed to export");
+    }
   };
 
   /* ================= STATUS ================= */
@@ -153,6 +176,9 @@ Thank you 🙏`;
                       border border-white/10
                       rounded-2xl overflow-hidden shadow-glass">
 
+        {loading ? (
+          <p className="py-16 text-center text-gray-500">Loading bookings...</p>
+        ) : (
         <table className="w-full text-sm">
           <thead className="bg-black/40 text-xs uppercase text-gray-400">
             <tr>
@@ -166,14 +192,14 @@ Thank you 🙏`;
           </thead>
 
           <tbody>
-            {paginated.length === 0 ? (
+            {list.length === 0 ? (
               <tr>
                 <td colSpan="6" className="py-16 text-center text-gray-500">
                   No bookings found
                 </td>
               </tr>
             ) : (
-              paginated.map((b) => (
+              list.map((b) => (
                 <tr
                   key={b._id}
                   className="border-t border-white/5
@@ -231,14 +257,15 @@ Thank you 🙏`;
             )}
           </tbody>
         </table>
+        )}
       </div>
 
       {/* PAGINATION */}
-      {filtered.length > PER_PAGE && (
+      {total > PER_PAGE && (
         <div className="mt-8 flex justify-center">
           <Pagination
             page={page}
-            total={filtered.length}
+            total={total}
             limit={PER_PAGE}
             onChange={setPage}
           />

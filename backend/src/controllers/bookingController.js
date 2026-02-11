@@ -1,6 +1,14 @@
 import mongoose from "mongoose";
 import Booking from "../models/Booking.js";
 
+const toPositiveInt = (value, fallback, max = 100) => {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.min(Math.floor(n), max);
+};
+
+const escapeRegex = (input = "") => input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 /* ================= ADD BOOKING ================= */
 export const addBooking = async (req, res) => {
   try {
@@ -44,14 +52,44 @@ export const addBooking = async (req, res) => {
 /* ================= GET BOOKINGS (ADMIN) ================= */
 export const getBookings = async (req, res) => {
   try {
-    const { status, date } = req.query;
+    const { status, date, q } = req.query;
+    const page = toPositiveInt(req.query.page, 1, 1_000_000);
+    const limit = toPositiveInt(req.query.limit, 10, 200);
+    const keyword = typeof q === "string" ? q.trim() : "";
+    const wantsPagination =
+      req.query.page !== undefined ||
+      req.query.limit !== undefined ||
+      req.query.q !== undefined;
 
     const filter = {};
     if (status) filter.status = status;
     if (date) filter.date = date;
+    if (keyword) {
+      const regex = new RegExp(escapeRegex(keyword), "i");
+      filter.$or = [
+        { phone: regex },
+        { city: regex },
+        { date: regex },
+        { time: regex },
+        { status: regex },
+      ];
+    }
 
-    const list = await Booking.find(filter)
-      .sort({ createdAt: -1 });
+    const baseQuery = Booking.find(filter)
+      .sort({ createdAt: -1 })
+      .select("phone date time city status createdAt")
+      .lean();
+
+    if (wantsPagination) {
+      const [items, total] = await Promise.all([
+        baseQuery.clone().skip((page - 1) * limit).limit(limit),
+        Booking.countDocuments(filter),
+      ]);
+
+      return res.json({ items, total, page, limit });
+    }
+
+    const list = await baseQuery;
 
     res.json(list);
   } catch (err) {

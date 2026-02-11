@@ -12,8 +12,17 @@ export default function FeedbackSection() {
     const load = async () => {
       try {
         setLoading(true);
-        const res = await api.get("/feedback");
-        setReviews(res.data || []);
+        const res = await api.get("/feedback", {
+          params: { page: 1, limit: 6 },
+        });
+        const payload = res.data || {};
+        setReviews(
+          Array.isArray(payload.items)
+            ? payload.items
+            : Array.isArray(payload)
+            ? payload
+            : []
+        );
       } catch {
         setReviews([]);
       } finally {

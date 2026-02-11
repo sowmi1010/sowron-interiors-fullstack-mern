@@ -12,20 +12,37 @@ const PER_PAGE = 9;
 
 export default function PortfolioAdmin() {
   const [list, setList] = useState([]);
+  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [deleteId, setDeleteId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
 
-  const { query } = useSearch();
+  const { query, debouncedQuery } = useSearch();
   const navigate = useNavigate();
 
   /* ================= LOAD ================= */
   const load = async () => {
     try {
       setLoading(true);
-      const res = await api.get("/portfolio");
-      setList(res.data || []);
+      const res = await api.get("/portfolio", {
+        params: {
+          page,
+          limit: PER_PAGE,
+          q: debouncedQuery || undefined,
+        },
+      });
+      const payload = res.data || {};
+      const items = Array.isArray(payload.items)
+        ? payload.items
+        : Array.isArray(payload)
+        ? payload
+        : [];
+      const count =
+        typeof payload.total === "number" ? payload.total : items.length;
+
+      setList(items);
+      setTotal(count);
     } catch {
       toast.error("Failed to load portfolio");
     } finally {
@@ -35,7 +52,7 @@ export default function PortfolioAdmin() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [page, debouncedQuery]);
 
   /* RESET PAGE ON SEARCH */
   useEffect(() => {
@@ -50,30 +67,14 @@ export default function PortfolioAdmin() {
       setDeleting(true);
       await api.delete(`/portfolio/${deleteId}`);
       toast.success("Portfolio deleted");
-
-      setList((prev) => prev.filter((p) => p._id !== deleteId));
       setDeleteId(null);
+      load();
     } catch {
       toast.error("Delete failed");
     } finally {
       setDeleting(false);
     }
   };
-
-  /* ================= SEARCH ================= */
-  const filtered = list.filter((p) => {
-    const q = query.toLowerCase();
-    return (
-      p.title?.toLowerCase().includes(q) ||
-      p.location?.toLowerCase().includes(q)
-    );
-  });
-
-  /* ================= PAGINATION ================= */
-  const paginated = filtered.slice(
-    (page - 1) * PER_PAGE,
-    page * PER_PAGE
-  );
 
   return (
     <div className="p-6 text-white max-w-[1400px] mx-auto">
@@ -106,7 +107,7 @@ export default function PortfolioAdmin() {
         <p className="text-gray-400 text-center py-24">
           Loading portfolio…
         </p>
-      ) : paginated.length === 0 ? (
+      ) : list.length === 0 ? (
         <div className="text-center py-24">
           <p className="text-gray-400">
             {query ? "No matching projects found" : "No projects added yet"}
@@ -114,7 +115,7 @@ export default function PortfolioAdmin() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {paginated.map((p) => (
+          {list.map((p) => (
             <motion.div
               key={p._id}
               initial={{ opacity: 0, y: 10 }}
@@ -129,8 +130,10 @@ export default function PortfolioAdmin() {
               <div className="relative h-44 bg-black">
                 {p.images?.length ? (
                   <img
-                    src={p.images[0].url}
+                    src={p.images[0].thumbUrl || p.images[0].mediumUrl || p.images[0].url}
                     alt={p.title}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -191,11 +194,11 @@ export default function PortfolioAdmin() {
       )}
 
       {/* PAGINATION */}
-      {filtered.length > PER_PAGE && (
+      {total > PER_PAGE && (
         <div className="mt-10 flex justify-center">
           <Pagination
             page={page}
-            total={filtered.length}
+            total={total}
             limit={PER_PAGE}
             onChange={setPage}
           />

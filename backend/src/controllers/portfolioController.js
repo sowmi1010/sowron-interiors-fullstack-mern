@@ -3,6 +3,14 @@ import Portfolio from "../models/Portfolio.js";
 import { deleteMultipleImages } from "../services/cloudinary.service.js";
 import cloudinary from "../config/cloudinary.js";
 
+const toPositiveInt = (value, fallback, max = 100) => {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.min(Math.floor(n), max);
+};
+
+const escapeRegex = (input = "") => input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const buildPortfolioImageUrl = (publicId, options = {}) => {
   if (!publicId) return "";
 
@@ -111,11 +119,41 @@ export const addPortfolio = async (req, res) => {
 /* ================= LIST (PUBLIC) ================= */
 export const getPortfolio = async (req, res) => {
   try {
-    const list = await Portfolio.find()
-      .sort({ createdAt: -1 })
-      .lean();
+    const page = toPositiveInt(req.query.page, 1, 1_000_000);
+    const limit = toPositiveInt(req.query.limit, 6, 60);
+    const keyword = typeof req.query.q === "string" ? req.query.q.trim() : "";
+    const wantsPagination =
+      req.query.page !== undefined ||
+      req.query.limit !== undefined ||
+      req.query.q !== undefined;
+
+    const filter = {};
+    if (keyword) {
+      const regex = new RegExp(escapeRegex(keyword), "i");
+      filter.$or = [{ title: regex }, { location: regex }];
+    }
 
     res.set("Cache-Control", "public, max-age=60, s-maxage=300");
+    if (wantsPagination) {
+      const [items, total] = await Promise.all([
+        Portfolio.find(filter)
+          .sort({ createdAt: -1 })
+          .select("title location images createdAt")
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .lean(),
+        Portfolio.countDocuments(filter),
+      ]);
+
+      return res.json({
+        items: items.map(withOptimizedPortfolioImages),
+        total,
+        page,
+        limit,
+      });
+    }
+
+    const list = await Portfolio.find(filter).sort({ createdAt: -1 }).lean();
     res.json(list.map(withOptimizedPortfolioImages));
   } catch (err) {
     console.error("GET PORTFOLIO ERROR:", err);

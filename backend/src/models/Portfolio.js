@@ -39,5 +39,6 @@ const portfolioSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+portfolioSchema.index({ createdAt: -1 });
 
 export default mongoose.model("Portfolio", portfolioSchema);

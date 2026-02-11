@@ -17,6 +17,7 @@ const PAGE_SIZE = 8;
 
 export default function Gallery() {
   const [items, setItems] = useState([]);
+  const [total, setTotal] = useState(0);
   const [categories, setCategories] = useState([]);
   const [isBlurred, setIsBlurred] = useState(false);
 
@@ -24,31 +25,92 @@ export default function Gallery() {
   const [subCategory, setSubCategory] = useState("all");
 
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
 
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const watermark = "enquiry@sowron.com";
 
-  /* ================= LOAD ================= */
+  /* ================= CATEGORIES ================= */
   useEffect(() => {
-    const load = async () => {
+    const loadCategories = async () => {
       try {
-        setLoading(true);
-        const [catRes, galRes] = await Promise.all([
-          api.get("/categories"),
-          api.get("/gallery"),
-        ]);
+        const catRes = await api.get("/categories");
         setCategories(catRes.data || []);
-        setItems(galRes.data || []);
       } catch {
-        toast.error("Failed to load gallery");
-      } finally {
-        setLoading(false);
+        toast.error("Failed to load categories");
       }
     };
-    load();
+    loadCategories();
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  /* ================= GALLERY (SERVER PAGED) ================= */
+  useEffect(() => {
+    let active = true;
+
+    const load = async () => {
+      const append = page > 1;
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+
+      try {
+        const params = {
+          page,
+          limit: PAGE_SIZE,
+        };
+        if (debouncedSearch) params.q = debouncedSearch;
+        if (category !== "all") params.categorySlug = category;
+        if (subCategory !== "all") params.subCategory = subCategory;
+
+        const res = await api.get("/gallery", { params });
+        const payload = res.data || {};
+        const serverItems = Array.isArray(payload.items)
+          ? payload.items
+          : Array.isArray(payload)
+          ? payload
+          : [];
+        const serverTotal =
+          typeof payload.total === "number"
+            ? payload.total
+            : serverItems.length;
+
+        if (!active) return;
+
+        setItems((prev) => (append ? [...prev, ...serverItems] : serverItems));
+        setTotal(serverTotal);
+      } catch {
+        if (!active) return;
+        if (!append) {
+          setItems([]);
+          setTotal(0);
+        }
+        toast.error("Failed to load gallery");
+      } finally {
+        if (!active) return;
+        if (append) {
+          setLoadingMore(false);
+        } else {
+          setLoading(false);
+        }
+      }
+    };
+
+    load();
+    return () => {
+      active = false;
+    };
+  }, [page, category, subCategory, debouncedSearch]);
 
   useEffect(() => {
     const onBlur = () => setIsBlurred(true);
@@ -79,32 +141,11 @@ export default function Gallery() {
     return c?.subCategories || [];
   }, [category, categories]);
 
-  /* ================= FILTER ================= */
-  const filtered = useMemo(() => {
-    return items.filter((item) => {
-      const matchCategory =
-        category === "all" || item.category?.slug === category;
-
-      const matchSub =
-        subCategory === "all" || item.subCategory === subCategory;
-
-      const matchSearch =
-        item.title.toLowerCase().includes(search.toLowerCase()) ||
-        item.category?.name?.toLowerCase().includes(search.toLowerCase());
-
-      return matchCategory && matchSub && matchSearch;
-    });
-  }, [items, category, subCategory, search]);
-
-  const visible = filtered.slice(0, page * PAGE_SIZE);
-  const hasMore = visible.length < filtered.length;
+  const hasMore = items.length < total;
 
   const loadMore = () => {
-    setLoadingMore(true);
-    setTimeout(() => {
-      setPage((p) => p + 1);
-      setLoadingMore(false);
-    }, 400);
+    if (loadingMore || !hasMore) return;
+    setPage((p) => p + 1);
   };
 
   return (
@@ -232,7 +273,7 @@ export default function Gallery() {
           <div className="flex justify-center py-32">
             <Loader2 className="animate-spin text-red-600" size={36} />
           </div>
-        ) : visible.length === 0 ? (
+        ) : items.length === 0 ? (
           <EmptyState
             reset={() => {
               setCategory("all");
@@ -246,7 +287,7 @@ export default function Gallery() {
             {/* ===== GRID ===== */}
             <div className="max-w-[1400px] mx-auto px-6 pb-20
               grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
-              {visible.map((item, i) => (
+              {items.map((item, i) => (
                 <GalleryCard
                   key={item._id}
                   item={item}

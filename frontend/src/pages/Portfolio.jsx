@@ -7,33 +7,77 @@ import SEO from "../components/SEO";
 
 export default function Portfolio() {
   const [projects, setProjects] = useState([]);
-  const [visible, setVisible] = useState(6);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  /* ================= LOAD DATA ================= */
+  const PAGE_SIZE = 6;
+
+  /* ================= LOAD DATA (SERVER PAGED) ================= */
   useEffect(() => {
+    let active = true;
+
     const load = async () => {
+      const append = page > 1;
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+
       try {
-        const res = await api.get("/portfolio");
-        setProjects(Array.isArray(res.data) ? res.data : []);
+        const res = await api.get("/portfolio", {
+          params: { page, limit: PAGE_SIZE },
+        });
+
+        const payload = res.data || {};
+        const serverItems = Array.isArray(payload.items)
+          ? payload.items
+          : Array.isArray(payload)
+          ? payload
+          : [];
+        const serverTotal =
+          typeof payload.total === "number"
+            ? payload.total
+            : serverItems.length;
+
+        if (!active) return;
+
+        setProjects((prev) => (append ? [...prev, ...serverItems] : serverItems));
+        setTotal(serverTotal);
       } catch {
-        setProjects([]);
+        if (!active) return;
+        if (page === 1) {
+          setProjects([]);
+          setTotal(0);
+        }
       } finally {
-        setLoading(false);
+        if (!active) return;
+        if (append) {
+          setLoadingMore(false);
+        } else {
+          setLoading(false);
+        }
       }
     };
 
     load();
-    window.scrollTo(0, 0);
-  }, []);
+
+    if (page === 1) {
+      window.scrollTo(0, 0);
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [page]);
+
+  const hasMore = projects.length < total;
 
   const loadMore = () => {
-    setLoadingMore(true);
-    setTimeout(() => {
-      setVisible((p) => p + 6);
-      setLoadingMore(false);
-    }, 1200);
+    if (loadingMore || !hasMore) return;
+    setPage((p) => p + 1);
   };
 
   return (
@@ -117,13 +161,13 @@ export default function Portfolio() {
             [...Array(6)].map((_, i) => <Skeleton key={i} />)}
 
           {!loading &&
-            projects.slice(0, visible).map((p, i) => (
+            projects.map((p, i) => (
               <PortfolioCard key={p._id} project={p} index={i} />
             ))}
         </div>
 
         {/* ================= LOAD MORE ================= */}
-        {visible < projects.length && (
+        {hasMore && (
           <div className="flex justify-center pb-32">
             <button
               onClick={loadMore}

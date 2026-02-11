@@ -4,6 +4,14 @@ import fs from "fs/promises";
 import Estimate from "../models/Estimate.js";
 import { deleteImage } from "../services/cloudinary.service.js";
 
+const toPositiveInt = (value, fallback, max = 100) => {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.min(Math.floor(n), max);
+};
+
+const escapeRegex = (input = "") => input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const isLocalUploadPath = (p = "") =>
   typeof p === "string" &&
   (p.includes("\\uploads\\") || p.includes("/uploads/"));
@@ -50,8 +58,43 @@ export const addEstimate = async (req, res) => {
 /* ================= ADMIN LIST ================= */
 export const getEstimates = async (req, res) => {
   try {
-    const list = await Estimate.find()
-      .sort({ createdAt: -1 });
+    const page = toPositiveInt(req.query.page, 1, 1_000_000);
+    const limit = toPositiveInt(req.query.limit, 10, 200);
+    const keyword = typeof req.query.q === "string" ? req.query.q.trim() : "";
+    const wantsPagination =
+      req.query.page !== undefined ||
+      req.query.limit !== undefined ||
+      req.query.q !== undefined;
+
+    const filter = {};
+    if (keyword) {
+      const regex = new RegExp(escapeRegex(keyword), "i");
+      filter.$or = [
+        { name: regex },
+        { phone: regex },
+        { city: regex },
+        { homeType: regex },
+        { budget: regex },
+        { status: regex },
+      ];
+    }
+
+    const baseQuery = Estimate.find(filter)
+      .sort({ createdAt: -1 })
+      .select(
+        "name phone city homeType budget status notes requirements fileUrl createdAt lastContactedAt"
+      )
+      .lean();
+
+    if (wantsPagination) {
+      const [items, total] = await Promise.all([
+        baseQuery.clone().skip((page - 1) * limit).limit(limit),
+        Estimate.countDocuments(filter),
+      ]);
+      return res.json({ items, total, page, limit });
+    }
+
+    const list = await baseQuery;
 
     res.json(list);
   } catch (err) {
