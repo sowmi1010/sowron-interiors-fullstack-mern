@@ -36,6 +36,8 @@ export default function BookDemo() {
             muted
             loop
             playsInline
+            preload="metadata"
+            poster="/v1.jpg"
             className="absolute inset-0 w-full h-full object-cover opacity-40"
             src="/v2.mp4"
           />

@@ -53,6 +53,8 @@ export default function Portfolio() {
             loop
             muted
             playsInline
+            preload="metadata"
+            poster="/v1.jpg"
             className="absolute inset-0 w-full h-full object-cover"
             src="/v3.mp4"
           />
@@ -150,7 +152,10 @@ export default function Portfolio() {
 
 /* ================= CARD ================= */
 function PortfolioCard({ project, index }) {
-  const imageUrl = project.images?.[0]?.url;
+  const imageUrl =
+    project.images?.[0]?.thumbUrl ||
+    project.images?.[0]?.mediumUrl ||
+    project.images?.[0]?.url;
 
   return (
     <motion.div
@@ -174,6 +179,7 @@ function PortfolioCard({ project, index }) {
             src={imageUrl}
             alt={project.title}
             loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover"
             whileHover={{ scale: 1.18 }}
             transition={{ duration: 1 }}

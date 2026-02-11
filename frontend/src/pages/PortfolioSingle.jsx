@@ -47,7 +47,10 @@ export default function PortfolioSingle() {
     );
   }
 
-  const heroImage = item.images?.[0]?.url;
+  const heroImage =
+    item.images?.[0]?.mediumUrl ||
+    item.images?.[0]?.url ||
+    item.images?.[0]?.fullUrl;
 
   return (
     <>
@@ -83,6 +86,8 @@ export default function PortfolioSingle() {
                 <img
                   src={heroImage}
                   alt={item.title}
+                  loading="eager"
+                  decoding="async"
                   className="w-full h-[360px] md:h-[520px] object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
@@ -125,22 +130,29 @@ export default function PortfolioSingle() {
         {item.images?.length > 0 && (
           <section className="max-w-7xl mx-auto px-6 pt-28 pb-32">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
-              {item.images.map((img, idx) => (
-                <motion.div
-                  key={idx}
-                  whileHover={{ y: -8 }}
-                  transition={{ duration: 0.4 }}
-                  className="cursor-pointer"
-                  onClick={() => setPreview(img.url)}
-                >
-                  <img
-                    src={img.url}
-                    alt={`${item.title} image ${idx + 1}`}
-                    className="w-full h-[280px] object-cover
+              {item.images.map((img, idx) => {
+                const cardSrc = img.thumbUrl || img.mediumUrl || img.url;
+                const previewSrc = img.fullUrl || img.mediumUrl || img.url;
+
+                return (
+                  <motion.div
+                    key={idx}
+                    whileHover={{ y: -8 }}
+                    transition={{ duration: 0.4 }}
+                    className="cursor-pointer"
+                    onClick={() => setPreview(previewSrc)}
+                  >
+                    <img
+                      src={cardSrc}
+                      alt={`${item.title} image ${idx + 1}`}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-[280px] object-cover
                       rounded-3xl shadow-xl"
-                  />
-                </motion.div>
-              ))}
+                    />
+                  </motion.div>
+                );
+              })}
             </div>
           </section>
         )}

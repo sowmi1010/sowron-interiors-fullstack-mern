@@ -138,8 +138,10 @@ export default function FeedbackSection() {
               <div className="flex items-center gap-4 mt-auto">
                 {r.photo?.url ? (
                   <img
-                    src={r.photo.url}
+                    src={r.photo.thumbUrl || r.photo.mediumUrl || r.photo.url}
                     alt={r.name}
+                    loading="lazy"
+                    decoding="async"
                     className="w-12 h-12 rounded-full object-cover border
                                border-brand-yellow/40"
                     onError={(e) => {

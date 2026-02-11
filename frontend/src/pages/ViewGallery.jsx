@@ -95,6 +95,9 @@ export default function ViewGallery() {
   }
 
   const images = item.images;
+  const getSlideSrc = (img) => img?.mediumUrl || img?.url || img?.fullUrl || "";
+  const getThumbSrc = (img) => img?.thumbUrl || img?.mediumUrl || img?.url || "";
+  const getFullSrc = (img) => img?.fullUrl || img?.mediumUrl || img?.url || "";
 
   const next = () =>
     setActiveIndex((p) => (p + 1) % images.length);
@@ -165,7 +168,7 @@ export default function ViewGallery() {
             className="relative h-[320px] sm:h-[460px] md:h-[600px]
               rounded-[3rem] overflow-hidden shadow-[0_30px_90px_rgba(0,0,0,0.35)]
               bg-black cursor-zoom-in"
-            onClick={() => setZoomImage(images[activeIndex].url)}
+            onClick={() => setZoomImage(images[activeIndex])}
           >
             {/* CONTROLS */}
             <button
@@ -200,9 +203,10 @@ export default function ViewGallery() {
                 className="w-full h-full"
               >
                 <SecureImageCanvas
-                  src={images[activeIndex].url}
+                  src={getSlideSrc(images[activeIndex])}
                   alt={item.title}
                   watermark={watermark}
+                  maxDimension={2200}
                   className="w-full h-full"
                   rounded={false}
                 />
@@ -238,9 +242,10 @@ export default function ViewGallery() {
                 onClick={() => setActiveIndex(idx)}
               >
                 <SecureImageCanvas
-                  src={img.url}
+                  src={getThumbSrc(img)}
                   alt={item.title}
                   watermark={watermark}
+                  maxDimension={420}
                   className="h-24 w-40"
                 />
               </motion.div>
@@ -275,9 +280,10 @@ export default function ViewGallery() {
                 rounded-3xl shadow-2xl"
             >
               <SecureImageCanvas
-                src={zoomImage}
+                src={getFullSrc(zoomImage)}
                 alt={item.title}
                 watermark={watermark}
+                maxDimension={2600}
                 className="max-h-[90vh] max-w-[90vw]"
               />
             </motion.div>

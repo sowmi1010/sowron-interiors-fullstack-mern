@@ -310,6 +310,11 @@ function Dropdown({ label, value, options, onChange, disabled }) {
 }
 
 function GalleryCard({ item, index, watermark }) {
+  const coverSrc =
+    item.images?.[0]?.thumbUrl ||
+    item.images?.[0]?.mediumUrl ||
+    item.images?.[0]?.url;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -324,11 +329,12 @@ function GalleryCard({ item, index, watermark }) {
         transition"
     >
       <Link to={`/view-gallery/${item._id}`} className="block relative">
-        {item.images?.[0]?.url ? (
+        {coverSrc ? (
           <SecureImageCanvas
-            src={item.images[0].url}
+            src={coverSrc}
             alt={item.title}
             watermark={watermark}
+            maxDimension={900}
             className="h-[260px] w-full
               hover:scale-105 transition-transform duration-700
               pointer-events-none select-none"

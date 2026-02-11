@@ -12,46 +12,114 @@ const createSlug = (text) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-const SIGNED_TTL = Number(process.env.GALLERY_SIGNED_TTL || 60);
-const WATERMARK_TEXT = "SOWRON";
+const toPositiveInt = (value, fallback) => {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+};
 
-const signImage = (img, watermarkText = WATERMARK_TEXT) => {
-  if (!img?.public_id) return img;
+const SIGNED_TTL = toPositiveInt(process.env.GALLERY_SIGNED_TTL, 3600);
+const WATERMARK_TEXT = String(
+  process.env.GALLERY_WATERMARK_TEXT || "SOWRON"
+)
+  .trim()
+  .slice(0, 40);
 
-  const expiresAt = Math.floor(Date.now() / 1000) + SIGNED_TTL;
-  const signedUrl = cloudinary.url(img.public_id, {
+const getSignedExpiry = () => {
+  const now = Math.floor(Date.now() / 1000);
+  return Math.floor(now / SIGNED_TTL) * SIGNED_TTL + SIGNED_TTL;
+};
+
+const buildSignedGalleryUrl = (publicId, options = {}, expiresAt = getSignedExpiry()) => {
+  if (!publicId) return "";
+
+  const {
+    width,
+    height,
+    crop = "limit",
+    gravity = "auto",
+    quality = "auto:good",
+    watermarkText = WATERMARK_TEXT,
+  } = options;
+
+  const sizeTransform = {};
+  if (Number.isFinite(width) && width > 0) sizeTransform.width = Math.round(width);
+  if (Number.isFinite(height) && height > 0) sizeTransform.height = Math.round(height);
+
+  if (sizeTransform.width || sizeTransform.height) {
+    sizeTransform.crop = crop;
+    if (crop !== "limit" && gravity) {
+      sizeTransform.gravity = gravity;
+    }
+  }
+
+  const transformation = [{ fetch_format: "auto", quality }];
+  if (sizeTransform.width || sizeTransform.height) {
+    transformation.push(sizeTransform);
+  }
+
+  if (watermarkText) {
+    transformation.push({
+      overlay: {
+        font_family: "Arial",
+        font_size: 24,
+        font_weight: "bold",
+        text: watermarkText,
+      },
+      color: "white",
+      opacity: 50,
+      gravity: "south_east",
+      x: 10,
+      y: 10,
+    });
+  }
+
+  return cloudinary.url(publicId, {
     secure: true,
     sign_url: true,
     expires_at: expiresAt,
-    transformation: [
-      {
-        overlay: {
-          font_family: "Arial",
-          font_size: 24,
-          font_weight: "bold",
-          text: watermarkText,
-        },
-        color: "white",
-        opacity: 50,
-        gravity: "south_east",
-        x: 10,
-        y: 10,
-      },
-    ],
+    transformation,
   });
+};
+
+const signImage = (img, expiresAt = getSignedExpiry()) => {
+  if (!img?.public_id) return img;
+
+  const thumbUrl = buildSignedGalleryUrl(
+    img.public_id,
+    { width: 900, height: 620, crop: "fill", gravity: "auto" },
+    expiresAt
+  );
+  const mediumUrl = buildSignedGalleryUrl(
+    img.public_id,
+    { width: 1600, crop: "limit" },
+    expiresAt
+  );
+  const fullUrl = buildSignedGalleryUrl(
+    img.public_id,
+    { width: 2600, crop: "limit", quality: "auto:best" },
+    expiresAt
+  );
 
   return {
     ...img,
-    url: signedUrl,
+    originalUrl: img.url,
+    thumbUrl,
+    mediumUrl,
+    fullUrl,
+    url: mediumUrl || img.url,
     expiresAt,
   };
 };
 
-const withSignedImages = (item) => {
+const withSignedImages = (item, { coverOnly = false } = {}) => {
   const data = item?.toObject ? item.toObject() : item;
+  const sourceImages = Array.isArray(data.images) ? data.images : [];
+  const images = coverOnly ? sourceImages.slice(0, 1) : sourceImages;
+  const expiresAt = getSignedExpiry();
+
   return {
     ...data,
-    images: (data.images || []).map((img) => signImage(img)),
+    images: images.map((img) => signImage(img, expiresAt)),
   };
 };
 
@@ -118,9 +186,11 @@ export const getGallery = async (req, res) => {
 
     const items = await Gallery.find(filter)
       .populate("category", "name slug")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
-    res.json(items.map(withSignedImages));
+    res.set("Cache-Control", "public, max-age=60, s-maxage=300");
+    res.json(items.map((item) => withSignedImages(item, { coverOnly: true })));
   } catch (err) {
     console.error("GET GALLERY ERROR:", err);
     res.status(500).json({ message: "Failed to load gallery" });
@@ -138,10 +208,11 @@ export const getSingleGallery = async (req, res) => {
     const item = await Gallery.findById(id).populate(
       "category",
       "name slug"
-    );
+    ).lean();
 
     if (!item) return res.status(404).json({ message: "Not found" });
 
+    res.set("Cache-Control", "public, max-age=60, s-maxage=300");
     res.json(withSignedImages(item));
   } catch (err) {
     console.error("GET SINGLE ERROR:", err);

@@ -88,6 +88,8 @@ export default function Home() {
               <motion.img
                 src="/i8.jpg"
                 alt="Interior execution and modular furniture"
+                loading="lazy"
+                decoding="async"
                 className="object-cover rounded-2xl"
                 whileHover={{ scale: 1.05 }}
                 transition={{ duration: 0.4 }}
@@ -155,6 +157,8 @@ export default function Home() {
               <img
                 src="/i11.jpg"
                 alt="Luxury interior design project"
+                loading="lazy"
+                decoding="async"
                 className="object-cover h-[450px] w-full rounded-2xl"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50" />
@@ -173,15 +177,14 @@ export default function Home() {
           transition={{ duration: 1 }}
           className="relative py-20 md:py-36 text-center overflow-hidden"
         >
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
+          <img
+            src="/v1.jpg"
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            decoding="async"
             className="absolute inset-0 w-full h-full object-cover opacity-40"
-          >
-            <source src="/v3.mp4" type="video/mp4" />
-          </video>
+          />
 
           <div className="absolute inset-0 bg-black/70" />
 

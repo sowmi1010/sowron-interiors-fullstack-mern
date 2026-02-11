@@ -1,6 +1,67 @@
 import mongoose from "mongoose";
 import Portfolio from "../models/Portfolio.js";
 import { deleteMultipleImages } from "../services/cloudinary.service.js";
+import cloudinary from "../config/cloudinary.js";
+
+const buildPortfolioImageUrl = (publicId, options = {}) => {
+  if (!publicId) return "";
+
+  const { width, height, crop = "limit", gravity = "auto", quality = "auto:good" } = options;
+  const transform = [{ fetch_format: "auto", quality }];
+
+  if (Number.isFinite(width) && width > 0) {
+    const size = { width: Math.round(width), crop };
+    if (Number.isFinite(height) && height > 0) {
+      size.height = Math.round(height);
+    }
+    if (crop !== "limit" && gravity) {
+      size.gravity = gravity;
+    }
+    transform.push(size);
+  }
+
+  return cloudinary.url(publicId, {
+    secure: true,
+    transformation: transform,
+  });
+};
+
+const optimizePortfolioImage = (img) => {
+  if (!img?.public_id) return img;
+
+  const thumbUrl = buildPortfolioImageUrl(img.public_id, {
+    width: 860,
+    height: 560,
+    crop: "fill",
+    gravity: "auto",
+  });
+  const mediumUrl = buildPortfolioImageUrl(img.public_id, {
+    width: 1600,
+    crop: "limit",
+  });
+  const fullUrl = buildPortfolioImageUrl(img.public_id, {
+    width: 2600,
+    crop: "limit",
+    quality: "auto:best",
+  });
+
+  return {
+    ...img,
+    originalUrl: img.url,
+    thumbUrl,
+    mediumUrl,
+    fullUrl,
+    url: mediumUrl || img.url,
+  };
+};
+
+const withOptimizedPortfolioImages = (item) => {
+  const data = item?.toObject ? item.toObject() : item;
+  return {
+    ...data,
+    images: (data.images || []).map(optimizePortfolioImage),
+  };
+};
 
 /* ================= ADD PORTFOLIO ================= */
 export const addPortfolio = async (req, res) => {
@@ -51,9 +112,11 @@ export const addPortfolio = async (req, res) => {
 export const getPortfolio = async (req, res) => {
   try {
     const list = await Portfolio.find()
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
-    res.json(list);
+    res.set("Cache-Control", "public, max-age=60, s-maxage=300");
+    res.json(list.map(withOptimizedPortfolioImages));
   } catch (err) {
     console.error("GET PORTFOLIO ERROR:", err);
     res.status(500).json({ message: "Failed to load portfolio" });
@@ -69,13 +132,14 @@ export const getSinglePortfolio = async (req, res) => {
       return res.status(400).json({ message: "Invalid portfolio ID" });
     }
 
-    const item = await Portfolio.findById(id);
+    const item = await Portfolio.findById(id).lean();
 
     if (!item) {
       return res.status(404).json({ message: "Portfolio not found" });
     }
 
-    res.json(item);
+    res.set("Cache-Control", "public, max-age=60, s-maxage=300");
+    res.json(withOptimizedPortfolioImages(item));
   } catch (err) {
     console.error("GET SINGLE PORTFOLIO ERROR:", err);
     res.status(500).json({ message: "Failed to fetch portfolio" });

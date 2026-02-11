@@ -4,6 +4,52 @@ import sendEmail from "../utils/sendEmail.js";
 import { logAdminAuthEvent } from "../middleware/adminSecurity.js";
 import Admin from "../models/Admin.js";
 
+const DEFAULT_ADMIN_SESSION = "7d";
+const MIN_ADMIN_SESSION_MS = 15 * 60 * 1000; // prevent accidental ultra-short sessions
+
+const parseDurationToMs = (value) => {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return value * 1000;
+  }
+
+  if (typeof value !== "string") return null;
+  const input = value.trim();
+  if (!input) return null;
+
+  if (/^\d+$/.test(input)) {
+    return Number(input) * 1000;
+  }
+
+  const match = input.match(/^(\d+)(ms|s|m|h|d)$/i);
+  if (!match) return null;
+
+  const amount = Number(match[1]);
+  const unit = match[2].toLowerCase();
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+
+  const multipliers = {
+    ms: 1,
+    s: 1000,
+    m: 60 * 1000,
+    h: 60 * 60 * 1000,
+    d: 24 * 60 * 60 * 1000,
+  };
+
+  return amount * multipliers[unit];
+};
+
+const resolveAdminSession = () => {
+  const fallbackMs = parseDurationToMs(DEFAULT_ADMIN_SESSION);
+  const configuredMs = parseDurationToMs(process.env.ADMIN_JWT_EXPIRES);
+  const baseMs = configuredMs || fallbackMs;
+  const sessionMs = Math.max(baseMs || MIN_ADMIN_SESSION_MS, MIN_ADMIN_SESSION_MS);
+
+  return {
+    maxAgeMs: sessionMs,
+    jwtExpiresIn: `${Math.floor(sessionMs / 1000)}s`,
+  };
+};
+
 /* ===========================
    ADMIN LOGIN
 =========================== */
@@ -132,10 +178,12 @@ export const adminVerifyOtp = async (req, res) => {
     admin.lastLogin = new Date();
     await admin.save({ validateBeforeSave: false });
 
+    const session = resolveAdminSession();
+
     const token = jwt.sign(
       { id: admin._id, type: "admin", email: admin.email },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.ADMIN_JWT_EXPIRES || "15m" }
+      { expiresIn: session.jwtExpiresIn }
     );
 
     const isProd = process.env.NODE_ENV === "production";
@@ -143,7 +191,7 @@ export const adminVerifyOtp = async (req, res) => {
       httpOnly: true,
       secure: isProd,
       sameSite: isProd ? "none" : "lax",
-      maxAge: 15 * 60 * 1000,
+      maxAge: session.maxAgeMs,
     });
 
     if (process.env.DEBUG_AUTH === "true") {

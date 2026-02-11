@@ -75,6 +75,8 @@ export default function Hero() {
       {/* ================= BACKGROUND VIDEO ================= */}
       <motion.video
         src="/v3.mp4"
+        poster="/v1.jpg"
+        preload="metadata"
         autoPlay
         muted
         loop
