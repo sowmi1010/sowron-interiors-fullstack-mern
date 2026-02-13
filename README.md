@@ -68,30 +68,6 @@ Core business modules in backend:
 
 ---
 
-## Folder Structure
-
-```text
-sowron-interiors/
-├─ frontend/
-│  ├─ src/
-│  │  ├─ pages/                # public + admin pages
-│  │  ├─ components/
-│  │  ├─ lib/                  # axios + socket setup
-│  │  └─ router/
-│  └─ package.json
-├─ backend/
-│  ├─ src/
-│  │  ├─ controllers/
-│  │  ├─ routes/
-│  │  ├─ models/
-│  │  ├─ middleware/
-│  │  ├─ utils/
-│  │  ├─ services/
-│  │  └─ config/
-│  ├─ createAdmin.js
-│  └─ package.json
-└─ .gitignore
-
 
 <img width="1919" height="875" alt="Screenshot 2026-02-13 163522" src="https://github.com/user-attachments/assets/fd01d5ea-a320-4385-a824-dfcf222cd3b1" />
 
