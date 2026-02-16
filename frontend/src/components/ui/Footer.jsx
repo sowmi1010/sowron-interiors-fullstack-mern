@@ -6,20 +6,20 @@ export default function Footer() {
     <footer
       role="contentinfo"
       aria-label="Website Footer"
-      className="relative w-full overflow-hidden text-brand-lightText dark:text-brand-darkText"
+      className="relative isolate w-full overflow-hidden text-brand-lightText dark:text-brand-darkText"
     >
       {/* ================= SOFT BACKGROUND ================= */}
-      <div className="absolute inset-0 bg-gradient-to-b from-brand-yellowSoft/30 via-white to-white dark:from-black dark:via-black dark:to-black" />
+      <div className="absolute inset-0 -z-20 bg-gradient-to-b from-brand-yellowSoft/30 via-white to-white dark:from-black dark:via-black dark:to-black" />
 
       {/* ================= FLOATING LIGHTS ================= */}
       <motion.div
-        className="absolute -top-20 left-10 w-80 h-80 bg-brand-red/20 blur-[180px] rounded-full pointer-events-none"
+        className="absolute -top-20 left-10 -z-10 w-80 h-80 bg-brand-red/20 blur-[180px] rounded-full pointer-events-none"
         animate={{ x: [0, 60, 0], y: [0, 40, 0] }}
         transition={{ duration: 18, repeat: Infinity }}
       />
 
       <motion.div
-        className="absolute bottom-0 right-10 w-96 h-96 bg-brand-yellow/20 blur-[200px] rounded-full pointer-events-none"
+        className="absolute bottom-0 right-10 -z-10 w-96 h-96 bg-brand-yellow/20 blur-[200px] rounded-full pointer-events-none"
         animate={{ x: [0, -60, 0], y: [0, -50, 0] }}
         transition={{ duration: 20, repeat: Infinity }}
       />
@@ -27,7 +27,7 @@ export default function Footer() {
       {/* ================= CONTENT ================= */}
       <div
         className="
-          relative px-6 py-20
+          relative z-10 px-6 py-20
           border-t border-brand-yellow/30 dark:border-white/10
           bg-white/80 dark:bg-black/80 backdrop-blur-xl
         "
@@ -137,10 +137,42 @@ export default function Footer() {
       </div>
 
       {/* ================= COPYRIGHT ================= */}
-      <div className="bg-black text-white text-xs md:text-sm py-5 text-center tracking-wide">
-        © {new Date().getFullYear()} SOWRON INFRASTRUCTURE AND SOLUTIONS PVT. LTD.
-        <span className="opacity-60"> — All Rights Reserved</span>
+      <div
+        className="relative z-10 border-t border-black/10 dark:border-white/10
+          bg-gradient-to-r from-[#f8f8f8] via-white to-[#f8f8f8]
+          dark:from-[#050505] dark:via-black dark:to-[#050505]
+          text-brand-lightText dark:text-brand-darkText py-6 px-4 text-center"
+      >
+        <p className="text-[11px] md:text-sm font-medium tracking-[0.08em] uppercase">
+          &copy; {new Date().getFullYear()} SOWRON INFRASTRUCTURE AND SOLUTIONS PVT. LTD.
+          <span className="opacity-60"> - All Rights Reserved</span>
+        </p>
+
+        <p className="mt-3 text-xs md:text-sm flex flex-wrap items-center justify-center gap-2">
+          <span className="opacity-80">Developed by</span>
+          <a
+            href="https://sowmi1010.github.io/my-portfolio/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold bg-gradient-to-r from-brand-red to-brand-yellow
+              bg-clip-text text-transparent hover:brightness-110 transition"
+          >
+            Sowmiya Thangadurai
+          </a>
+          <span className="opacity-50">|</span>
+          <span className="opacity-80">Number</span>
+          <a
+            href="tel:+917305312767"
+            className="px-3 py-1 rounded-full border border-brand-red/30 dark:border-brand-yellow/30
+              bg-brand-red/5 dark:bg-brand-yellow/10 font-semibold hover:scale-105 transition"
+          >
+            7305312767
+          </a>
+        </p>
       </div>
     </footer>
   );
 }
+
+
+

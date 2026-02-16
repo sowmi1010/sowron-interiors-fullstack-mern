@@ -177,21 +177,37 @@ export default function Gallery() {
           dark:bg-[radial-gradient(circle_at_top,rgba(20,20,20,0.9),rgba(10,10,10,0.95),rgba(0,0,0,0.98))]" />
 
         {/* ===== HEADER ===== */}
-        <div className="max-w-6xl mx-auto px-6 pt-24 pb-10 text-center">
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-6xl font-extrabold tracking-tight
-              bg-gradient-to-r from-red-600 via-red-700 to-red-900
-              bg-clip-text text-transparent"
-          >
-            Our Signature Works
-          </motion.h1>
+        <div className="max-w-6xl mx-auto px-6 pt-24 pb-10">
+          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <div className="text-center md:text-left">
+              <motion.h1
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-4xl md:text-6xl font-extrabold tracking-tight
+                  bg-gradient-to-r from-red-600 via-red-700 to-red-900
+                  bg-clip-text text-transparent"
+              >
+                Our Signature Works
+              </motion.h1>
 
-          <p className="mt-3 text-sm md:text-base
-            text-gray-600 dark:text-gray-400">
-            Bespoke interiors crafted with timeless elegance
-          </p>
+              <p className="mt-3 text-sm md:text-base text-gray-600 dark:text-gray-400">
+                Bespoke interiors crafted with timeless elegance
+              </p>
+            </div>
+
+            <div className="flex justify-center md:justify-end">
+              <Link
+                to="/commercial"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl
+                  text-sm font-semibold text-white
+                  bg-gradient-to-r from-brand-red to-brand-redDark
+                  hover:shadow-[0_16px_30px_rgba(211,47,47,0.35)] transition"
+              >
+                Commercial Services
+                <ArrowUpRight size={16} />
+              </Link>
+            </div>
+          </div>
         </div>
 
         {/* ===== FILTER BAR (PREMIUM DROPDOWN) ===== */}

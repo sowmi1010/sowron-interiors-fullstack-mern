@@ -12,6 +12,7 @@ const Register = lazy(() => import("../pages/Register.jsx"));
 
 const Gallery = lazy(() => import("../pages/Gallery.jsx"));
 const ViewGallery = lazy(() => import("../pages/ViewGallery.jsx"));
+const Commercial = lazy(() => import("../pages/Commercial.jsx"));
 
 const Portfolio = lazy(() => import("../pages/Portfolio.jsx"));
 const PortfolioSingle = lazy(() => import("../pages/PortfolioSingle.jsx"));
@@ -81,6 +82,7 @@ export const router = createBrowserRouter([
 
       { path: "/gallery", element: <Gallery /> },
       { path: "/view-gallery/:id", element: <ViewGallery /> },
+      { path: "/commercial", element: <Commercial /> },
 
       { path: "/portfolio", element: <Portfolio /> },
       { path: "/portfolio/:id", element: <PortfolioSingle /> },

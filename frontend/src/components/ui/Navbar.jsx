@@ -24,6 +24,7 @@ export default function Navbar() {
   const links = [
     { path: "/", label: "Home" },
     { path: "/gallery", label: "Gallery" },
+    { path: "/commercial", label: "Commercial" },
     { path: "/portfolio", label: "Portfolio" },
     { path: "/book-demo", label: "Book Demo" },
     { path: "/estimate", label: "Estimate" },
